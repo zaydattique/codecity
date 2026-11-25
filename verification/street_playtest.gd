@@ -14,7 +14,7 @@ func _verify() -> void:
 		_fail("missing actual asset pack")
 		return
 	var world=Harbor.new()
-	if not world.prepare("adrian"):
+	if not world.prepare("adrian",false,false):
 		_fail("Adrian spawn preparation")
 		return
 	root.add_child(world)
@@ -156,7 +156,7 @@ func _verify() -> void:
 	world.queue_free()
 	await process_frame
 	var other=Harbor.new()
-	if not other.prepare("maya"):
+	if not other.prepare("maya",false,false):
 		_fail("Maya spawn preparation")
 		return
 	root.add_child(other)
