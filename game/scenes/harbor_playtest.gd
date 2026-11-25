@@ -108,8 +108,16 @@ func _ready() -> void:
 		station.editor_changed.connect(_academy_editor)
 		# Dusk lighting makes the real restored fixtures visibly affect the street.
 		for node: Node in get_children():
-			if node is DirectionalLight3D:node.light_energy=0.22
-			if node is WorldEnvironment:node.environment.ambient_light_energy=0.23
+			if node is DirectionalLight3D:
+				node.light_energy=0.32
+				node.light_color=Color(1.0,0.76,0.55)
+				node.rotation_degrees=Vector3(-16,-32,0)
+			if node is WorldEnvironment:
+				node.environment.ambient_light_energy=0.30
+				node.environment.ambient_light_color=Color(0.61,0.71,0.91)
+				var sky_material:=node.environment.sky.sky_material as ProceduralSkyMaterial
+				sky_material.sky_top_color=Color(0.13,0.22,0.39)
+				sky_material.sky_horizon_color=Color(0.68,0.46,0.39)
 	if _enable_npcs and Crowd.installed():
 		var director := Crowd.new()
 		if director.prepare(player,vehicle):
@@ -170,8 +178,8 @@ func _make_light() -> void:
 	env.environment=Environment.new()
 	var sky := Sky.new()
 	var mat := ProceduralSkyMaterial.new()
-	mat.sky_top_color=Color(0.22,0.40,0.66)
-	mat.sky_horizon_color=Color(0.74,0.81,0.89)
+	mat.sky_top_color=Color(0.18,0.35,0.57)
+	mat.sky_horizon_color=Color(0.78,0.83,0.88)
 	sky.sky_material=mat
 	env.environment.sky=sky
 	env.environment.background_mode=Environment.BG_SKY
@@ -181,7 +189,8 @@ func _make_light() -> void:
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-52,-32,0)
-	sun.light_energy=1.35
+	sun.light_energy=1.25
+	sun.light_color=Color(1.0,0.93,0.83)
 	sun.shadow_enabled=true
 	add_child(sun)
 
