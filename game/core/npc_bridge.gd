@@ -50,6 +50,8 @@ func submit(observations: Array, tick: int) -> bool:
 func _process(_delta: float) -> void:
 	if pid<=0 or failed:return
 	if not OS.is_process_running(pid):
+		# Godot has already observed/reaped this child. Never query it twice.
+		pid=-1
 		_fail()
 		return
 	if pending.is_empty():return
@@ -75,8 +77,9 @@ func _fail() -> void:
 	unavailable.emit()
 
 func _stop() -> void:
-	if pid>0 and OS.is_process_running(pid):OS.kill(pid)
+	var child := pid
 	pid=-1
+	if child>0 and OS.is_process_running(child):OS.kill(child)
 	pending=""
 	if not folder.is_empty():
 		for name: String in ["request.json","request.tmp","response.json","response.tmp","stop"]:

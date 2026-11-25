@@ -82,8 +82,16 @@ func _verify() -> void:
 		_fail("NPC decision tick during pause")
 		return
 	world._set_pause(false)
-	OS.kill(crowd.bridge.pid)
-	await create_timer(0.4).timeout
+	# Request real worker termination through its owned mailbox. OS.kill from
+	# the fixture would remove Godot's process-map entry behind the bridge.
+	var stop := FileAccess.open(crowd.bridge.folder.path_join("stop"),FileAccess.WRITE)
+	if stop==null:
+		_fail("worker stop request")
+		return
+	stop.close()
+	var stop_deadline := Time.get_ticks_msec()+4000
+	while not crowd.failed and Time.get_ticks_msec()<stop_deadline:
+		await create_timer(0.025).timeout
 	if not crowd.failed:
 		_fail("dead worker not detected")
 		return
