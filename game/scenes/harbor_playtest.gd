@@ -415,6 +415,7 @@ func _set_pause(value: bool) -> void:
 	player.stop_controls()
 	_sync_controls()
 	_pause_panel.visible=value
+	if is_instance_valid(_subtitle_panel) and value:_subtitle_panel.hide()
 	_pause_button.visible=not value
 	_refresh_hints()
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
