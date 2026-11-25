@@ -56,3 +56,5 @@ Numerical street/coupe budgets now pass on revised optimizer; latest Windows/Lin
 Profile/mode/character draft UI now implemented and connected to authoritative in-memory state, engine regression pending. Both numerical geometry budgets pass, actual optimized street visual inspection passed geometry-preservation review only; real character render/import test still running. No production approval or gameplay.
 
 Both corrected adult characters and numerical street/coupe budgets pass source review. Actual profile/mode UI regression and 67 Python tests passed Windows/Linux. Maya engine morph discrepancy remains, default morph freeze candidate build now queued. Phase A still open until in-engine candidate check and remaining art/interactive approval.
+
+Actual runtime import passed both adult character derivatives and budget-passing street. 70 tests, menu selection and foundation passed Windows/Linux. Software-rendered review reached success marker but audio device initialization failed strict log gate; fixed isolated render runner configuration. No production art approval, actual user-input playtest or performance measurements yet.
