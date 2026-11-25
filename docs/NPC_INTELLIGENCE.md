@@ -1,0 +1,3 @@
+# NPC intelligence
+
+See [architecture](../ARCHITECTURE.md) and sections 07–09 of the [master directive](MASTER_PRODUCTION_DIRECTIVE.md). Current worker supports ping only. Next implement bounded decision batches with schedules, needs, personality, relationship/memory and perceived events; validate proposed intents in Godot and distinguish fallback. NPCs must behave independently, never expose internal scores. Six independent actors in the slice before 24 civilian appearance configurations or 25–40 nearby active NPCs; measure actual cost. No behavior claims until visible tests with real animated actors. Academy code execution is isolated from the trusted NPC worker.

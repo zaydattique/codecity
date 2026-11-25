@@ -33,3 +33,5 @@ Use the fixed painted wooden bench pilot before attempting automatic MPFB human 
 ## Character candidate automation
 
 Use pinned MPFB 2.0.18 source and official MakeHuman system assets pack, no paid generation. CI builds/installs extension outside game and runs `blender --background --disable-autoexec --python-exit-code 1 --python tools/build_character.py -- --id adrian --pack <official-system-assets.zip>`. Output only to ignored build/characters, real rendered front, three-quarter and face views. First candidate uses generic CC0 clothing/hair for validation; no motion, LOD or final art claim. Verify appearance, clothing fit, material export, exact profile proportions, custom wardrobe and animation before accepting. Maya remains second planned playable lead.
+
+Updated master directive requires front, side, rear, three-quarter, face, turntable and lighting/motion review, no generic MPFB candidate as final. Use python tools/fetch_system_pack.py art/raw/system-assets.zip for either official mirror, or reuse an existing verified official local ZIP. Actual visual review logged in RENDER_REVIEW.md. No new model approval.

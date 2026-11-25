@@ -7,6 +7,7 @@ on:
       - 'ai/**'
       - 'tools/**'
       - 'tests/**'
+      - 'verification/session_contract.gd'
       - 'art/**'
       - '.python-version'
       - 'pytest.ini'
@@ -54,7 +55,11 @@ jobs:
           timeout 180 "$godot" --headless --path game --editor --import 2>&1 | tee build/ci/import.log
           timeout 60 "$godot" --headless --path game --quit-after 180 -- --smoke 2>&1 | tee build/ci/smoke.log
           grep -q CODECITY_FOUNDATION_SMOKE_OK build/ci/smoke.log
-          if grep -E 'SCRIPT ERROR:|ERROR:' build/ci/import.log build/ci/smoke.log; then exit 1; fi
+          mkdir -p game/_qa
+          cp verification/session_contract.gd game/_qa/
+          timeout 60 "$godot" --headless --path game --script res://_qa/session_contract.gd 2>&1 | tee build/ci/session.log
+          grep -q CODECITY_SESSION_CONTRACT_OK build/ci/session.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' build/ci/import.log build/ci/smoke.log build/ci/session.log; then exit 1; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -131,7 +136,7 @@ jobs:
       - name: Download official CC0 system pack
         run: |
           set -euo pipefail
-          curl -fL --retry 2 --max-time 480 --max-filesize 400000000 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o "$RUNNER_TEMP/system-assets.zip"
+          python tools/fetch_system_pack.py "$RUNNER_TEMP/system-assets.zip"
           sha256sum "$RUNNER_TEMP/system-assets.zip"
       - name: Build Adrian candidate and inspect render outputs
         run: |

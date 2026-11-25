@@ -1,6 +1,6 @@
 # CodeCity: Living World
 
-Original, non-educational, story-driven open-world Windows game. The player experiences autonomous characters through behavior, not through an AI dashboard. GTA V and VI are aspirations for visual craft and reactive behavior, not assets, source or claims of achieved quality.
+Original standalone Windows open-world game with two modes: Living World (non-educational story) and CodeCity Academy (physical Python programming missions). The player experiences autonomous characters through behavior, not through an AI dashboard. GTA V and VI are aspirations for visual craft and reactive behavior, not assets, source or claims of achieved quality.
 
 ## Status: Foundation and asset preflight; runtime gates open
 
@@ -55,3 +55,7 @@ The pilot is a real CC0 Poly Haven painted wooden bench, not a character or fini
 Run 45585769664 succeeded on Linux with Python 3.14.10 (38 tests), Godot 4.7.2 import/boot and Blender 4.5.17 LTS export/render. The actual CC0 bench studio render was visually inspected; wood grain, edge wear and shading are coherent, appropriate for indoor furniture. 630 triangles; 1.165 x 0.497 x 0.889 m. Godot import of this exact mesh passed in run 45587661323; collision/interaction remain pending. See https://github.com/zaydattique/codecity/actions/runs/45585769664 . The new character-candidate job builds a rigged MPFB Adrian using the official CC0 system pack and pinned tool, then exports source, GLB and three real previews. Its first run is unverified; do not treat it as final hero art. Exactly two planned playable characters: Adrian and Maya. No real navigation UI or map implemented yet.
 
 Character attempt 45587501836 failed during a duplicate Blender download (HTTP 403); installer now reused from bench job. Windows test fixture corrected after 43 passes and one ZIP path fixture failure; reruns pending.
+
+## Revised production requirements
+
+Read [master directive](docs/MASTER_PRODUCTION_DIRECTIVE.md), [Academy curriculum](docs/ACADEMY_CURRICULUM.md), [NPC intelligence](docs/NPC_INTELLIGENCE.md), [gameplay systems](docs/GAMEPLAY_SYSTEMS.md), [audio/VFX](docs/AUDIO_VFX.md), [controls](docs/CONTROLS.md) and [render review](docs/RENDER_REVIEW.md). Hosted Windows/Linux boot and 44 tests passed at 2a170e4. New mode/session and trusted Academy result contracts are development foundations, not playable modes. Student code execution remains disabled. Official system pack downloader supports both mirrors; alternatively pass a locally acquired official ZIP to build_character.py. Character build remains pending.

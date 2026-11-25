@@ -1,0 +1,3 @@
+# Controls
+
+Current boot only registers the foundation input map; it does not move a player. Target mappings are section 11 of the master directive (WASD, mouse, Shift sprint, Space jump/handbrake, Ctrl crouch, E interact, F vehicle, G gesture, H horn, L lights, V camera, M map, Tab inventory, Up phone, J journal, Escape pause). Context ownership is required before migration: walking/driving/UI/Academy editor/cutscene exclusive focus, no gameplay input while editing. Rebind keyboard/controller, test dead zones and focus; clean-content toggle disables rude gestures/language. Do not present unimplemented mappings as working.

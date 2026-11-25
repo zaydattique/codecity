@@ -21,7 +21,7 @@ Inspected remote metadata, main commit and root tree: README only. AGENTS/CLAUDE
 
 ## Vertical slice acceptance
 
-One detailed street with continuous sidewalks and collision/nav, one fully rigged Adrian, one original driveable coupe, six distinguishable adults, one enterable functional interior, one short A New Beginning mission. Initial sequence: arrive, explore, interact, enter/exit vehicle, drive, meet a story contact only if role and assets approved, demonstrate different reactions and one real consequence. Include save/reload and offline rehearsal before public demo. Art signoff on close-up, movement, day/night/indoor shots; six fixed-seed scenarios; no crashes or broken progression; budgets in PERFORMANCE and QA. Expansion requires owner signoff after measured Windows build.
+One detailed street with continuous sidewalks and collision/nav, two fully rigged playable protagonists (Adrian and Maya), one original driveable coupe, six distinguishable adults, one enterable functional interior, one short A New Beginning mission and one physical Control Room Academy mission, real map/minimap, pause/settings, sound and saved independent progress. Initial sequence: arrive, explore, interact, enter/exit vehicle, drive, meet a story contact only if role and assets approved, demonstrate different reactions and one real consequence. Include save/reload and offline rehearsal before public demo. Art signoff on close-up, movement, day/night/indoor shots; six fixed-seed scenarios; no crashes or broken progression; budgets in PERFORMANCE and QA. Expansion requires owner signoff after measured Windows build.
 
 ## Hosted automation checkpoint
 
@@ -32,3 +32,7 @@ Public main source transfer and free render-pilot scripts are now committed. The
 Linux pinned engine smoke and Python target tests passed; real Blender bench export/render passed and preview reviewed. Phase 01 still requires Windows interactive and upstream candidate isolation. Phase 02 character candidate job is a controlled art feasibility test, not a completed vertical slice. Two playable characters: Adrian and Maya, other principal characters remain story NPCs. First detailed street remains Harbor Boulevard; no full city generation before vertical slice gate. Character selection, profile UI, shared real minimap/full map, waypoints and location graph are acceptance criteria after actual characters and street exist. No decorative/fake controls or location previews.
 
 Bench candidate visual and structural Godot import gates now pass. Windows headless suite exposed a platform-specific test fixture defect; corrected and queued for verification. Interactive Windows, upstream isolation and gameplay remain open.
+
+## Revised Phase A continuation
+
+Hosted Windows 44/44 and Godot headless boot passed (45588073887); Linux 44/44 and Godot boot passed (45588073883). Bench candidate verified, interactive/export/GPU and upstream source isolation still open. Current focused work: restore MPFB source acquisition, validate session/interaction and Academy result contracts; next actual character/street/coupe and isolated gameplay references. Do not build city or mark Academy executable until sandbox security and actual world gates pass. Phase 02 art and functional dual-mode slice gates remain open.

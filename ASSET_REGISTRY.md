@@ -23,3 +23,5 @@ Run 45585769664 artifact 15009260029. Actual studio render inspected; coherent w
 Adrian/Maya candidates use MPFB 2.0.18 and official CC0 system pack (base, targets, rig, skin, clothing, hair, eyes, brows, lashes, teeth and tongue); record actual pack/output hashes from report. Generic source clothes and hair are not approved final character designs. No motion or LOD assets yet.
 
 Godot imported exact bench GLB successfully in run 45587661323, job 139113299318. Albedo texture present, 630 triangles, 1.164944 x 0.889291 x 0.496543 m (Godot Y-up). Visual and import candidate gates pass; gameplay collision/seating and final integration remain pending.
+
+Revised directive: exactly two heroes, six independently acting NPCs in slice; later 24 civilian configurations are not separately authored meshes. One bench candidate remains the only visually reviewed/imported model. No approved gameplay assets. System pack download has two official mirrors; actual character outputs still pending.
