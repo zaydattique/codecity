@@ -52,6 +52,11 @@ jobs:
           & $godot.FullName --headless --path game --quit-after 180 -- --smoke 2>&1 | Tee-Object build/windows-qa/smoke.log
           if ($LASTEXITCODE -ne 0) { throw "Engine smoke failed" }
           if (!(Select-String -Path build/windows-qa/smoke.log -Pattern "CODECITY_FOUNDATION_SMOKE_OK")) { throw "Missing success marker" }
+          New-Item -Force -ItemType Directory game/_qa | Out-Null
+          Copy-Item verification/session_contract.gd game/_qa/
+          & $godot.FullName --headless --path game --script res://_qa/session_contract.gd 2>&1 | Tee-Object build/windows-qa/session.log
+          if ($LASTEXITCODE -ne 0) { throw "Session check failed" }
+          if (!(Select-String -Path build/windows-qa/session.log -Pattern "CODECITY_SESSION_CONTRACT_OK")) { throw "Missing session marker" }
           if (Select-String -Path build/windows-qa/*.log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Engine reported errors" }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

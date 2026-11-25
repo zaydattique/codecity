@@ -13,3 +13,5 @@ Pilot: tools/fetch_pilot_asset.py downloads the fixed CC0 glTF source and depend
 `verification/bench_import.gd` checks the exact candidate imported mesh, material, triangle count and dimensions; `.github/workflows/phase01-verification.yml` runs Windows headless foundation and candidate import checks independently.
 
 New authoritative docs: MASTER_PRODUCTION_DIRECTIVE.md and the six specialized docs linked in README. `game/core/session_state.gd` in-memory selection/progression; `game/core/world_interaction.gd` shared range/tree helper; `verification/session_contract.gd` engine regression fixture; `ai/academy_contract.py` trusted result-only translation and `tests/test_academy_contract.py` validation tests. `tools/fetch_system_pack.py` official mirror downloader. No sandbox, physical display, or save persistence yet.
+
+`.github/workflows/upstream-isolation.yml` isolated pinned reference import/startup matrix; `tools/verify_local.ps1` local equivalent foundation/session smoke and optional asset builds. No engine binary or source pack committed.

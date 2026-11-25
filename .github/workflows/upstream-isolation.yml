@@ -1,0 +1,80 @@
+name: Upstream compatibility isolation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/upstream-isolation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: opencity
+            repo: webgl-games/opencity
+            ref: ba9514cdd88ecc2d40ecad503a644449fc98e665
+            path: .
+          - id: gdquest
+            repo: gdquest-demos/godot-4-3d-third-person-controller
+            ref: b3bd6e81084f568be8aa44a69a0c2b1e52e806b3
+            path: .
+          - id: easy-vehicle
+            repo: DAShoe1/Godot-Easy-Vehicle-Physics
+            ref: c392257f54f6ca537dc10bc5badad0c060f18982
+            path: .
+          - id: road-generator
+            repo: TheDuckCow/godot-road-generator
+            ref: 7cbefde04e57a84499c5d8ba636c9cb4fd7d22c0
+            path: .
+          - id: godot-truck-town
+            repo: godotengine/godot-demo-projects
+            ref: 6ad6167e0577fe3622c18546138f456b107ce93c
+            path: 3d/truck_town
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+          lfs: true
+          path: candidate
+      - name: Install verified Godot
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --max-time 300 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o "$RUNNER_TEMP/godot.zip"
+          echo "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  $RUNNER_TEMP/godot.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+      - name: Isolated import and bounded startup
+        env:
+          CANDIDATE_PATH: ${{ matrix.path }}
+          CANDIDATE_REF: ${{ matrix.ref }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_REF"
+          godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          "$godot" --version | tee evidence/version.log
+          project="candidate/$CANDIDATE_PATH"
+          test -f "$project/project.godot"
+          timeout 300 "$godot" --headless --path "$project" --editor --import 2>&1 | tee evidence/import.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' evidence/import.log; then exit 1; fi
+          if grep -q '^run/main_scene=' "$project/project.godot"; then
+            timeout 90 "$godot" --headless --path "$project" --quit-after 120 2>&1 | tee evidence/startup.log
+            if grep -E 'SCRIPT ERROR:|ERROR:' evidence/startup.log; then exit 1; fi
+          else
+            echo 'No main scene; import-only evaluation' | tee evidence/startup.log
+          fi
+          echo CODECITY_ISOLATED_REFERENCE_OK
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: isolation-${{ matrix.id }}-logs
+          path: evidence/
+          if-no-files-found: ignore
+          retention-days: 7
