@@ -21,6 +21,14 @@ const STORY_CONTACT := "nora"
 var _story_stage := 0
 var _story_start := Vector3.ZERO
 var _story_label: Label
+var _story_panel: PanelContainer
+const STORY_OBJECTIVES := [
+	"Nora is waiting for an update. Enter the parked coupe (F).",
+	"Take the coupe for a short test drive (4 m).",
+	"Stop safely and exit the coupe (F).",
+	"Find Nora and report the test drive (E).",
+	"Nora: Good. We can get the car back on the road."]
+var _story_heading: Label
 var _story_sound: AudioStreamPlayer
 var _horn: AudioStreamPlayer3D
 var _story_marker: Label3D
@@ -107,7 +115,16 @@ func _ready() -> void:
 		if director.prepare(player,vehicle):
 			crowd=director
 			add_child(crowd)
+			# Exclude moving NPC geometry from the static aerial map.
+			for node: Node in crowd.find_children("*","MeshInstance3D",true,false):
+				(node as MeshInstance3D).layers=2
 		else:director.free()
+	if vehicle!=null:
+		_horn=AudioStreamPlayer3D.new()
+		_horn.stream=_feedback_clip(true)
+		_horn.max_distance=18.0
+		_horn.process_mode=Node.PROCESS_MODE_PAUSABLE
+		vehicle.add_child(_horn)
 	if not academy_mode and vehicle!=null and is_instance_valid(crowd):
 		_setup_story()
 	_ready_world=true
@@ -438,14 +455,27 @@ func _make_overhead_map() -> void:
 
 # A New Beginning uses the actual car and existing NPC.
 func _setup_story() -> void:
+	_story_panel=PanelContainer.new()
+	_story_panel.position=Vector2(20,120)
+	_story_panel.custom_minimum_size=Vector2(350,0)
+	_story_panel.add_theme_stylebox_override("panel",Style.panel(Color(0.035,0.055,0.075,0.93),6,12))
+	var layout:=VBoxContainer.new()
+	layout.add_theme_constant_override("separation",5)
+	_story_panel.add_child(layout)
+	_story_heading=Label.new()
+	_story_heading.add_theme_font_size_override("font_size",13)
+	_story_heading.add_theme_color_override("font_color",Color(0.96,0.82,0.52))
+	layout.add_child(_story_heading)
 	_story_label=Label.new()
-	_story_label.position=Vector2(20,120)
+	_story_label.custom_minimum_size=Vector2(326,0)
+	_story_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	_story_label.add_theme_font_size_override("font_size",18)
 	_story_label.add_theme_color_override("font_color",Color(0.96,0.82,0.52))
 	_story_label.add_theme_color_override("font_shadow_color",Color(0.02,0.03,0.04))
 	_story_label.add_theme_constant_override("shadow_offset_x",2)
 	_story_label.add_theme_constant_override("shadow_offset_y",2)
-	_hud.add_child(_story_label)
+	layout.add_child(_story_label)
+	_hud.add_child(_story_panel)
 	_story_marker=Label3D.new()
 	_story_marker.text="Nora"
 	_story_marker.font_size=42
@@ -457,10 +487,6 @@ func _setup_story() -> void:
 	_story_sound=AudioStreamPlayer.new()
 	_story_sound.stream=_feedback_clip(false)
 	add_child(_story_sound)
-	_horn=AudioStreamPlayer3D.new()
-	_horn.stream=_feedback_clip(true)
-	_horn.max_distance=18.0
-	vehicle.add_child(_horn)
 	_update_story()
 
 func _update_story() -> void:
@@ -469,14 +495,9 @@ func _update_story() -> void:
 	if _story_stage==1 and _driving and not _paused:
 		var distance:=Vector2(vehicle.global_position.x-_story_start.x,vehicle.global_position.z-_story_start.z)
 		if distance.length()>=4.0:_story_stage=2
-	var objectives := [
-		"A NEW BEGINNING\nNora is waiting for an update. Enter the parked coupe (F).",
-		"A NEW BEGINNING\nTake the coupe for a short test drive (4 m).",
-		"A NEW BEGINNING\nStop safely and exit the coupe (F).",
-		"A NEW BEGINNING\nFind Nora and report the test drive (E).",
-		"MISSION COMPLETE\nNora: Good. We can get the car back on the road."]
-	_story_label.text=objectives[_story_stage]
-	_story_label.visible=not _paused and not _map.expanded
+	_story_heading.text="MISSION COMPLETE" if _story_stage==4 else "A NEW BEGINNING  |  %d / 4"%(_story_stage+1)
+	_story_label.text=STORY_OBJECTIVES[_story_stage]
+	_story_panel.visible=not _paused and not _map.expanded
 	_story_marker.visible=_story_stage==3 and not _paused
 	_map.story_target=Layout.map_position(contact.global_position) if _story_stage==3 else Vector2.INF
 
