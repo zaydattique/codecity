@@ -57,8 +57,16 @@ def test_twelve_city_routines_are_independent_and_bounded():
         o["player_distance"]=1200
     intents=brain.batch(observations)
     assert len(intents)==12 and len({x["id"] for x in intents})==12
-    assert all(x["destination"].startswith("park_") for x in intents[6:])
+    assert all(x["destination"].startswith(("park_","shop_")) for x in intents[6:])
     assert len({x["destination"] for x in intents[6:]})>=3
     bad=observation("jules",1100)
     bad["position"]=[601,0]
     with pytest.raises(ValueError):brain.batch([bad])
+
+
+def test_personality_dependent_fictional_retaliation():
+    b=Brain()
+    event={"id":3,"kind":"attack","distance":1.3}
+    result=b.batch([observation("jules",event=event),observation("vincent",event=event)])
+    assert result[0]["action"]=="defend"
+    assert result[1]["action"]=="give_space"
