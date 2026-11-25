@@ -154,7 +154,7 @@ func exit(actor: CharacterBody3D) -> bool:
 	return true
 
 func can_trade(actor: CharacterBody3D,seller: Node3D) -> bool:
-	return player_inside and is_instance_valid(seller) and not seller.get("dead")==true and actor.global_position.distance_to(COUNTER)<1.6 and seller.global_position.distance_to(COUNTER)<3.2
+	return player_inside and is_instance_valid(seller) and seller.get("dead")!=true and actor.global_position.distance_to(COUNTER)<1.6 and seller.global_position.distance_to(COUNTER)<3.2
 
 func open_trade(actor: CharacterBody3D,seller: Node3D,cash: int) -> bool:
 	if opened or not can_trade(actor,seller):return false
