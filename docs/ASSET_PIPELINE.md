@@ -25,3 +25,7 @@ Acceptance: no missing texture/import warnings, correct world scale/orientation,
 ## Implemented intake preflight
 
 Copy art/intake.example.json to art/intake.json and keep all source files and their license evidence inside art/raw/. Each record requires role, path, SHA-256 (lowercase hex), license (CC0-1.0, CC-BY-4.0 or original), author, source and evidence (local nonempty file). Adrian requires base_mesh, skin, hair, clothing and motion; street requires geometry and materials. Run python tools/validate_assets.py --all or --id character.adrian_cole.v001. Only source integrity and metadata are checked. A human must review the actual evidence, geometry and rights before import. Restricted/custom licenses, including Mixamo, require separate review and explicit extension of the policy. Never use synthetic fixtures as assets.
+
+## Free CPU pipeline pilot
+
+Use the fixed painted wooden bench pilot before attempting automatic MPFB human customization. Run python tools/fetch_pilot_asset.py and blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_pilot_asset.py. Stage only; verify glTF dependencies, provenance hashes, dimensions, UV/materials, embedded textures and triangle counts; review preview and in-engine import before approving. Do not treat the studio preview as a finished street. Character pipeline still requires licensed human, hair, clothing and motion inputs.

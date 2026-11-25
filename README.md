@@ -41,3 +41,7 @@ Read [AGENTS](AGENTS.md), both original [instructions](docs/CodeCity_Project_Ins
 ## Publishing
 
 Work on main with focused, tested changes. Do not force-push or commit generated builds, raw libraries, secrets or unapproved binary assets. Review LFS allowance before tracking approved large binaries.
+
+## Free asset automation pilot
+
+The pilot is a real CC0 Poly Haven painted wooden bench, not a character or finished street. From repository root run python tools/fetch_pilot_asset.py, then blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_pilot_asset.py. Outputs in ignored build/asset-pilot: bench.blend, bench.glb, preview.png, provenance.json and report.json. Powered by Poly Haven. Source downloads are size and hash checked. Art stays candidate-only until visual and engine inspection. Missing source or Blender is a hard failure. No paid API.

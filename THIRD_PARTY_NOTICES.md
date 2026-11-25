@@ -43,3 +43,7 @@ foreach ($path in @('references/opencity','references/third-person','references/
 ```
 
 Inspect logs manually for errors even when exit zero. Legacy Vehicle requires separate migration or matching Godot 3; do not use 4.7 migration on canonical reference. Record actual test results before approving any import. Account Git LFS storage/bandwidth unknown; no binary tracking configured.
+
+## Asset automation pilot
+
+Poly Haven painted_wooden_bench (Kirill Sannikov), CC0-1.0: https://polyhaven.com/a/painted_wooden_bench ; license https://polyhaven.com/license ; API terms https://github.com/Poly-Haven/Public-API/blob/master/ToS.md . The live API is used with a distinct CodeCity user-agent and visible Powered by Poly Haven credit. No API server code copied; no raw model yet included. Download and render pending.

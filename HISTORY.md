@@ -9,3 +9,7 @@ Verification on Linux x86_64 with Git 2.47.3 and Python 3.13.5: `python -m pytes
 ## Foundation transfer and preflight | 2026-11-25
 
 Owner approved public main. Re-ran the local Phase 01/02 Python suite: 27 passed in 2.48s; static references OK. Transferred the foundation, source audit and preflight to the remote repository. The Godot runtime gate, actual artwork and upstream isolation remain open. No approved binary assets.
+
+## Free asset automation pilot | 2026-11-25
+
+Selected Kirill Sannikov's CC0 painted wooden bench from Poly Haven to prove the asset toolchain before character production. Implemented bounded HTTPS acquisition, relative-path validation, provider size/MD5 verification, SHA-256 provenance, glTF dependency checks, Blender source packing, GLB export and CPU preview rendering with geometry/scale/material checks. Local Python suite: 38 passed in 2.55s; Python compilation and static foundation checks passed. DNS access to Poly Haven/Blender failed locally and Blender/Godot binaries are absent, so real download, export and render are not yet verified. Synthetic tests are not actual art. No assets approved or committed.
