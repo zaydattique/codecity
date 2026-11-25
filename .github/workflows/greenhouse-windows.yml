@@ -17,20 +17,15 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: BloomLogic-Runtime-Assets
-          run-id: 45713936738
+          run-id: 45719638724
           github-token: ${{ github.token }}
           path: runtime
       - run: python -m pip install -r requirements.txt
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: licensed-greenhouse-prop-sources
-          run-id: 45699394380
-          github-token: ${{ github.token }}
-          path: runtime/props
+      - run: sudo apt-get update -qq && sudo apt-get install -y espeak-ng xdotool
+      - run: python -m tools.build_narration
       - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test
       - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" python greenhouse.py --capture
-      - run: sudo apt-get update -qq && sudo apt-get install -y xdotool
       - name: Real mouse and keyboard test on X11
         run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" bash tools/test_input.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

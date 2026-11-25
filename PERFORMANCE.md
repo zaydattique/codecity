@@ -12,3 +12,5 @@ New studio layout and packaged GUI capture pending. No hardware FPS claims.
 Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x720. No representative GPU frame-time measurements; props increase rendering cost.
 
 Previous Windows GUI gate timed out (45714558040); no hardware metrics. Phase 1 captures startup milestones and Python fault traces, explicitly distinguishes software fallback from native desktop. No visual art changes.
+
+Phase 1 packaged GUI verified on hosted Windows 45719638724, not user hardware. Phase 2 replay bounded to 60 days, comparison instances existing meshes, trace cached per day. No hardware measurements yet.

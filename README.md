@@ -5,3 +5,5 @@ Python 3.13, Panda3D 1.10.16, panda3d-gltf 1.3.0, Blender 4.5 LTS authoring. Run
 Core and first native UI verification passed on 45713936738; a corrective layout and prop integration is being tested. The new package is built from source and uses the BloomLogic window title and EXE.
 
 Phase 1 reliability work: authoritative resumable experiment, exhaustive 78,982 sensor combinations, isolated diagnostics, actual X11 mouse and keyboard test, and Windows release gated on GUI verification. Prior run 45714558040 failed GUI timeout despite passing package self-test. Do not treat that artifact as release approved. New checks pending.
+
+Phase 1 baseline 657f7e0 passed full native render, X11 keyboard/mouse and packaged Windows GUI in run 45719638724 (artifact 15070534455). Phase 2 adds real executed-line tracing, both predictions, interactive boundary checks, deterministic timeline and A/B comparison, independent ventilation controller. New candidate verification pending; fan equipment is an instructional geometry study, not final visual art.

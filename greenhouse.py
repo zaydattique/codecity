@@ -2,9 +2,10 @@
 import sys, json, traceback, os, hashlib, time, faulthandler, tempfile
 from pathlib import Path
 from codecity.model import Plant, advance, DEFAULT_CODE
-from codecity.rules import evaluate, compile_rule, evaluate_compiled, RuleError
+from codecity.rules import evaluate, compile_rule, evaluate_compiled, RuleError, trace_rule
 from codecity.session import Experiment, challenge, load_profile, write_profile
-from codecity.curriculum import LESSONS, GUIDE, CODE_STEPS
+from codecity.curriculum import LESSONS, GUIDE, CODE_STEPS, CONCEPTS, EXAMPLES
+from codecity.lesson import comparison, trace_day, DRY_RULE, WET_RULE, FAN_START, FAN_EXAMPLE, fan_check
 
 def assets():
     return Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))/"runtime"
@@ -93,6 +94,12 @@ def run():
     state=Plant();source=DEFAULT_CODE;playing=False;water=False;elapsed=0.;visual=0.;shown=-1;last_input=state.moisture
     pace=profile["pace"];scene_loaded=False;camera_mode="wide";saved_code=profile["draft"]
     plants=[];drops=[];teacher=None;bench=None;soil=None
+    greenhouse_root=app.render.attachNewNode("greenhouse-exhibit")
+    compare_root=app.render.attachNewNode("comparison-exhibit");compare_root.hide()
+    fan_root=app.render.attachNewNode("fan-exhibit");fan_root.hide()
+    compare_meshes=[];fan_rotor=None;fan_status=None;fan_temp=28;fan_on=False;fan_source=FAN_START
+    comparison_day=60;reference=DRY_RULE;compare_labels=[];timeline=None;timeline_lock=False
+    active_trace=None;trace_key=None;trace_label=None;concept_index=-1;demo_moisture=20;concept_text=None;code_labels=[];prediction_result=None
     editor=None;status=None;metrics=None;output=None;settings={};guide_text=None;audio=None;voice=profile["voice"]
     def panel(parent,x,y,w,h,color):
         return DirectFrame(parent=parent,pos=(x,0,-y),frameSize=(0,w,-h,0),frameColor=color)
@@ -123,16 +130,19 @@ def run():
     def quit_app():
         preserve_experiment();persist();app.userExit()
     def clear(mode):
-        nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text
+        nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text,timeline,trace_label,trace_key,fan_status
         preserve_experiment()
         if editor is not None:editor["focus"]=0
-        editor=status=metrics=output=guide_text=None
+        editor=status=metrics=output=guide_text=timeline=trace_label=fan_status=None;trace_key=None
         stop_audio();playing=False;water=False
         if page is not None:page.destroy()
         page=DirectFrame(parent=ui,frameColor=(0,0,0,0),frameSize=(0,1280,-720,0))
         screen=mode
-        dr.setActive(mode=="lesson")
-        if mode!="lesson":panel(page,0,0,1280,720,BG)
+        dr.setActive(mode in ("lesson","compare","fan"))
+        greenhouse_root.show() if mode=="lesson" else greenhouse_root.hide()
+        compare_root.show() if mode=="compare" else compare_root.hide()
+        fan_root.show() if mode=="fan" else fan_root.hide()
+        if mode not in ("lesson","compare","fan"):panel(page,0,0,1280,720,BG)
         else:
             panel(page,0,0,1280,126,BG);panel(page,0,588,1280,132,BG)
             panel(page,0,126,30,462,BG);panel(page,776,126,504,462,BG)
@@ -194,11 +204,11 @@ def run():
         def model(name):
             n=app.loader.loadModel(Filename.fromOsSpecific(str(assets()/name)))
             if n.isEmpty():raise RuntimeError("Missing asset: "+name)
-            n.reparentTo(app.render);return n
+            n.reparentTo(greenhouse_root);return n
         bench=model("bench.egg");soil=bench.find("**/soil_surface");milestone("bench loaded")
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
         teacher=Actor(NodePath(gltf.load_model(str(assets()/"teacher.glb"))))
-        teacher.reparentTo(app.render);milestone("teacher loaded")
+        teacher.reparentTo(greenhouse_root);milestone("teacher loaded")
         # Table rear edge is y=.45. Teacher stands behind it, not through it.
         teacher.setPos(-.78,.93,-.98);teacher.setH(0);teacher.pose("explain",0)
         for f in list(range(1,121,3))+[120]:
@@ -212,11 +222,11 @@ def run():
             folder=assets()/"props"/name
             record=json.loads((folder/"provenance.json").read_text())
             prop=NodePath(gltf.load_model(str(folder/"source"/record["entry"])))
-            prop.reparentTo(app.render);prop.setPos(*pos);prop.setScale(scale)
+            prop.reparentTo(greenhouse_root);prop.setPos(*pos);prop.setScale(scale)
         # Glazing and mullions at a distance behind the actual exhibits.
         def wall_card(name,x,z,w,h,col,y=2.8):
             cm=CardMaker(name);cm.setFrame(0,w,0,h)
-            node=app.render.attachNewNode(cm.generate());node.setPos(x,y,z)
+            node=greenhouse_root.attachNewNode(cm.generate());node.setPos(x,y,z)
             node.setColor(*col);node.setLightOff();node.setTwoSided(True);return node
         wall_card("daylit backdrop",-4,-.98,8,3.4,(.66,.79,.70,1))
         wall_card("lower wall",-4,-.98,8,.44,(.57,.65,.58,1),2.78)
@@ -246,12 +256,14 @@ def run():
     def set_message(message):
         if status is not None:status["text"]=message
     def show_lesson(n):
-        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual
-        clear("lesson");stage=n
+        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual,timeline,trace_label,active_trace,concept_text,code_labels,demo_moisture,prediction_result
+        clear("lesson");stage=n;active_trace=None;prediction_result=None;code_labels=[]
         if n==2:
             state=experiment.state;source=experiment.source;water=experiment.water;visual=state.growth;elapsed=0
         elif n==0:
-            state=Plant(moisture=20 if guide_step in (1,2) else 55);visual=state.growth
+            state=Plant(moisture=20 if guide_step in (1,3) else 60 if guide_step==2 else 55);visual=state.growth
+        elif n==1:
+            state=Plant(moisture=demo_moisture);visual=0;water=False
         elif n==3:
             state=Plant();visual=0;water=False
         label(page,"If / Else  |  Greenhouse controller",32,96,24)
@@ -273,43 +285,80 @@ def run():
             label(page,body,814,221,18,MUTED,22)
             guide_text["text"]=body
             speak("guide"+str(guide_step))
-            if guide_step==2:
+            if guide_step==3:
                 state=Plant(moisture=20);source=DEFAULT_CODE;visual=0;elapsed=pace;playing=True;water=False
                 camera("macro")
-            if guide_step==1:
+            if guide_step in (1,2):
                 def predict(value):
-                    nonlocal prediction
+                    nonlocal prediction,state,source,playing,water,elapsed,visual,prediction_result
+                    initial_m=20 if guide_step==1 else 60
                     prediction=value
-                    status["text"]="Correct. 20 < 40 is True." if value else "Try again: 20 is below 40."
+                    expected=trace_rule(DEFAULT_CODE,Plant(moisture=initial_m)).action
+                    prediction_result="Correct" if value==expected else "Not quite"
+                    state=Plant(moisture=initial_m);visual=0;elapsed=pace
+                    source=WET_RULE if value else DRY_RULE;playing=True;water=False
+                    camera("macro")
+                    set_message(f"{prediction_result}. {initial_m} < 40 is {'True' if expected else 'False'}. Watch your choice.")
+                    guide_text["text"]=f"Your choice: water {'ON' if value else 'OFF'}. Correct rule: water {'ON' if expected else 'OFF'}. The chosen action is simulated for six days."
+                def correct_demo():
+                    nonlocal state,source,playing,water,elapsed,visual
+                    state=Plant(moisture=20 if guide_step==1 else 60);source=DEFAULT_CODE;visual=0;elapsed=pace;playing=True;water=False
+                    camera("macro");set_message("Running the correct rule for six days.")
+                    guide_text["text"]="The correct controller rechecks the current moisture every day. Compare this result with your prediction."
                 button(page,"Water on",814,350,194,44,lambda:predict(True),True)
                 button(page,"Water off",1020,350,200,44,lambda:predict(False))
                 status=label(page,"Choose a prediction.",814,423,17,GREEN,23)
+                button(page,"Try correct rule",814,443,194,32,correct_demo)
             def next_guide():
                 nonlocal guide_step
-                if guide_step==1 and prediction is not True:
-                    set_message("Choose the correct prediction first.");return
-                if guide_step<2:guide_step+=1;show_lesson(0)
+                if guide_step<len(GUIDE)-1:guide_step+=1;show_lesson(0)
                 else:show_lesson(1)
-            button(page,"Replay narration",814,483,194,38,lambda:speak("guide"+str(guide_step)))
-            button(page,"Next",1020,483,200,38,next_guide,True)
+            def previous_guide():
+                nonlocal guide_step
+                guide_step=max(0,guide_step-1);show_lesson(0)
+            button(page,"Replay voice",814,483,132,38,lambda:speak("guide"+str(guide_step)))
+            button(page,"Back",954,483,90,38,previous_guide,enabled=guide_step>0)
+            button(page,"Next",1052,483,168,38,next_guide,True)
         elif n==1:
-            camera("wide")
-            label(page,"Read the condition",814,170,24)
-            for i,(line,description) in enumerate(CODE_STEPS):
-                panel(page,814,190+i*38,415,33,GREEN if i==code_step else LINE)
-                label(page,line,825,213+i*38,19,WHITE if i==code_step else INK)
-            guide_text["text"]=CODE_STEPS[code_step][1]
-            label(page,CODE_STEPS[code_step][1],814,380,18,MUTED,22)
-            speak("code"+str(code_step))
-            def next_code():
-                nonlocal code_step
-                if code_step<3:code_step+=1;show_lesson(1)
-                else:show_lesson(2)
-            def previous_code():
-                nonlocal code_step
-                code_step=max(0,code_step-1);show_lesson(1)
-            button(page,"Previous",814,483,150,40,previous_code,enabled=code_step>0)
-            button(page,"Next line" if code_step<3 else "Try it",980,483,240,40,next_code,True)
+            camera("macro")
+            label(page,"Read and test the code",814,165,24)
+            example=DEFAULT_CODE if concept_index<0 else EXAMPLES[concept_index]
+            for i,line in enumerate(example.splitlines()):
+                bg=panel(page,814,181+i*25,415,24,LINE)
+                lbl=label(page,f"{i+1:2}  {line}",821,198+i*25,14)
+                code_labels.append((bg,lbl))
+            concept_text=label(page,"",814,360,16,MUTED,26)
+            status=label(page,"",814,438,16,GREEN,26)
+            def inspect_sensor(value):
+                nonlocal demo_moisture,state,water,active_trace
+                demo_moisture=value;state=Plant(moisture=value)
+                active_trace=trace_rule(example,state)
+                water=active_trace.action
+                for i,(bg,lbl) in enumerate(code_labels,1):
+                    active=i==active_trace.action_line
+                    checked=any(l==i for l,_ in active_trace.conditions)
+                    bg["frameColor"]=GREEN if active else GOLD if checked else LINE
+                    lbl["text_fg"]=WHITE if active else INK
+                status["text"]=" / ".join(f"Line {l}: {v}" for l,v in active_trace.conditions)+"; valve "+("ON" if water else "OFF")
+                guide_text["text"]=f"Sensor {value}%. Executed action on line {active_trace.action_line}. The other action is skipped. This is one code check, not a simulated day."
+            for i,v in enumerate((20,39,40,60)):
+                button(page,f"{v}%",814+i*104,461,96,32,lambda v=v:inspect_sensor(v))
+            def next_concept():
+                nonlocal concept_index,code_step
+                if concept_index<0 and code_step<3:code_step+=1
+                else:concept_index+=1
+                if concept_index>=len(CONCEPTS):show_lesson(2)
+                else:show_lesson(1)
+            def previous_concept():
+                nonlocal concept_index,code_step
+                if concept_index>=0:concept_index-=1
+                else:code_step=max(0,code_step-1)
+                show_lesson(1)
+            concept_text["text"]=CODE_STEPS[code_step][1] if concept_index<0 else CONCEPTS[concept_index][0]+": "+CONCEPTS[concept_index][1]
+            speak("code"+str(code_step) if concept_index<0 else "concept"+str(concept_index))
+            button(page,"Previous",814,510,126,38,previous_concept,enabled=code_step>0 or concept_index>=0)
+            button(page,"Next concept" if concept_index<3 else "Try it",950,510,270,38,next_concept,True)
+            inspect_sensor(demo_moisture)
         else:
             camera("macro")
             label(page,"Write your own rule" if n==2 else "Control the valve",814,168,23)
@@ -330,12 +379,22 @@ def run():
                 button(page,"Pause / Resume",944,485,152,39,toggle_pause)
                 button(page,"Reset",1106,485,114,39,reset)
                 status=label(page,"Saved experiment paused. Resume or Run again." if state.day and state.day<60 else "Set starting conditions, then Run.",814,552,15,MUTED,27)
-                guide_text["text"]="Change the threshold or sensor values. Water on and water off are code decisions; growth depends on the environment."
+                guide_text["text"]="Run the rule, inspect executed lines and scrub to any simulated day."
+                # Timeline uses exact deterministic state, not a decorative progress bar.
+                panel(page,30,600,1220,100,WHITE)
+                label(page,"Day",48,625,15,GREEN)
+                timeline=DirectSlider(parent=page,range=(0,60),value=state.day,pageSize=1,scale=1,pos=(340,0,-620),frameSize=(-245,245,-6,6),thumb_frameSize=(-7,7,-9,9),command=seek_day)
+                button(page,"Step",610,605,95,30,step_day)
+                button(page,"Compare",715,605,125,30,show_comparison)
+                button(page,"Restart",850,605,110,30,lambda:seek_day(0))
+                trace_label=label(page,"",48,650,15,INK,94)
+                guide_text.hide()
                 speak("experiment")
             else:
                 label(page,"Turn water on below 50%, otherwise off.",814,365,17,MUTED,23)
                 button(page,"Check all sensor combinations",814,405,405,44,submit,True)
                 status=label(page,"Edit the threshold and check your solution.",814,484,16,GREEN,25)
+                button(page,"Independent fan exercise",814,533,405,34,show_fan,True)
                 guide_text["text"]="The boundary matters: at exactly 50%, the else branch must run. The checker tests every supported moisture, light and temperature combination."
                 speak("challenge")
         if "--input-test" in sys.argv:milestone("lesson stage ready "+str(n))
@@ -348,6 +407,18 @@ def run():
             value+=" "*(indent+(4 if line.rstrip().endswith(":") else 0))
         if len(text)+len(value)>2048:return
         editor.enterText(text[:pos]+value+text[pos:]);editor.setCursorPosition(pos+len(value));editor["focus"]=1
+    def seek_day(day=None):
+        nonlocal state,playing,water,elapsed,visual,trace_key
+        if timeline_lock or timeline is None:return
+        target=round(timeline["value"]) if day is None else day
+        if target==experiment.state.day:return
+        experiment.seek(target);state=experiment.state;playing=False;water=experiment.water;elapsed=0;visual=state.growth;trace_key=None
+        persist();set_message(f"Paused at day {state.day}. Resume or step.")
+    def step_day():
+        nonlocal playing,state,water,elapsed
+        if state.day>=60:return
+        experiment.playing=True;experiment.step();experiment.playing=False
+        state=experiment.state;water=experiment.water;playing=False;elapsed=0;persist();set_message(f"Day {state.day}. One rule check complete.")
     def initial():
         return Plant(moisture=round(settings["Initial moisture"]["value"]),light=round(settings["Light hours"]["value"]),temperature=round(settings["Temperature C"]["value"]))
     def start():
@@ -391,11 +462,14 @@ def run():
             if state.day%5==0 or not playing:persist()
         else:
             last_input=state.moisture;water=evaluate(source,state);state=advance(state,water)
-        if state.day>=60 or (stage==0 and state.day>=24):
+        if state.day>=60 or (stage==0 and state.day>=(6 if guide_step in (1,2) else 24)):
             playing=False
             if stage==2:set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
     def update(task):
-        nonlocal elapsed,visual,shown
+        nonlocal elapsed,visual,shown,timeline_lock,trace_key,active_trace
+        if screen=="fan":
+            if fan_on and fan_rotor is not None:fan_rotor.setR(fan_rotor.getR()+ClockObject.getGlobalClock().getDt()*420)
+            return Task.cont
         if screen!="lesson":return Task.cont
         dt=min(.1,ClockObject.getGlobalClock().getDt())
         if playing:
@@ -410,16 +484,127 @@ def run():
         plants[idx].setColorScale(1,.38+.62*state.health,.24+.76*state.health,1)
         wet=state.moisture/100;soil.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
         for i,p in enumerate(drops):
-            if playing and water:
+            if (playing or stage==1) and water:
                 phase=(task.time*2.6+i/len(drops))%1
                 p.setPos((i%3-1)*.004,.035,.36-.302*phase);p.show()
             else:p.hide()
         if metrics is not None:
             metrics["text"]=f"Day {state.day}  |  Soil {state.moisture}%  |  Growth {round(state.growth*100)}%  |  Health {round(state.health*100)}%"
-        if stage==2 and state.day:
-            last_input=experiment.last_input
-            guide_text["text"]=f"At {last_input}% moisture, the rule selected water {'ON' if water else 'OFF'}. After the simulated day, soil is {state.moisture}%. Growth {round(state.growth*100)}%. Time is compressed."
+        if stage==2 and timeline is not None:
+            if round(timeline["value"])!=state.day:
+                timeline_lock=True;timeline["value"]=state.day;timeline_lock=False
+            key=(experiment.source,state.day,experiment.initial)
+            if key!=trace_key:
+                trace_key=key;active_trace=trace_day(experiment)
+                if active_trace is None:trace_label["text"]="Day 0: no code has executed. Press Run or Step."
+                else:
+                    checks=" / ".join(f"Line {n}: {v}" for n,v in active_trace.conditions)
+                    line=experiment.source.splitlines()[active_trace.action_line-1].strip()
+                    trace_label["text"]=f"Day {state.day} | Sensor before: {experiment.last_input}% | {checks}\nExecuted line {active_trace.action_line}: {line} | Soil after: {state.moisture}% | Time compressed"
         set_cam();return Task.cont
+    def make_comparison_models():
+        if compare_meshes:return
+        for x in (-.36,.36):
+            root=compare_root.attachNewNode("sample");root.setX(x)
+            soil.copyTo(root)
+            models=[]
+            for p in plants:
+                copy=p.copyTo(root);copy.hide();models.append(copy)
+            compare_meshes.append((root,models))
+    def show_comparison():
+        nonlocal comparison_day,compare_labels,timeline
+        clear("compare");make_comparison_models()
+        label(page,"Compare irrigation outcomes",32,96,25)
+        button(page,"Back to experiment",1030,73,210,39,lambda:show_lesson(2),True)
+        label(page,"Same seed, same starting environment, different rules.",810,170,19,INK,22)
+        label(page,"Reference rule",810,228,18)
+        for i,(name,rule) in enumerate((("No water",DRY_RULE),("Always water",WET_RULE),("Default",DEFAULT_CODE))):
+            def choose(rule=rule):
+                nonlocal reference
+                reference=rule;refresh_comparison()
+            button(page,name,810,245+i*43,420,36,choose)
+        compare_labels=[label(page,"",48,624,17,INK,38),label(page,"",410,624,17,INK,38)]
+        label(page,"Compare day",810,404,18)
+        slider=DirectSlider(parent=page,range=(0,60),value=comparison_day,pageSize=1,scale=1,pos=(1018,0,-435),frameSize=(-190,190,-7,7),thumb_frameSize=(-8,8,-10,10))
+        def move():
+            nonlocal comparison_day
+            comparison_day=round(slider["value"]);refresh_comparison()
+        slider["command"]=move
+        label(page,"A: last executed rule. B: selected reference. Both use the identical simulation model.",810,494,16,MUTED,25)
+        app.camera.setPos(0,-2.45,.42);app.camera.lookAt(0,0,.06)
+        refresh_comparison()
+    def refresh_comparison():
+        left,right=comparison(experiment.source,experiment.initial,comparison_day,reference)
+        for i,(run,(root,models)) in enumerate(zip((left,right),compare_meshes)):
+            idx=round(run.state.growth*(len(models)-1))
+            for j,p in enumerate(models):p.show() if j==idx else p.hide()
+            models[idx].setColorScale(1,.38+.62*run.state.health,.24+.76*run.state.health,1)
+            compare_labels[i]["text"]=f"{'A: Your rule' if i==0 else 'B: Reference'} | Day {comparison_day}\nGrowth {round(run.state.growth*100)}% | Health {round(run.state.health*100)}%\nSoil {run.state.moisture}%"
+    def build_fan():
+        nonlocal fan_rotor
+        if fan_rotor is not None:return
+        # Original geometric teaching apparatus, not final photoreal art.
+        # The actual rotor is a 3D model driven by the evaluated actuator result.
+        from panda3d.core import GeomVertexData,GeomVertexFormat,GeomVertexWriter,GeomTriangles,Geom,GeomNode
+        import math
+        def mesh(parent,name,verts,faces,color):
+            v=GeomVertexData(name,GeomVertexFormat.getV3(),Geom.UHStatic);w=GeomVertexWriter(v,"vertex")
+            for point in verts:w.addData3(*point)
+            tri=GeomTriangles(Geom.UHStatic)
+            for a,b,c in faces:tri.addVertices(a,b,c)
+            g=Geom(v);g.addPrimitive(tri);n=GeomNode(name);n.addGeom(g);p=parent.attachNewNode(n);p.setColor(*color);p.setTwoSided(True);p.setLightOff();return p
+        def ring(parent,rad,width,y,color):
+            v=[];f=[]
+            for i in range(48):
+                a=2*math.pi*i/48
+                for radius in (rad,rad-width):v.append((radius*math.cos(a),y,radius*math.sin(a)))
+            for i in range(48):
+                a=2*i;b=2*((i+1)%48);f.extend(((a,b,a+1),(a+1,b,b+1)))
+            return mesh(parent,"ring",v,f,color)
+        ring(fan_root,.48,.065,.05,(.24,.34,.31,1))
+        fan_rotor=fan_root.attachNewNode("rotor")
+        for i in range(5):
+            a=2*math.pi*i/5
+            points=[]
+            for x,z in ((.09,-.04),(.40,-.10),(.43,.02),(.18,.14)):
+                points.append((x*math.cos(a)-z*math.sin(a),.02,x*math.sin(a)+z*math.cos(a)))
+            mesh(fan_rotor,"blade",points,[(0,1,2),(0,2,3)],(.44,.63,.55,1))
+        ring(fan_rotor,.105,.105,-.01,(.15,.24,.20,1))
+        ring(fan_root,.49,.018,-.035,(.67,.76,.67,1))
+    def show_fan():
+        nonlocal editor,status,fan_temp,fan_status,fan_on,trace_label
+        clear("fan");build_fan();fan_on=False
+        label(page,"Independent practice | Ventilation controller",32,96,24)
+        button(page,"Back to irrigation",1024,73,218,39,lambda:show_lesson(3),True)
+        label(page,"Greenhouse exhaust fan",54,155,23,GREEN)
+        label(page,"Turn the fan on above 30 C; otherwise off.",810,165,20,INK,22)
+        label(page,"Write your own if / else rule.",810,225,17,MUTED)
+        panel(page,810,242,424,136,GREEN)
+        editor=DirectEntry(parent=page,initialText=fan_source,scale=17,pos=(823,0,-265),width=23,numLines=6,frameColor=GREEN,text_fg=WHITE,focus=0,command=lambda _:insert_code("\n"))
+        button(page,"Clear",1136,211,92,24,lambda:clear_editor(True))
+        fan_status=label(page,"Temperature: 28 C",810,408,18)
+        s=DirectSlider(parent=page,range=(0,45),value=fan_temp,pageSize=1,scale=1,pos=(1018,0,-428),frameSize=(-190,190,-7,7),thumb_frameSize=(-8,8,-10,10))
+        def temp_change():
+            nonlocal fan_temp
+            fan_temp=round(s["value"]);fan_status["text"]=f"Temperature: {fan_temp} C"
+        s["command"]=temp_change;temp_change()
+        status=label(page,"",810,516,16,GREEN,25)
+        trace_label=label(page,"Try 29, 30 and 31 C. The exact boundary matters.",48,648,17,INK,75)
+        def run_fan(check=False):
+            nonlocal fan_on,fan_source
+            try:
+                t=trace_rule(editor.get(),Plant(temperature=fan_temp),"ventilate")
+                fan_source=editor.get();fan_on=t.action
+                trace_label["text"]=f"Temperature {fan_temp} C | "+" / ".join(f"Line {n}: {v}" for n,v in t.conditions)+f" | Executed line {t.action_line}: fan {'ON' if fan_on else 'OFF'}"
+                if check:
+                    passed,total,first=fan_check(fan_source)
+                    set_message(f"{passed}/{total} correct." if first is None else f"{passed}/{total}. First failing temperature: {first[0].temperature} C.")
+                else:set_message("Fan running" if fan_on else "Fan stopped")
+            except RuleError as e:fan_on=False;set_message("Code error: "+str(e)[:85])
+        button(page,"Run",810,454,150,36,run_fan,True)
+        button(page,"Check rule",970,454,260,36,lambda:run_fan(True))
+        button(page,"Hint",810,545,150,28,lambda:set_message("Use temperature > 30 and ventilate(True) / ventilate(False)."))
+        app.camera.setPos(0,-2.3,.0);app.camera.lookAt(0,0,0)
     app.taskMgr.add(update,"lesson-state")
     app.accept("escape",home)
     app.accept("tab",lambda:insert_code("    ") if editor is not None and editor["focus"] else None)
@@ -442,16 +627,21 @@ def run():
             milestone("captured "+name)
         capture("home.png");open_lesson();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5));capture("guide.png")
         guide_step=1;show_lesson(0);capture("prediction.png")
-        guide_step=2;show_lesson(0)
+        guide_step=3;show_lesson(0)
         for _ in range(24):tick()
         assert state.growth==1
         visual=1;capture("guided-growth.png")
-        show_lesson(1);capture("code.png");show_lesson(2)
+        show_lesson(1);capture("code.png");assert active_trace.action
+        demo_moisture=40;show_lesson(1);assert not active_trace.action;capture("code-else.png")
+        show_lesson(2)
         settings["Initial moisture"]["value"]=42;settings["Light hours"]["value"]=15;settings["Temperature C"]["value"]=28
         start()
         for _ in range(60):tick()
         assert state.growth==1 and state.health>.9
         visual=1.;capture("grown.png")
+        seek_day(10);assert state.day==10 and not playing;capture("rewind.png")
+        seek_day(60);assert state.growth==1
+        show_comparison();capture("compare.png");show_lesson(2)
         editor.enterText("if moisture < 0:\n    irrigate(True)\nelse:\n    irrigate(False)")
         settings["Initial moisture"]["value"]=20;start()
         for _ in range(60):tick()
@@ -461,7 +651,7 @@ def run():
         show_lesson(3);editor.enterText(DEFAULT_CODE.replace("40","50"))
         passed,total,failures=challenge(editor.get());assert passed==total and not failures
         submit();assert complete
-        capture("challenge.png")
+        capture("challenge.png");show_fan();capture("fan.png")
         home();capture("return-home.png")
         milestone("GUI assertions passed");app.destroy();milestone("GUI shutdown complete");return
     if "--input-test" in sys.argv:

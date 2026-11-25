@@ -12,3 +12,5 @@ Verified run 45699394455 artifact 15060699146: soil diffuse SHA256 6c2e7f1c5eab8
 Pinned generated geometry artifact 15062736459, run 45699850632, includes original plant/bench mesh samples, CC0 dirt_floor texture and CC0-based rig with authored gesture. Reuse for the UI phase, not visual approval. No new external raw art in Git.
 
 Integrated exact CC0 props from artifact 15061584027, run 45699394380. Per-file SHA256 verified from existing provenance on both platforms. Plant glTF digest 23b30294407684b02f14800d6685bd8938da5d2111e17753ac8dd3c37d8c88a0; clay pot f2989068dcff9737c9f3d49d435b70e36d553822ac87134daac055ae9706af1e. Actual soil and original authored teacher assets unchanged. Visual re-review pending.
+
+Phase 2 reuses approved-for-testing runtime bundle 15071453030 from 45719638724. Original geometric fan is an instructional apparatus candidate, not a final photoreal asset. Synthetic narration regenerated; final art gate remains Phase 3.

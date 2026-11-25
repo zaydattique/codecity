@@ -31,6 +31,11 @@ class Experiment:
         self.state=advance(self.state,self.water)
         if self.state.day>=60:self.playing=False
         return True
+    def seek(self,day):
+        if type(day) is not int or not 0<=day<=60:raise ValueError("Invalid day")
+        self.start(self.source,self.initial)
+        for _ in range(day):self.step()
+        self.playing=False
     def snapshot(self):
         return dict(initial=asdict(self.initial),state=asdict(self.state),source=self.source,last_input=self.last_input,water=self.water)
     @classmethod
