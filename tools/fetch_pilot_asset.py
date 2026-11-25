@@ -40,22 +40,22 @@ def safe_path(name):
     return p
 
 
-def plan(meta):
+def plan(meta, *, limit=LIMIT, max_files=32):
     entry = meta['gltf']['1k']['gltf']
     main = safe_path(unquote(urlsplit(entry['url']).path).rsplit('/', 1)[-1])
     if main.suffix != '.gltf':
         raise ValueError('Expected glTF source')
     files = [(main, entry)] + [(safe_path(name), record) for name, record in entry.get('include', {}).items()]
-    if len(files) > 32 or len({str(p).lower() for p, _ in files}) != len(files):
+    if len(files) > max_files or len({str(p).lower() for p, _ in files}) != len(files):
         raise ValueError('Excessive or duplicate files')
     total = 0
     for _, record in files:
         safe_url(record['url'])
         size = record['size']
-        if type(size) is not int or not 0 < size <= LIMIT or not re.fullmatch(r'[0-9a-fA-F]{32}', record['md5']):
+        if type(size) is not int or not 0 < size <= limit or not re.fullmatch(r'[0-9a-fA-F]{32}', record['md5']):
             raise ValueError('Invalid size or checksum')
         total += size
-    if total > LIMIT:
+    if total > limit:
         raise ValueError('Excessive total size')
     return files
 

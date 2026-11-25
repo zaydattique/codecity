@@ -21,3 +21,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 `game/core/camera_orbit.gd`: first MIT OpenCity camera geometry adaptation, pure functions, tested by the expanded session fixture; not connected to player camera yet.
 
 `game/core/scene_loader.gd` threaded allowlisted resource load contract; session fixture exercises the actual boot scene resource. `tools/render_vehicle_candidate.py` pinned source GLB inspection and real exterior/cockpit renders; `.github/workflows/vehicle-candidate.yml` separate free candidate pipeline. Character fallback source provenance stored alongside input ZIP.
+
+`tools/fetch_street_sources.py` reuses Poly Haven validation and adds texture-map selection; `tools/build_street_candidate.py` authored meter-scale street surfaces and licensed furniture, plus separate facade kit inventory; `.github/workflows/street-candidate.yml` independent hosted rendering; `tests/test_street_sources.py` map-plan regression.

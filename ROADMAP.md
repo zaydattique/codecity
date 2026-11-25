@@ -42,3 +42,5 @@ Dual-mode profile/session and range contract passed hosted Windows; Python 65 te
 Phase A remains open: Windows/Linux foundation and camera regression verified, two-mode contracts implemented, actual threaded load regression queued, legacy character archive fallback added, sports coupe candidate render workflow added. Real characters, car inspection, detailed street, interactive UI and source-specific gameplay checks pending; no expansion.
 
 Phase A art progress: one real Adrian candidate (rework), one rejected coupe candidate; Maya and detailed street missing. Foundation, session, camera and threaded loading contracts passed hosted Windows/Linux. Do not mark Phase A complete until actual acceptable hero/street/coupe and relevant interaction/interactive evidence exist. No city expansion.
+
+First street art pipeline now authored: real textured 32m road/sidewalk and street furniture, separately inspect licensed facade modules before assembling buildings. Render/QA pending, no street acceptance or city expansion.
