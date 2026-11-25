@@ -137,7 +137,7 @@ func _verify() -> void:
 	Input.action_release("move_left")
 	await ticks(18)
 	if actor.position.x > -5.8 or not actor.is_on_floor() or absf(actor.position.y-0.15)>0.06:
-		_fail("road-to-footpath or former exterior access")
+		_fail("road-to-footpath or former exterior access: %s grounded=%s"%[actor.position,actor.is_on_floor()])
 		return
 	# West alley: center z=-3, then walk behind the actual building footprint.
 	actor.global_position=Vector3(-4.9,0.18,-3.0)
@@ -166,7 +166,19 @@ func _verify() -> void:
 		if root.get_texture().get_image().save_png("res://_qa/rear_court.png")!=OK:
 			_fail("rear court capture")
 			return
-	world._toggle_map()
+	# Local map follows the actor art rather than camera heading.
+	actor._visual.rotation.y=PI/2.0
+	world._map.rotate_with_actor=true
+	if not world._map._heading().rotated(world._map._rotation()).is_equal_approx(Vector2.UP):
+		_fail("minimap facing transform")
+		return
+	var click:=InputEventMouseButton.new()
+	click.button_index=MOUSE_BUTTON_LEFT
+	click.pressed=true
+	world._map._gui_input(click)
+	if not world._map.expanded or not is_zero_approx(world._map._rotation()):
+		_fail("click to expand north-up map")
+		return
 	var paused_pos: Vector3=actor.position
 	Input.action_press("move_forward")
 	await ticks(30)
