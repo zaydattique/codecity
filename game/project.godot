@@ -71,6 +71,19 @@ pause_game={
 "events": [Object(InputEventKey,"physical_keycode":4194305)]
 }
 
+walk={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194328)]
+}
+camera_view={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":86)]
+}
+full_map={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":77)]
+}
+
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"

@@ -1,6 +1,9 @@
 extends Node3D
 ## Development profile/mode selection. No world launch until approved assets exist.
 const Sessions = preload("res://core/session_state.gd")
+const Harbor = preload("res://scenes/harbor_playtest.gd")
+var _world: Node3D
+var _launch: Button
 var _sessions = Sessions.new()
 var _profile_counter: int = 0
 @onready var _menu: VBoxContainer = $CanvasLayer/Center/VBox
@@ -14,6 +17,13 @@ func _ready() -> void:
 	_mode.add_item("CodeCity Academy", 1)
 	_character.add_item("Adrian Cole", 0)
 	_character.add_item("Maya Bennett", 1)
+	_launch=Button.new()
+	_launch.text="Open street physics test"
+	_launch.disabled=true
+	_launch.visible=Harbor.installed()
+	_launch.pressed.connect(_open_street)
+	_menu.add_child(_launch)
+	_menu.move_child(_launch,_menu.get_child_count()-2)
 	if "--smoke" in OS.get_cmdline_user_args():
 		call_deferred("_smoke")
 	else:
@@ -55,7 +65,42 @@ func _on_apply_pressed() -> void:
 	if not _sessions.select_draft(id, Sessions.MODES[_mode.selected], Sessions.CHARACTERS[_character.selected]):
 		_status.text = "Invalid selection."
 		return
-	_status.text = "Selected: %s / %s. World not installed." % [_mode.get_item_text(_mode.selected), _character.get_item_text(_character.selected)]
+	_launch.disabled=not Harbor.installed() or _mode.selected!=0
+	_status.text = "Selected: %s / %s." % [_mode.get_item_text(_mode.selected), _character.get_item_text(_character.selected)]
+	if _mode.selected==1:
+		_status.text += " Academy mission runtime not installed."
+	elif not Harbor.installed():
+		_status.text += " World not installed."
+	else:
+		_status.text += " Candidate street test available."
+
+func _open_street() -> void:
+	if _world != null:
+		return
+	var draft := _sessions.draft_selection()
+	if draft.get("mode")!="living_world":
+		return
+	var world = Harbor.new()
+	if not world.prepare(draft.get("character","")):
+		world.free()
+		_status.text="Street candidate could not load."
+		return
+	add_child(world)
+	if not _sessions.activate(draft["profile_id"],draft["mode"],draft["character"],world.player):
+		world.queue_free()
+		_status.text="Character spawn failed."
+		return
+	_world=world
+	world.leave_requested.connect(_close_street)
+	$CanvasLayer.hide()
+
+func _close_street() -> void:
+	if is_instance_valid(_world):
+		_world.queue_free()
+	_world=null
+	_sessions.deactivate()
+	$CanvasLayer.show()
+	_name.grab_focus()
 
 func selection_snapshot() -> Dictionary:
 	return _sessions.draft_selection()

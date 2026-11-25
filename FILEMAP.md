@@ -35,3 +35,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 Existing foundation scene now contains the working temporary profile, two modes and two protagonist selectors. Session contract regression exercises the actual UI signal connections and draft selection; no fake launch or save. Real art review references exact budget-passing street GLB.
 
 `tools/freeze_character_morphs.py`: offline GLB default-morph runtime derivative, keeps skin hierarchy/materials, no animated morphs accepted. `tests/test_freeze_character_morphs.py`: sparse accessors, skin retention, rejection. Art review stages separate derivatives, records hashes and still verifies actual imported geometry.
+
+P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game/scenes/harbor_playtest.gd; verification/street_playtest.gd and .github/workflows/street-playtest.yml. Existing boot menu launches only installed candidate street; exact asset staging outside tracked game. No approved asset binary committed.

@@ -58,3 +58,7 @@ Profile/mode/character draft UI now implemented and connected to authoritative i
 Both corrected adult characters and numerical street/coupe budgets pass source review. Actual profile/mode UI regression and 67 Python tests passed Windows/Linux. Maya engine morph discrepancy remains, default morph freeze candidate build now queued. Phase A still open until in-engine candidate check and remaining art/interactive approval.
 
 Actual runtime import passed both adult character derivatives and budget-passing street. 70 tests, menu selection and foundation passed Windows/Linux. Software-rendered review reached success marker but audio device initialization failed strict log gate; fixed isolated render runner configuration. No production art approval, actual user-input playtest or performance measurements yet.
+
+## P08 focused playable candidate street
+
+Goal: actual character physics and camera on verified street, not full vertical-slice approval. Files: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game/scenes/harbor_playtest.gd, foundation.gd, input config, verification and isolated workflow. Real colliders derived from the reviewed layout and furniture; test limits at street ends, closed buildings inaccessible. Candidate-only (unanimated rigs); do not ship as final. Test both spawn, movement, jumping, collision, map and pause, camera/step further checks; actual engine screenshot. Remaining P08: licensed motion, deformation, stairs/curb, vehicle entry/exit, controller and interactive Windows. No city expansion.
