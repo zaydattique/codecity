@@ -17,6 +17,7 @@ func _verify() -> void:
 		return
 	var packed := load("res://scenes/foundation.tscn") as PackedScene
 	var menu := packed.instantiate()
+	menu._enable_city=false
 	root.add_child(menu)
 	menu._name.text="Academy QA"
 	menu._mode.select(1)
