@@ -50,7 +50,7 @@ def load_profile(character_id):
 
 def main():
     import bpy
-    from mathutils import Vector
+    from mathutils import Vector, Matrix
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--id', required=True, choices=['adrian','maya'])
     parser.add_argument('--pack', type=Path, required=True)
@@ -116,6 +116,23 @@ def main():
     for image in bpy.data.images:
         if image.source=='FILE' and not image.packed_file and not Path(bpy.path.abspath(image.filepath)).is_file():
             raise RuntimeError(f"Missing texture: {image.name}")
+    # Scale the complete rig hierarchy together, preserving skin-relative transforms.
+    # Evaluated geometry bounds include the clothing and footwear.
+    bpy.context.view_layer.update()
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    pts = [o.matrix_world @ Vector(v) for mesh in meshes for o in [mesh.evaluated_get(depsgraph)] for v in o.bound_box]
+    low = min(p.z for p in pts)
+    high = max(p.z for p in pts)
+    source_height = high-low
+    target_height = float(profile['height_m'])
+    if not 1.4 <= source_height <= 2.15 or not 1.5 <= target_height <= 2.0:
+        raise ValueError('Invalid authored character scale')
+    factor = target_height/source_height
+    transform = Matrix.Translation(Vector((0,0,-low*factor))) @ Matrix.Scale(factor,4)
+    for root in list(bpy.context.scene.objects):
+        if root.parent is None:
+            root.matrix_world = transform @ root.matrix_world
+    bpy.context.view_layer.update()
     # Preserve editable human source first; then bake modelling masks for the candidate GLB.
     bpy.ops.file.pack_all()
     bpy.ops.wm.save_as_mainfile(filepath=str(base/f"{args.id}.blend"))
@@ -133,8 +150,8 @@ def main():
     lo=Vector(tuple(min(p[i] for p in pts) for i in range(3)))
     hi=Vector(tuple(max(p[i] for p in pts) for i in range(3)))
     height=hi.z-lo.z
-    if not 1.45<=height<=2.1:
-        raise RuntimeError(f"Unexpected human height: {height}")
+    if abs(height-target_height)>0.025:
+        raise RuntimeError(f"Character height {height:.3f} does not match target {target_height:.3f}")
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.export_scene.gltf(filepath=str(base/f"{args.id}.glb"),export_format='GLB',use_selection=True,export_animations=False)
     # Neutral studio renders show the real mesh; no AI imagery.
@@ -180,7 +197,7 @@ def main():
     source = json.loads(source_file.read_text(encoding='utf-8')) if source_file.exists() else {'url':'local pack; source review required','sha256':pack_digest}
     if source['sha256'] != pack_digest:
         raise RuntimeError('Pack provenance hash mismatch')
-    report={'status':'candidate_only','profile':args.id,'triangles':triangles,'bones':len(rigs[0].data.bones),'height_m':height,'mpfb_commit':PIN,'pack_url':source['url'],'pack_sha256':pack_digest,'source_license':'CC0-1.0','output_hashes':{n:hashlib.sha256((base/n).read_bytes()).hexdigest() for n in names},'limitations':['generic CC0 outfit and hair; not final design','no motion clips or LODs','no Godot deformation or gameplay approval']}
+    report={'status':'candidate_only','profile':args.id,'triangles':triangles,'bones':len(rigs[0].data.bones),'height_m':height,'source_height_m':source_height,'target_height_m':target_height,'uniform_scale':factor,'mpfb_commit':PIN,'pack_url':source['url'],'pack_sha256':pack_digest,'source_license':'CC0-1.0','output_hashes':{n:hashlib.sha256((base/n).read_bytes()).hexdigest() for n in names},'limitations':['generic CC0 outfit and hair; not final design','no motion clips or LODs','no Godot deformation or gameplay approval']}
     (base/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print('CODECITY_CHARACTER_CANDIDATE_OK')
 

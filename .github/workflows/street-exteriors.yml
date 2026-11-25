@@ -1,0 +1,61 @@
+name: CodeCity assembled street exteriors
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/assemble_street_exteriors.py'
+      - '.github/workflows/street-exteriors.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: street-art-candidate-not-approved
+          run-id: 45595559815
+          github-token: ${{ github.token }}
+          path: build/street-input
+      - name: Stage reviewed source
+        run: |
+          set -euo pipefail
+          mkdir -p build/street-candidate
+          cp build/street-input/street-candidate/*.blend build/street-candidate/
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Assemble real building exteriors
+        run: |
+          set -euo pipefail
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/assemble_street_exteriors.py 2>&1 | tee build/street-exteriors.log
+          grep -q CODECITY_STREET_EXTERIORS_OK build/street-exteriors.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: harbor-exteriors-not-approved
+          path: |
+            build/street-exteriors/
+            build/street-exteriors.log
+          if-no-files-found: ignore
+          retention-days: 7
