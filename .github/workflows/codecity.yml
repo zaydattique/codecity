@@ -79,11 +79,17 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          base=https://download.blender.org/release/Blender4.5
           file=blender-4.5.17-linux-x64.tar.xz
-          curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"
-          curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums
-          grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
           tar -xJf "$file"
           echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
       - name: Export and render real source
