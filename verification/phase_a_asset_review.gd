@@ -133,6 +133,23 @@ func _check_character(actor: Node3D, height: float) -> bool:
 		for i: int in range(mesh.mesh.get_surface_count()):
 			var arrays: Array = mesh.mesh.surface_get_arrays(i)
 			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			# glTF importer uses normalized shape arrays (absolute target positions).
+			# Reconstruct the actual visible mesh, including the MPFB active body morph.
+			var shapes := mesh.mesh.surface_get_blend_shape_arrays(i)
+			if shapes.size() != mesh.get_blend_shape_count():
+				return false
+			var source_vertices: PackedVector3Array = verts.duplicate()
+			var normalized := (mesh.mesh as ArrayMesh).blend_shape_mode == Mesh.BLEND_SHAPE_MODE_NORMALIZED
+			for shape: int in range(shapes.size()):
+				var values: PackedVector3Array = shapes[shape][Mesh.ARRAY_VERTEX]
+				var weight: float = mesh.get_blend_shape_value(shape)
+				if values.size() != verts.size() or not is_finite(weight):
+					return false
+				if absf(weight) < 0.000001:
+					continue
+				for v: int in range(verts.size()):
+					var delta: Vector3 = values[v] - source_vertices[v] if normalized else values[v]
+					verts[v] += delta * weight
 			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
 			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
 			if verts.is_empty() or weights.size() != bones.size() or bones.size() % verts.size() != 0:
