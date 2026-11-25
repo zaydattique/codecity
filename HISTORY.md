@@ -22,3 +22,5 @@ Reliability Phase 1 after audit: prior Windows GUI timed out after 120 s and col
 First Phase 1 core matrix and nine native captures passed (45719235049); X11 input test opened the scene but timed out before verified code execution. Added explicit Clear/Example controls and per-stage/input diagnostics with synchronized test waits. Windows job was skipped, no release.
 
 Phase 1 verified at 657f7e0: Linux native capture and real OS keyboard/mouse passed, Windows packaged GUI passed (45719638724, artifact 15070534455). Phase 2 implementation: instrumented real CPython execution, two prediction scenarios, comparison/equality/elif/boolean explanations, deterministic scrub/step, same-input comparison and independent fan exercise. Existing art reused. New tests pending.
+
+Phase 2 preflight: preserve valid concept selection on returning, test both fan temperature outcomes in native capture, use wetness on comparison surfaces, distinguish a changed temperature from an evaluated fan result. No new art approval.

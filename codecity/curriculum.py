@@ -31,11 +31,15 @@ CONCEPTS = [
 ("Less than / equality","< is strictly below; <= includes equality. == tests equality, not assignment. Try 39, 40 and 41 percent."),
 ("Indentation","Four spaces are the convention. Indentation groups the action with its branch. A missing block produces a Python syntax error."),
 ("elif","An elif is another condition checked only if earlier conditions are false. An else is the final fallback."),
-("and / or / not","and requires both conditions; or needs either; not reverses the result. Python short-circuits when the result is already known."),
+("and","Both comparisons must be true. Python skips the second comparison if the first is false."),
+("or","Either comparison can be true. In this example very dry soil or low moisture with adequate warmth permits watering."),
+("not","not reverses a Boolean result. Here not moisture >= 40 has the same result as moisture < 40."),
 ]
 EXAMPLES = [
 "if moisture <= 40:\n    irrigate(True)\nelse:\n    irrigate(False)",
 "if moisture < 40:\n    irrigate(True)\nelse:\n    irrigate(False)",
 "if moisture < 30:\n    irrigate(True)\nelif moisture < 40:\n    irrigate(True)\nelse:\n    irrigate(False)",
 "if moisture < 40 and temperature >= 12:\n    irrigate(True)\nelse:\n    irrigate(False)",
+"if moisture < 20 or moisture < 40 and temperature >= 12:\n    irrigate(True)\nelse:\n    irrigate(False)",
+"if not moisture >= 40:\n    irrigate(True)\nelse:\n    irrigate(False)",
 ]

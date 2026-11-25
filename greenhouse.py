@@ -97,7 +97,7 @@ def run():
     greenhouse_root=app.render.attachNewNode("greenhouse-exhibit")
     compare_root=app.render.attachNewNode("comparison-exhibit");compare_root.hide()
     fan_root=app.render.attachNewNode("fan-exhibit");fan_root.hide()
-    compare_meshes=[];fan_rotor=None;fan_status=None;fan_temp=28;fan_on=False;fan_source=FAN_START
+    compare_meshes=[];fan_rotor=None;fan_status=None;fan_temp=28;fan_on=False;fan_source=FAN_START;fan_run=None;fan_slider=None
     comparison_day=60;reference=DRY_RULE;compare_labels=[];timeline=None;timeline_lock=False
     active_trace=None;trace_key=None;trace_label=None;concept_index=-1;demo_moisture=20;concept_text=None;code_labels=[];prediction_result=None
     editor=None;status=None;metrics=None;output=None;settings={};guide_text=None;audio=None;voice=profile["voice"]
@@ -236,11 +236,11 @@ def run():
             wall_card("horizontal rail",-4,z,8,.042,(.28,.39,.33,1),2.75)
         scene_loaded=True;milestone("scene ready")
     def open_lesson(resume=False):
-        nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code
+        nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code,concept_index,demo_moisture
         clear("loading");label(page,"Opening the greenhouse...",40,160,30)
         app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
         load_scene()
-        state=Plant();visual=0.;shown=-1;guide_step=0;code_step=0;prediction=None
+        state=Plant();visual=0.;shown=-1;guide_step=0;code_step=0;prediction=None;concept_index=-1;demo_moisture=20
         show_lesson(2 if resume else 0)
     def camera(mode):
         nonlocal camera_mode
@@ -347,7 +347,8 @@ def run():
                 nonlocal concept_index,code_step
                 if concept_index<0 and code_step<3:code_step+=1
                 else:concept_index+=1
-                if concept_index>=len(CONCEPTS):show_lesson(2)
+                if concept_index>=len(CONCEPTS):
+                    concept_index=len(CONCEPTS)-1;show_lesson(2)
                 else:show_lesson(1)
             def previous_concept():
                 nonlocal concept_index,code_step
@@ -357,7 +358,7 @@ def run():
             concept_text["text"]=CODE_STEPS[code_step][1] if concept_index<0 else CONCEPTS[concept_index][0]+": "+CONCEPTS[concept_index][1]
             speak("code"+str(code_step) if concept_index<0 else "concept"+str(concept_index))
             button(page,"Previous",814,510,126,38,previous_concept,enabled=code_step>0 or concept_index>=0)
-            button(page,"Next concept" if concept_index<3 else "Try it",950,510,270,38,next_concept,True)
+            button(page,"Next concept" if concept_index<len(CONCEPTS)-1 else "Try it",950,510,270,38,next_concept,True)
             inspect_sensor(demo_moisture)
         else:
             camera("macro")
@@ -417,6 +418,9 @@ def run():
     def step_day():
         nonlocal playing,state,water,elapsed
         if state.day>=60:return
+        if state.day==0 and editor.get()!=experiment.source:
+            try:experiment.start(editor.get(),initial())
+            except RuleError as e:set_message("Code error: "+str(e)[:85]);return
         experiment.playing=True;experiment.step();experiment.playing=False
         state=experiment.state;water=experiment.water;playing=False;elapsed=0;persist();set_message(f"Day {state.day}. One rule check complete.")
     def initial():
@@ -506,11 +510,11 @@ def run():
         if compare_meshes:return
         for x in (-.36,.36):
             root=compare_root.attachNewNode("sample");root.setX(x)
-            soil.copyTo(root)
+            substrate=soil.copyTo(root)
             models=[]
             for p in plants:
                 copy=p.copyTo(root);copy.hide();models.append(copy)
-            compare_meshes.append((root,models))
+            compare_meshes.append((root,models,substrate))
     def show_comparison():
         nonlocal comparison_day,compare_labels,timeline
         clear("compare");make_comparison_models()
@@ -535,7 +539,8 @@ def run():
         refresh_comparison()
     def refresh_comparison():
         left,right=comparison(experiment.source,experiment.initial,comparison_day,reference)
-        for i,(run,(root,models)) in enumerate(zip((left,right),compare_meshes)):
+        for i,(run,(root,models,substrate)) in enumerate(zip((left,right),compare_meshes)):
+            wet=run.state.moisture/100;substrate.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
             idx=round(run.state.growth*(len(models)-1))
             for j,p in enumerate(models):p.show() if j==idx else p.hide()
             models[idx].setColorScale(1,.38+.62*run.state.health,.24+.76*run.state.health,1)
@@ -572,7 +577,7 @@ def run():
         ring(fan_rotor,.105,.105,-.01,(.15,.24,.20,1))
         ring(fan_root,.49,.018,-.035,(.67,.76,.67,1))
     def show_fan():
-        nonlocal editor,status,fan_temp,fan_status,fan_on,trace_label
+        nonlocal editor,status,fan_temp,fan_status,fan_on,trace_label,fan_run,fan_slider
         clear("fan");build_fan();fan_on=False
         label(page,"Independent practice | Ventilation controller",32,96,24)
         button(page,"Back to irrigation",1024,73,218,39,lambda:show_lesson(3),True)
@@ -586,9 +591,12 @@ def run():
         s=DirectSlider(parent=page,range=(0,45),value=fan_temp,pageSize=1,scale=1,pos=(1018,0,-428),frameSize=(-190,190,-7,7),thumb_frameSize=(-8,8,-10,10))
         def temp_change():
             nonlocal fan_temp
+            nonlocal fan_on
             fan_temp=round(s["value"]);fan_status["text"]=f"Temperature: {fan_temp} C"
-        s["command"]=temp_change;temp_change()
-        status=label(page,"",810,516,16,GREEN,25)
+            fan_on=False
+            if status is not None:set_message("Temperature changed. Run to evaluate.")
+        s["command"]=temp_change;temp_change();fan_slider=s
+        status=label(page,"Change temperature, then Run.",810,516,16,GREEN,25)
         trace_label=label(page,"Try 29, 30 and 31 C. The exact boundary matters.",48,648,17,INK,75)
         def run_fan(check=False):
             nonlocal fan_on,fan_source
@@ -601,6 +609,7 @@ def run():
                     set_message(f"{passed}/{total} correct." if first is None else f"{passed}/{total}. First failing temperature: {first[0].temperature} C.")
                 else:set_message("Fan running" if fan_on else "Fan stopped")
             except RuleError as e:fan_on=False;set_message("Code error: "+str(e)[:85])
+        fan_run=run_fan
         button(page,"Run",810,454,150,36,run_fan,True)
         button(page,"Check rule",970,454,260,36,lambda:run_fan(True))
         button(page,"Hint",810,545,150,28,lambda:set_message("Use temperature > 30 and ventilate(True) / ventilate(False)."))
@@ -652,6 +661,9 @@ def run():
         passed,total,failures=challenge(editor.get());assert passed==total and not failures
         submit();assert complete
         capture("challenge.png");show_fan();capture("fan.png")
+        editor.enterText(FAN_EXAMPLE);fan_slider["value"]=31;fan_temp=31;fan_run(True);assert fan_on
+        capture("fan-on.png");fan_slider["value"]=30;fan_temp=30;fan_run();assert not fan_on
+        capture("fan-off.png");show_lesson(1);show_lesson(2)
         home();capture("return-home.png")
         milestone("GUI assertions passed");app.destroy();milestone("GUI shutdown complete");return
     if "--input-test" in sys.argv:
