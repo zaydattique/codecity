@@ -74,7 +74,7 @@ func _draw() -> void:
 	if academy:
 		var pos := _screen(Vector2(-5.25,5))
 		draw_circle(pos,6,Color(0.97,0.71,0.34))
-		if expanded:draw_string(font,pos+Vector2(13,4),"Lighting control",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
+		if expanded:draw_string(font,pos+Vector2(13,4),"Harbor utilities",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
 	if story_target.is_finite():
 		var target := _screen(story_target)
 		draw_circle(target,8,Color(0.97,0.71,0.34),false,2.5)
