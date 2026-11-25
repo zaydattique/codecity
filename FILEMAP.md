@@ -25,3 +25,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 `tools/fetch_street_sources.py` reuses Poly Haven validation and adds texture-map selection; `tools/build_street_candidate.py` authored meter-scale street surfaces and licensed furniture, plus separate facade kit inventory; `.github/workflows/street-candidate.yml` independent hosted rendering; `tests/test_street_sources.py` map-plan regression.
 
 `tools/assemble_street_exteriors.py` composes matched wall/door/window/trim modules into four enclosed exterior candidates around reviewed road; `.github/workflows/street-exteriors.yml` retrieves exact reviewed artifact and renders three views. Character generator now checks actual height against profile after uniform hierarchy scaling.
+
+`tools/render_concept_coupe.py` and `.github/workflows/concept-coupe.yml` render and inventory exact alternative coupe for review, not integration. Report retains license and logo restrictions.

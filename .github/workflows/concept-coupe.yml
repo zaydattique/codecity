@@ -1,0 +1,56 @@
+name: CodeCity replacement coupe review
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/render_concept_coupe.py'
+      - '.github/workflows/concept-coupe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Fetch exact licensed candidate for inspection
+        run: |
+          set -euo pipefail
+          mkdir -p build/concept-coupe
+          curl -fL --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 --max-filesize 12000000 https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea/Models/CarConcept/glTF-Binary/CarConcept.glb -o build/concept-coupe/CarConcept.glb
+          test "$(git hash-object build/concept-coupe/CarConcept.glb)" = c0f38c989a78cc4ba63253b5338705e0afb0142f
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Render real source for technical review
+        run: |
+          set -euo pipefail
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_concept_coupe.py 2>&1 | tee build/concept-coupe.log
+          grep -q CODECITY_CONCEPT_COUPE_REVIEW_OK build/concept-coupe.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: concept-coupe-review-only
+          path: |
+            build/concept-coupe/*.png
+            build/concept-coupe/report.json
+            build/concept-coupe.log
+          if-no-files-found: ignore
+          retention-days: 7
