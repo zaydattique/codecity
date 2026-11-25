@@ -47,6 +47,8 @@ var _status: Label
 var _paused := false
 var _character := ""
 var _ready_world := false
+var _facade_counts: Array[int]=[0,0,0,0]
+var _court_material: Material
 
 static func installed() -> bool:
 	for path: String in ["street.glb","adrian.glb","maya.glb"]:
@@ -94,6 +96,7 @@ func _ready() -> void:
 		return
 	process_mode=Node.PROCESS_MODE_ALWAYS
 	player.process_mode=Node.PROCESS_MODE_PAUSABLE
+	_relayout_art()
 	_make_collision()
 	_make_light()
 	_make_hud()
@@ -152,16 +155,61 @@ func _box(label: String, center: Vector3, extent: Vector3) -> void:
 	add_child(body)
 	body.position=center
 
+# Move each reviewed facade assembly as a unit. Keep doors/windows and UVs intact.
+func _relayout_art() -> void:
+	var palette: Array[Color]=[Color(0.83,0.91,1.0),Color(1.0,0.84,0.65),Color(0.77,0.87,0.77),Color(1.0,0.74,0.64)]
+	var cache: Dictionary={}
+	for node: Node in get_node("HarborArt").find_children("*","MeshInstance3D",true,false):
+		var m:=node as MeshInstance3D
+		if m.mesh==null:continue
+		var name_lower:=String(m.name).to_lower()
+		if name_lower.begins_with("sidewalk") and _court_material==null:
+			_court_material=m.get_active_material(0)
+		for i: int in range(Layout.BUILDING_IDS.size()):
+			if not name_lower.begins_with(Layout.BUILDING_IDS[i]):continue
+			_facade_counts[i]+=1
+			m.global_position+=Layout.BUILDING_OFFSETS[i]
+			# Distinct exterior finish on wall surfaces only, not windows or doors.
+			if "wall_" in name_lower:
+				for s: int in range(m.mesh.get_surface_count()):
+					var original:=m.get_active_material(s)
+					if not original is StandardMaterial3D:continue
+					var key: String="%d:%d"%[i,original.get_instance_id()]
+					if not cache.has(key):
+						var finish:=original.duplicate() as StandardMaterial3D
+						finish.albedo_color*=palette[i]
+						cache[key]=finish
+					m.set_surface_override_material(s,cache[key])
+			break
+	for count: int in _facade_counts:
+		if count==0:push_error("Reviewed facade group not found; layout mismatch")
+	if _court_material==null:push_error("Reviewed sidewalk paving not found; court material unavailable")
+	for r: Rect2 in Layout.COURTS:
+		var tile:=MeshInstance3D.new()
+		var plane:=PlaneMesh.new()
+		plane.size=r.size
+		if _court_material is StandardMaterial3D:
+			var paving:=_court_material.duplicate() as StandardMaterial3D
+			paving.uv1_scale=Vector3(r.size.x/1.8,r.size.y/1.8,1)
+			plane.material=paving
+		else:plane.material=_court_material
+		tile.mesh=plane
+		tile.position=Vector3(r.get_center().x,0.15,r.get_center().y)
+		add_child(tile)
+
 func _make_collision() -> void:
 	# Authored floor and facade collision proxies match the reviewed mesh footprint.
 	_box("RoadCollision",Vector3(0,-0.15,0),Vector3(6.8,0.30,32))
 	for r: Rect2 in Layout.SIDEWALKS:
 		_box("SidewalkCollision",Vector3(r.get_center().x,-0.075,r.get_center().y),Vector3(r.size.x,0.45,r.size.y))
+	for r: Rect2 in Layout.COURTS:
+		_box("CourtCollision",Vector3(r.get_center().x,-0.075,r.get_center().y),Vector3(r.size.x,0.45,r.size.y))
 	for i: int in range(Layout.BUILDINGS.size()):
 		var r: Rect2=Layout.BUILDINGS[i]
 		var h: float=Layout.HEIGHTS[i]
 		_box("ClosedExterior%d"%i,Vector3(r.get_center().x,0.15+h*0.5,r.get_center().y),Vector3(r.size.x,h,r.size.y))
-	# Temporary playtest limits at actual open ends. No invisible city extension.
+	# Existing road closures remain visible; the perimeter is a visible rail fence.
+	_make_block_fence()
 	_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
 	_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
 	_make_road_closure(-16.0)
@@ -172,6 +220,33 @@ func _make_collision() -> void:
 		var n := String(m.name).to_lower()
 		if m.mesh != null and ("bench" in n or "lamp" in n):
 			m.create_trimesh_collision()
+
+func _make_block_fence() -> void:
+	var material:=StandardMaterial3D.new()
+	material.albedo_color=Color(0.27,0.31,0.32)
+	material.metallic=0.65
+	material.roughness=0.53
+	for x: float in [-20.0,20.0]:
+		_box("BlockBoundary",Vector3(x,1.5,0),Vector3(0.2,3,36))
+		_fence_rail(Vector3(x,0.65,0),Vector3(0.10,0.10,36),material)
+		_fence_rail(Vector3(x,1.2,0),Vector3(0.10,0.10,36),material)
+		for z: int in range(-18,19,3):
+			_fence_rail(Vector3(x,0.65,z),Vector3(0.13,1.3,0.13),material)
+	for z: float in [-18.0,18.0]:
+		_box("BlockBoundary",Vector3(0,1.5,z),Vector3(40,3,0.2))
+		_fence_rail(Vector3(0,0.65,z),Vector3(40,0.10,0.10),material)
+		_fence_rail(Vector3(0,1.2,z),Vector3(40,0.10,0.10),material)
+		for x: int in range(-20,21,4):
+			_fence_rail(Vector3(x,0.65,z),Vector3(0.13,1.3,0.13),material)
+
+func _fence_rail(center: Vector3,extent: Vector3,material: Material) -> void:
+	var rail:=MeshInstance3D.new()
+	var mesh:=BoxMesh.new()
+	mesh.size=extent
+	mesh.material=material
+	rail.mesh=mesh
+	rail.position=center
+	add_child(rail)
 
 func _make_light() -> void:
 	var env := WorldEnvironment.new()
@@ -452,7 +527,7 @@ func _make_overhead_map() -> void:
 				(node as MeshInstance3D).layers=2
 	var camera := Camera3D.new()
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL
-	camera.size=36
+	camera.size=Layout.MAP_EXTENT
 	camera.cull_mask=1
 	camera.position=Vector3(0,60,0)
 	camera.rotation_degrees=Vector3(-90,0,0)
