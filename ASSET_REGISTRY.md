@@ -64,3 +64,5 @@ P09 technical candidate v002 integrated in Windows driving test 45631491513 arti
 Locomotion rework: exact UAL1 source and frozen MPFB rigs retained; arm-direction correction uses source actual joint directions rather than only rest rotation deltas. New derivative and visible deformation QA pending.
 
 Six NPC profiles authored: Nora Silva, Omar Rahman, Elena Park, Marcus Reed, Sana Malik, Liam Walsh. Distinct adult morph, height, hair, clothing and skin selections from verified CC0 pack. Six independent editable rig/render/runtime GLB builds configured. Candidate outputs pending; no accepted visuals yet.
+
+Six NPC art candidate generation passed 45666586177. Artifacts: Nora 15047507247, Omar 15047821934, Elena 15046954788, Marcus 15048985254, Sana 15047992036, Liam 15047807567. All six runtime GLB digests independently verified against reports. 252,446 combined triangles, 53 bones and nine clips each. Actual contact sheet reviewed; ankle clipping on Elena, generic outfit styling and motion/LOD/hardware gates remain open. Candidate only; not final character art.

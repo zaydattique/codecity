@@ -25,3 +25,5 @@ Latest 45631491513 actual exit capture: character now stands behind open door sw
 Owner 22.2s video showed folded/unnatural arms, camera framing, sparse facade and empty street ends. Arm source retarget reworked with actual source direction matching and preserved target geometry, not procedural placeholder motion. Require actual jogging frames before claiming visual correction.
 
 Actual Academy frames from 45663443843 confirm physical lamp lighting and working Python output. Found translucent low-contrast editor, stale displayed fixture code, empty street ends and previous arm defect. Reworked actual UI/theme and fixture, authored visible road closure, arm direction rework separately pending visual comparison. Do not call final art approved.
+
+Six actual Blender three-quarter views inspected: Nora, Omar, Elena, Marcus, Sana and Liam visually distinct; Elena ankle clipping and generic hair/outfits remain. No final acceptance of deformation, LOD or live world quality. Runtime review separate.
