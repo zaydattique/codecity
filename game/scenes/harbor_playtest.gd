@@ -45,6 +45,8 @@ func prepare(character: String) -> bool:
 func _ready() -> void:
 	if player == null:
 		return
+	process_mode=Node.PROCESS_MODE_ALWAYS
+	player.process_mode=Node.PROCESS_MODE_PAUSABLE
 	_make_collision()
 	_make_light()
 	_make_hud()
@@ -115,7 +117,7 @@ func _make_hud() -> void:
 	_hud.add_child(_map)
 	_status=Label.new()
 	_status.position=Vector2(20,252)
-	_status.text="Street physics test | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch collision · V camera\nM map · Esc pause\nMotion clips not installed."%("Adrian Cole" if _character=="adrian" else "Maya Bennett")
+	_status.text="Street physics test | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch collision · V camera\nM map · Esc pause\n%s"%[("Adrian Cole" if _character=="adrian" else "Maya Bennett"),("Licensed motion retarget test" if player.motion_installed else "Motion clips not installed.")]
 	_hud.add_child(_status)
 	_pause_panel=PanelContainer.new()
 	_pause_panel.position=Vector2(470,240)
@@ -160,10 +162,13 @@ func _toggle_map() -> void:
 
 func _set_pause(value: bool) -> void:
 	_paused=value
+	get_tree().paused=value
 	player.stop_controls()
 	player.controls_enabled=not value
 	_pause_panel.visible=value
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 func _exit_tree() -> void:
+	if get_tree()!=null and _paused:
+		get_tree().paused=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE

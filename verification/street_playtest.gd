@@ -23,9 +23,16 @@ func _verify() -> void:
 	if not actor.is_on_floor() or absf(actor.position.y-0.15)>0.05:
 		_fail("spawn did not settle on actual sidewalk proxy")
 		return
+	var require_motion := "--motion" in OS.get_cmdline_user_args()
+	if require_motion and (not actor.motion_installed or actor.motion_clip()!="idle"):
+		_fail("licensed idle clip missing")
+		return
 	var start: Vector3=actor.position
 	Input.action_press("move_forward")
 	await ticks(90)
+	if require_motion and actor.motion_clip()!="jog":
+		_fail("licensed locomotion clip not playing")
+		return
 	Input.action_release("move_forward")
 	await ticks(12)
 	if actor.position.z>start.z-3.0 or not Layout.street_contains(actor.position):
@@ -59,11 +66,11 @@ func _verify() -> void:
 		return
 	world._toggle_map()
 	world._set_pause(true)
-	if actor.controls_enabled:
+	if actor.controls_enabled or not paused:
 		_fail("pause ownership")
 		return
 	world._set_pause(false)
-	if not actor.controls_enabled:
+	if not actor.controls_enabled or paused:
 		_fail("resume")
 		return
 	if "--capture" in OS.get_cmdline_user_args():
@@ -85,7 +92,7 @@ func _verify() -> void:
 		return
 	root.add_child(other)
 	await ticks(15)
-	if not other.player.is_on_floor() or not is_equal_approx(other.player.height_m,1.69):
+	if not other.player.is_on_floor() or not is_equal_approx(other.player.height_m,1.69) or (require_motion and not other.player.motion_installed):
 		_fail("second protagonist spawn")
 		return
 	print("CODECITY_STREET_PLAYTEST_OK walking jump wall map pause both protagonists")

@@ -18,6 +18,8 @@ var _shape: CollisionShape3D
 var _visual: Node3D
 var _camera: Camera3D
 var _crouched := false
+var _animation: AnimationPlayer
+var motion_installed := false
 
 func configure(model: PackedScene, height: float) -> bool:
 	if model == null or height < 1.5 or height > 2.0 or is_inside_tree():
@@ -27,6 +29,17 @@ func configure(model: PackedScene, height: float) -> bool:
 	if _visual == null:
 		return false
 	add_child(_visual)
+	var animation_nodes := _visual.find_children("*","AnimationPlayer",true,false)
+	if animation_nodes.size()==1:
+		_animation=animation_nodes[0] as AnimationPlayer
+		motion_installed=true
+		for clip: String in ["idle","walk","jog","sprint","jump"]:
+			if not _animation.has_animation(clip):
+				motion_installed=false
+				break
+		if motion_installed:
+			for clip: String in ["idle","walk","jog","sprint"]:
+				_animation.get_animation(clip).loop_mode=Animation.LOOP_LINEAR
 	_capsule = CapsuleShape3D.new()
 	_capsule.radius = RADIUS
 	_capsule.height = height_m
@@ -50,6 +63,8 @@ func _ready() -> void:
 	if _camera != null:
 		_camera.current = true
 		_update_camera(1.0)
+		if motion_installed:
+			_animation.play("idle")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not controls_enabled:
@@ -89,6 +104,26 @@ func _physics_process(delta: float) -> void:
 		var target_yaw := atan2(direction.x,direction.z)
 		_visual.rotation.y = lerp_angle(_visual.rotation.y,target_yaw,Orbit.follow_weight(12.0,delta))
 	_update_camera(delta)
+	_update_motion()
+
+func _update_motion() -> void:
+	if not motion_installed:
+		return
+	var speed := Vector2(velocity.x,velocity.z).length()
+	var target := "idle"
+	if not is_on_floor():
+		target="jump"
+	elif speed>4.6:
+		target="sprint"
+	elif speed>2.6:
+		target="jog"
+	elif speed>0.18:
+		target="walk"
+	if _animation.current_animation!=target:
+		_animation.play(target,0.15)
+
+func motion_clip() -> String:
+	return _animation.current_animation if motion_installed else ""
 
 func _try_step(motion: Vector3) -> void:
 	if motion.length_squared() < 0.000001 or not test_move(global_transform,motion):
@@ -151,6 +186,8 @@ func _update_camera(delta: float) -> void:
 func stop_controls() -> void:
 	controls_enabled=false
 	velocity=Vector3.ZERO
+	if motion_installed:
+		_animation.play("idle",0.15)
 
 func camera_position() -> Vector3:
 	return _camera.global_position

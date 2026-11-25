@@ -37,3 +37,5 @@ Existing foundation scene now contains the working temporary profile, two modes 
 `tools/freeze_character_morphs.py`: offline GLB default-morph runtime derivative, keeps skin hierarchy/materials, no animated morphs accepted. `tests/test_freeze_character_morphs.py`: sparse accessors, skin retention, rejection. Art review stages separate derivatives, records hashes and still verifies actual imported geometry.
 
 P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game/scenes/harbor_playtest.gd; verification/street_playtest.gd and .github/workflows/street-playtest.yml. Existing boot menu launches only installed candidate street; exact asset staging outside tracked game. No approved asset binary committed.
+
+`tools/retarget_motion.py` extracts pinned licensed UAL rotations, transforms rest bases and writes five clips into separate MPFB runtime GLBs without changing skin/geometry. `tests/test_retarget_motion.py` quaternion and alias tests. Street CI now builds and requires real clip playback before screenshot; no primitive animation substitutes.
