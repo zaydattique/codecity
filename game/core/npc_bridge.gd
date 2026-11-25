@@ -33,7 +33,7 @@ func start() -> bool:
 	return true
 
 func submit(observations: Array, tick: int) -> bool:
-	if failed or pid<=0 or not pending.is_empty() or observations.size()!=6:return false
+	if failed or pid<=0 or not pending.is_empty() or observations.is_empty() or observations.size()>30:return false
 	var id := "npc."+str(tick)
 	var data := JSON.stringify({"version":1,"id":id,"op":"npc_batch","observations":observations})
 	if data.to_utf8_buffer().size()>LIMIT:return false
