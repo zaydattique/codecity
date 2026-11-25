@@ -60,3 +60,5 @@ P09 first neutralized coupe output verified in 45629610589 (59,528 tris; 4 measu
 V002 neutralized coupe material derivative: run 45630525421 artifact 15030332702; GLB 4e85e1c4692cfb1c20d87e5e244c57f2c4bbf8a0b9f6425cee3a3d2a92fef1ed; 59,528 triangles, all four wheels and two doors preserved. Reviewed actual front/rear/open-door renders; emission correction and alpha glass verified. Cleared for development package only via exact digest. Final vehicle art, seat fit, physics realism and LOD not approved.
 
 P09 technical candidate v002 integrated in Windows driving test 45631491513 artifact 15031685807. Actual 4 wheels and door geometry, revised PBR material, cockpit preserved, 59,528 tris. Development distribution only. No final art/LOD/seat fit approval. No vehicle binary committed.
+
+Locomotion rework: exact UAL1 source and frozen MPFB rigs retained; arm-direction correction uses source actual joint directions rather than only rest rotation deltas. New derivative and visible deformation QA pending.

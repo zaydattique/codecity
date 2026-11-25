@@ -28,3 +28,9 @@ def test_invalid_and_aliases():
     with pytest.raises(ValueError):unit((0,0,0,0))
     assert canonical("Armature:upperarm_l")=="upperarm_l"
     assert canonical("LeftForeArm")=="lowerarm_l"
+
+
+def test_arm_direction_correction():
+    from tools.retarget_motion import aim_rotation,vector,norm
+    for a,b in [((1,0,0),(0,-1,0)),((0,1,0),(0,-1,0)),((1,2,3),(-2,1,4))]:
+        assert vector(aim_rotation(a,b),norm(a))==pytest.approx(norm(b))

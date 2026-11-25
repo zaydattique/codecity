@@ -21,3 +21,5 @@ P09 actual car front/door-open Blender views and real Godot drive/exit frames in
 V002 actual material render review: original white emission defect removed from rim/mirror/hardware/dashboard; glass alpha blend and softer paint. Actual cockpit visible, no obvious original logos in reviewed views. Remaining surface/seam issues and visible seated driver not approved. Exact derivative allowed for internal candidate export only; final game acceptance pending.
 
 Latest 45631491513 actual exit capture: character now stands behind open door sweep (conservative bound check also passed), no prior leg/door overlap visible; awkward idle/foot-ground pose remains. Corrected glass and rim emission visible in real game. No seated driver visual. Candidate-only art review.
+
+Owner 22.2s video showed folded/unnatural arms, camera framing, sparse facade and empty street ends. Arm source retarget reworked with actual source direction matching and preserved target geometry, not procedural placeholder motion. Require actual jogging frames before claiming visual correction.

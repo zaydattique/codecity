@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'ai/academy.py'
+      - 'tools/retarget_motion.py'
       - 'game/core/academy*.gd'
       - 'game/core/game_settings.gd'
       - 'game/core/pause_settings.gd'
@@ -53,6 +54,12 @@ jobs:
           run-id: ${{ github.event.workflow_run.id || inputs.coupe_run || '45630525421' }}
           github-token: ${{ github.token }}
           path: build/coupe-input
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: phase-a-engine-review
+          run-id: 45603398478
+          github-token: ${{ github.token }}
+          path: build/frozen-characters
       - name: Stage reviewed candidate street and exact neutralized coupe
         run: |
           set -euo pipefail
@@ -76,6 +83,18 @@ jobs:
           shutil.copy2(glb,"build/vehicle-game/candidate_assets/coupe.glb")
           shutil.copy2(folder/"report.json","build/evidence/coupe-report.json")
           PY
+      - name: Rebuild both real character motion candidates from exact frozen source
+        run: |
+          set -euo pipefail
+          mkdir -p build/arm-motion
+          curl -fL --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 --max-filesize 8000000 https://raw.githubusercontent.com/webgl-games/opencity/ba9514cdd88ecc2d40ecad503a644449fc98e665/assets/characters/UAL1_Standard.glb -o build/arm-motion/UAL1_Standard.glb
+          echo "e5be310d7245ef986d2492f52ee003646973a92f3104294b34881dcd10681e9d  build/frozen-characters/frozen/adrian.glb" | sha256sum -c -
+          echo "41de3978d7d36870c1d7d7114125701085345edc56dfd27dc7d7d2333ab51c94  build/frozen-characters/frozen/maya.glb" | sha256sum -c -
+          for id in adrian maya; do
+            python -m tools.retarget_motion build/arm-motion/UAL1_Standard.glb "build/frozen-characters/frozen/$id.glb" "build/arm-motion/$id.glb"
+            cp "build/arm-motion/$id.glb" "build/vehicle-game/candidate_assets/$id.glb"
+          done
+          cp build/arm-motion/*.motion.json build/evidence/
       - name: Install pinned Godot
         run: |
           set -euo pipefail
@@ -109,6 +128,9 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE=1 timeout 90 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/vehicle-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/academy_playtest.gd -- --capture 2>&1 | tee build/evidence/academy-render.log
           grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy-render.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/academy-render.log; then exit 1; fi
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 150 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/vehicle-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/street_playtest.gd -- --capture --motion 2>&1 | tee build/evidence/street-render.log
+          grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street-render.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/street-render.log; then exit 1; fi
           cp build/vehicle-game/_qa/*.png build/evidence/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

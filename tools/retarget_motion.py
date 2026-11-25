@@ -5,6 +5,7 @@ global rest bases, retain target bone lengths and discard root motion. This is
 a first retarget candidate, not a foot-IK or animation-art approval.
 """
 import argparse
+from bisect import bisect_right
 import hashlib
 import json
 import math
@@ -114,6 +115,127 @@ def write_accessor(doc,binary,rows,kind):
     return idx
 
 
+def vector(q,v):
+    return mul(mul(q,(*v,0.0)),inv(q))[:3]
+
+
+def sub(a,b):
+    return tuple(x-y for x,y in zip(a,b))
+
+
+def dot(a,b):
+    return sum(x*y for x,y in zip(a,b))
+
+
+def cross(a,b):
+    return (a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0])
+
+
+def norm(v):
+    n=math.sqrt(dot(v,v))
+    if n<1e-8:raise ValueError("Zero arm direction")
+    return tuple(x/n for x in v)
+
+
+def aim_rotation(a,b):
+    a,b=norm(a),norm(b)
+    cosine=max(-1,min(1,dot(a,b)))
+    if cosine < -0.999999:
+        axis=norm(cross(a,(1,0,0) if abs(a[0])<0.8 else (0,1,0)))
+        return (*axis,0.0)
+    return unit((*cross(a,b),1+cosine))
+
+
+def parent_map(doc):
+    return {child:i for i,node in enumerate(doc["nodes"]) for child in node.get("children",[])}
+
+
+def rest_positions(doc,local,indices):
+    parents=parent_map(doc)
+    cache={}
+    def pose(i):
+        if i in cache:return cache[i]
+        node=doc["nodes"][i]
+        scale=node.get("scale",[1,1,1])
+        if min(scale)<=0 or max(scale)-min(scale)>1e-4:
+            raise ValueError("Nonuniform skeleton rest scale")
+        t=node.get("translation",[0,0,0])
+        if i in parents:
+            p,q,k=pose(parents[i])
+            offset=vector(q,tuple(x*k for x in t))
+            result=(tuple(x+y for x,y in zip(p,offset)),unit(mul(q,local[i])),k*scale[0])
+        else:result=(tuple(t),local[i],scale[0])
+        cache[i]=result
+        return result
+    return {i:pose(i)[0] for i in indices}
+
+
+def sample_track(track,t):
+    times,values,interpolation=track
+    i=bisect_right(times,t)-1
+    if i<0:return unit(values[0])
+    if i>=len(times)-1 or interpolation=="STEP":return unit(values[i])
+    u=(t-times[i])/(times[i+1]-times[i])
+    a,b=unit(values[i]),unit(values[i+1])
+    if dot(a,b)<0:b=tuple(-x for x in b)
+    return unit(tuple((1-u)*x+u*y for x,y in zip(a,b)))
+
+
+def correct_arm_tracks(src,dst,sn,dn,sl,dl,sg,dg,source_tracks,target_tracks):
+    # MPFB's A-pose and UAL's different bind pose make rotation-only transfer
+    # insufficient for arm placement. Preserve actual animated upper/forearm
+    # directions using anatomically aligned source global poses. Keep target
+    # lengths, original skin and twist, solve local rotations parent-first.
+    sp,dp=parent_map(src),parent_map(dst)
+    spos=rest_positions(src,sl,sn.values())
+    dpos=rest_positions(dst,dl,dn.values())
+    ss=sub(spos[sn["upperarm_l"]],spos[sn["upperarm_r"]])
+    ds=sub(dpos[dn["upperarm_l"]],dpos[dn["upperarm_r"]])
+    ss=norm((ss[0],0,ss[2]));ds=norm((ds[0],0,ds[2]))
+    yaw=math.atan2(cross(ss,ds)[1],dot(ss,ds))
+    align=(0,math.sin(yaw/2),0,math.cos(yaw/2))
+    axes={}
+    for side in ("l","r"):
+        for a,b in (("upperarm","lowerarm"),("lowerarm","hand")):
+            name=a+"_"+side;child=b+"_"+side
+            si,di=sn[name],dn[name]
+            sa=vector(inv(sg[si]),norm(sub(spos[sn[child]],spos[si])))
+            da=vector(inv(dg[di]),norm(sub(dpos[dn[child]],dpos[di])))
+            axes[di]=(si,sa,da)
+    duration=max(track[0][-1] for track in target_tracks.values())
+    count=max(1,math.ceil(duration*30))
+    times=[duration*i/count for i in range(count+1)]
+    outputs={i:[] for i in axes}
+    for t in times:
+        src_cache={};dst_cache={}
+        def source_pose(i):
+            if i not in src_cache:
+                local=sample_track(source_tracks[i],t) if i in source_tracks else sl[i]
+                src_cache[i]=unit(mul(source_pose(sp[i]),local)) if i in sp else local
+            return src_cache[i]
+        def target_pose(i):
+            if i in dst_cache:return dst_cache[i]
+            parent=target_pose(dp[i]) if i in dp else Q
+            local=sample_track(target_tracks[i],t) if i in target_tracks else dl[i]
+            current=unit(mul(parent,local))
+            if i in axes:
+                si,sa,da=axes[i]
+                desired=vector(align,vector(source_pose(si),sa))
+                correction=aim_rotation(vector(current,da),desired)
+                current=unit(mul(correction,current))
+                local=unit(mul(inv(parent),current))
+                values=outputs[i]
+                if values and dot(values[-1],local)<0:local=tuple(-x for x in local)
+                values.append(local)
+                if dot(norm(vector(current,da)),norm(desired))<0.999:
+                    raise ValueError("Arm direction transfer failed")
+            dst_cache[i]=current
+            return current
+        for i in axes:target_pose(i)
+    for i,values in outputs.items():
+        target_tracks[i]=(times,values,"LINEAR")
+
+
 def retarget(source,target):
     src,sbin=decode(source)
     dst,dbin=decode(target)
@@ -131,10 +253,11 @@ def retarget(source,target):
         samplers=[]
         channels=[]
         used=set()
+        source_tracks={}
+        target_tracks={}
         for ch in anim["channels"]:
             target_node=ch["target"].get("node")
-            bone=reverse.get(target_node)
-            if ch["target"].get("path")!="rotation" or bone not in common:
+            if ch["target"].get("path")!="rotation":
                 continue
             sample=anim["samplers"][ch["sampler"]]
             interp=sample.get("interpolation","LINEAR")
@@ -144,21 +267,26 @@ def retarget(source,target):
             values=accessor(src,sbin,sample["output"])
             if len(times)!=len(values) or not times or times[0][0]<0 or times[-1][0]>30 or any(a[0]>=b[0] for a,b in zip(times,times[1:])):
                 raise ValueError("Invalid keyframe times")
+            source_tracks[target_node]=([row[0] for row in times],values,interp)
+            bone=reverse.get(target_node)
+            if bone not in common or bone=="root":continue
             si=sn[bone];di=dn[bone]
-            if bone=="root":continue
             out=[]
             for q in values:
                 value=transfer(sl[si],sg[si],dl[di],dg[di],q)
-                if out and sum(a*b for a,b in zip(out[-1],value))<0:
+                if out and dot(out[-1],value)<0:
                     value=tuple(-v for v in value)
                 out.append(value)
-            inp=write_accessor(dst,dbin,times,"SCALAR")
-            val=write_accessor(dst,dbin,out,"VEC4")
-            channels.append({"sampler":len(samplers),"target":{"node":di,"path":"rotation"}})
-            samplers.append({"input":inp,"output":val,"interpolation":interp})
+            target_tracks[di]=([row[0] for row in times],out,interp)
             used.add(bone)
         if len(used.intersection(CORE))<16 or not {"thigh_l","thigh_r","upperarm_l","upperarm_r"}<=used:
             raise ValueError(f"Insufficient real rotation tracks for {name}: {sorted(used)}")
+        correct_arm_tracks(src,dst,sn,dn,sl,dl,sg,dg,source_tracks,target_tracks)
+        for di,(times,values,interp) in target_tracks.items():
+            inp=write_accessor(dst,dbin,[(t,) for t in times],"SCALAR")
+            val=write_accessor(dst,dbin,values,"VEC4")
+            channels.append({"sampler":len(samplers),"target":{"node":di,"path":"rotation"}})
+            samplers.append({"input":inp,"output":val,"interpolation":interp})
         result.append({"name":name,"samplers":samplers,"channels":channels})
         counts[name]=len(channels)
     dst["animations"]=result
@@ -184,7 +312,7 @@ def main():
     a.output.write_bytes(data)
     report={"source_commit":PIN,"source_blob":BLOB,"license":"CC0-1.0","author":"Quaternius",
             "clips":counts,"output_sha256":hashlib.sha256(data).hexdigest(),
-            "limitations":["rotation retarget candidate; root translation removed","foot planting, finger poses, crouch and landing not approved"]}
+            "limitations":["rotation retarget candidate; source arm directions solved parent-first; root translation removed","foot planting, finger poses, crouch and landing not approved"]}
     a.output.with_suffix(".motion.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
     print("CODECITY_MOTION_RETARGET_OK",counts)
 
