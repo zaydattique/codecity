@@ -18,8 +18,9 @@ LOCATIONS={
     "park_west_a":(-80.0,66.0), "park_west_b":(-80.0,96.0),
     "park_center_a":(0.0,65.0), "park_center_b":(0.0,96.0),
     "park_east_a":(80.0,66.0), "park_east_b":(80.0,96.0),
+    "shop_counter":(13.3,-9.4), "shop_shelf":(13.3,-7.7),
 }
-EVENTS={"greet","crowd","horn","near_collision","lamp_restored","threat"}
+EVENTS={"greet","crowd","horn","near_collision","lamp_restored","threat","attack"}
 IDS=("nora","omar","elena","marcus","sana","liam")
 CITY_IDS=("jules","rhea","vincent","farah","theo","iris")
 
@@ -46,7 +47,7 @@ PROFILES={
         Profile("sana","Sana Malik","designer",.55,.6,.6,("bench","east_south"),600,1080),
         Profile("liam","Liam Walsh","shift worker",.2,.4,.85,("west_north","west_south"),720,1320),
         Profile("jules","Jules Morgan","bike messenger",.6,.25,.45,("park_west_a","park_west_b"),390,930),
-        Profile("rhea","Rhea Santos","shop owner",.78,.68,.6,("park_west_b","park_west_a"),510,1140),
+        Profile("rhea","Rhea Santos","shop owner",.78,.68,.6,("shop_counter","shop_shelf"),510,1140),
         Profile("vincent","Vincent Hale","retired dock supervisor",.42,.85,.8,("park_center_a","park_center_b"),360,720),
         Profile("farah","Farah Karim","office clerk",.5,.64,.66,("park_center_b","park_center_a"),480,1020),
         Profile("theo","Theo Grant","apprentice",.67,.3,.48,("park_east_a","park_east_b"),420,960),
@@ -112,6 +113,10 @@ def decide(state,o):
             stress=clamp(stress+(0.25 if kind=="horn" else 0.6)*p.caution)
             affinity=clamp(affinity-0.15,-1,1)
             if tick-state.last_reaction>=90:reaction="avoid" if p.caution>.65 else "complain"
+        elif kind=="attack":
+            stress=clamp(stress+0.9)
+            affinity=clamp(affinity-0.5,-1,1)
+            reaction="defend" if p.caution<.70 and event["distance"]<2.5 else "avoid"
         elif kind=="threat":
             stress=clamp(stress+0.8)
             affinity=clamp(affinity-0.35,-1,1)
@@ -142,7 +147,7 @@ def decide(state,o):
         options=[x for x in p.route if x in LOCATIONS]
         destination=max(options,key=lambda x:math.dist(o["position"],LOCATIONS[x]))
         action="give_space"
-    elif reaction in ("acknowledge","complain","inspect"):
+    elif reaction in ("acknowledge","complain","inspect","defend"):
         action=reaction
     new=replace(state,route_index=route,energy=energy,stress=stress,affinity=affinity,
                 last_event=last_event,last_reaction=tick if reaction else state.last_reaction,last_tick=tick)
