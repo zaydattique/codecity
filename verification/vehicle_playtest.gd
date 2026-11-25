@@ -9,7 +9,7 @@ func ticks(count: int) -> void:
 
 func _verify() -> void:
 	var world=Harbor.new()
-	if not world.prepare("adrian"):
+	if not world.prepare("adrian",false,false):
 		world.free()
 		_fail("street prepare")
 		return
