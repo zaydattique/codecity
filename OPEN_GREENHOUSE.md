@@ -7,3 +7,5 @@ Settings and experiment progress are stored locally. Resume returns to the pause
 Clear and Example buttons are available above the editor. An invalid Run pauses the previous experiment without overwriting its state.
 
 Observe both dry and moist predictions, test code branches and concepts, then Experiment. Timeline scrubs exact simulated days; Step advances one day; Compare uses the last executed rule and same initial conditions. Challenge includes separate temperature-controlled ventilation practice. Fan geometry is a teaching illustration; no air-flow physics is claimed.
+
+Select the target day using the timeline, then press Seek. The actual simulation day is displayed in the scene metrics. Step advances one day.

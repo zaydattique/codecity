@@ -24,3 +24,5 @@ First Phase 1 core matrix and nine native captures passed (45719235049); X11 inp
 Phase 1 verified at 657f7e0: Linux native capture and real OS keyboard/mouse passed, Windows packaged GUI passed (45719638724, artifact 15070534455). Phase 2 implementation: instrumented real CPython execution, two prediction scenarios, comparison/equality/elif/boolean explanations, deterministic scrub/step, same-input comparison and independent fan exercise. Existing art reused. New tests pending.
 
 Phase 2 preflight: preserve valid concept selection on returning, test both fan temperature outcomes in native capture, use wetness on comparison surfaces, distinguish a changed temperature from an evaluated fan result. No new art approval.
+
+Phase 2 first native review (45720820139) found queued DirectSlider callbacks rewinding a finished plant to day zero during render, despite prior assertions. Replaced implicit slider seek with explicit target plus Seek button; add post-render assertions. Comparison and trace screens rendered, but no release until corrected runtime gate.

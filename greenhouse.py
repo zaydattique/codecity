@@ -98,7 +98,7 @@ def run():
     compare_root=app.render.attachNewNode("comparison-exhibit");compare_root.hide()
     fan_root=app.render.attachNewNode("fan-exhibit");fan_root.hide()
     compare_meshes=[];fan_rotor=None;fan_status=None;fan_temp=28;fan_on=False;fan_source=FAN_START;fan_run=None;fan_slider=None
-    comparison_day=60;reference=DRY_RULE;compare_labels=[];timeline=None;timeline_lock=False
+    comparison_day=60;reference=DRY_RULE;compare_labels=[];timeline=None;target_day_label=None
     active_trace=None;trace_key=None;trace_label=None;concept_index=-1;demo_moisture=20;concept_text=None;code_labels=[];prediction_result=None
     editor=None;status=None;metrics=None;output=None;settings={};guide_text=None;audio=None;voice=profile["voice"]
     def panel(parent,x,y,w,h,color):
@@ -130,10 +130,10 @@ def run():
     def quit_app():
         preserve_experiment();persist();app.userExit()
     def clear(mode):
-        nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text,timeline,trace_label,trace_key,fan_status
+        nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text,timeline,trace_label,trace_key,fan_status,target_day_label
         preserve_experiment()
         if editor is not None:editor["focus"]=0
-        editor=status=metrics=output=guide_text=timeline=trace_label=fan_status=None;trace_key=None
+        editor=status=metrics=output=guide_text=timeline=trace_label=fan_status=target_day_label=None;trace_key=None
         stop_audio();playing=False;water=False
         if page is not None:page.destroy()
         page=DirectFrame(parent=ui,frameColor=(0,0,0,0),frameSize=(0,1280,-720,0))
@@ -256,7 +256,7 @@ def run():
     def set_message(message):
         if status is not None:status["text"]=message
     def show_lesson(n):
-        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual,timeline,trace_label,active_trace,concept_text,code_labels,demo_moisture,prediction_result
+        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual,timeline,trace_label,active_trace,target_day_label,concept_text,code_labels,demo_moisture,prediction_result
         clear("lesson");stage=n;active_trace=None;prediction_result=None;code_labels=[]
         if n==2:
             state=experiment.state;source=experiment.source;water=experiment.water;visual=state.growth;elapsed=0
@@ -383,11 +383,12 @@ def run():
                 guide_text["text"]="Run the rule, inspect executed lines and scrub to any simulated day."
                 # Timeline uses exact deterministic state, not a decorative progress bar.
                 panel(page,30,600,1220,100,WHITE)
-                label(page,"Day",48,625,15,GREEN)
-                timeline=DirectSlider(parent=page,range=(0,60),value=state.day,pageSize=1,scale=1,pos=(340,0,-620),frameSize=(-245,245,-6,6),thumb_frameSize=(-7,7,-9,9),command=seek_day)
-                button(page,"Step",610,605,95,30,step_day)
-                button(page,"Compare",715,605,125,30,show_comparison)
-                button(page,"Restart",850,605,110,30,lambda:seek_day(0))
+                target_day_label=label(page,"Go to day "+str(state.day),48,625,15,GREEN)
+                timeline=DirectSlider(parent=page,range=(0,60),value=state.day,pageSize=1,scale=1,pos=(350,0,-620),frameSize=(-180,180,-6,6),thumb_frameSize=(-7,7,-9,9))
+                button(page,"Seek",550,605,90,30,seek_day,True)
+                button(page,"Step",650,605,90,30,step_day)
+                button(page,"Compare",750,605,125,30,show_comparison)
+                button(page,"Restart",885,605,110,30,lambda:seek_day(0))
                 trace_label=label(page,"",48,650,15,INK,94)
                 guide_text.hide()
                 speak("experiment")
@@ -410,15 +411,15 @@ def run():
         editor.enterText(text[:pos]+value+text[pos:]);editor.setCursorPosition(pos+len(value));editor["focus"]=1
     def seek_day(day=None):
         nonlocal state,playing,water,elapsed,visual,trace_key
-        if timeline_lock or timeline is None:return
+        if timeline is None:return
         target=round(timeline["value"]) if day is None else day
-        if target==experiment.state.day:return
         experiment.seek(target);state=experiment.state;playing=False;water=experiment.water;elapsed=0;visual=state.growth;trace_key=None
+        timeline["value"]=state.day
         persist();set_message(f"Paused at day {state.day}. Resume or step.")
     def step_day():
         nonlocal playing,state,water,elapsed
         if state.day>=60:return
-        if state.day==0 and editor.get()!=experiment.source:
+        if state.day==0 and (editor.get()!=experiment.source or initial()!=experiment.initial):
             try:experiment.start(editor.get(),initial())
             except RuleError as e:set_message("Code error: "+str(e)[:85]);return
         experiment.playing=True;experiment.step();experiment.playing=False
@@ -470,7 +471,7 @@ def run():
             playing=False
             if stage==2:set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
     def update(task):
-        nonlocal elapsed,visual,shown,timeline_lock,trace_key,active_trace
+        nonlocal elapsed,visual,shown,trace_key,active_trace
         if screen=="fan":
             if fan_on and fan_rotor is not None:fan_rotor.setR(fan_rotor.getR()+ClockObject.getGlobalClock().getDt()*420)
             return Task.cont
@@ -495,8 +496,7 @@ def run():
         if metrics is not None:
             metrics["text"]=f"Day {state.day}  |  Soil {state.moisture}%  |  Growth {round(state.growth*100)}%  |  Health {round(state.health*100)}%"
         if stage==2 and timeline is not None:
-            if round(timeline["value"])!=state.day:
-                timeline_lock=True;timeline["value"]=state.day;timeline_lock=False
+            target_day_label["text"]="Go to day "+str(round(timeline["value"]))
             key=(experiment.source,state.day,experiment.initial)
             if key!=trace_key:
                 trace_key=key;active_trace=trace_day(experiment)
@@ -647,10 +647,10 @@ def run():
         start()
         for _ in range(60):tick()
         assert state.growth==1 and state.health>.9
-        visual=1.;capture("grown.png")
-        seek_day(10);assert state.day==10 and not playing;capture("rewind.png")
+        visual=1.;capture("grown.png");assert state.day==60 and state.growth==1
+        seek_day(10);assert state.day==10 and not playing;capture("rewind.png");assert state.day==10
         seek_day(60);assert state.growth==1
-        show_comparison();capture("compare.png");show_lesson(2)
+        show_comparison();capture("compare.png");show_lesson(2);assert state.day==60
         editor.enterText("if moisture < 0:\n    irrigate(True)\nelse:\n    irrigate(False)")
         settings["Initial moisture"]["value"]=20;start()
         for _ in range(60):tick()
