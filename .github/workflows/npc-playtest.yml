@@ -87,6 +87,10 @@ jobs:
           echo "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  $RUNNER_TEMP/godot.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
           chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+      - name: Python curriculum unit checks
+        run: |
+          python -m pip install pytest
+          python -m pytest -q tests/test_academy.py
       - name: Actual six-actor Python runtime regression
         env:
           CODECITY_NPC_SCRIPT: ${{ github.workspace }}/ai/worker.py
@@ -131,8 +135,8 @@ jobs:
           cp verification/candidate_export_presets.cfg build/npc-game/export_presets.cfg
           mv build/npc-game build/demo-package/game
           cat > build/demo-package/distribution/README.txt <<'EOF'
-          CodeCity integrated university demo candidate, not a production release.
-          Keep EXE, PCK, python directory, academy.py, worker.py and npc_brain.py together.
+          CODECITY | Living World and Academy
+          Launch CodeCity.exe. Keep the EXE, PCK, python directory and all Python modules together.
           Academy: approach the lighting cabinet, E, select an exercise, write and run Python.
           Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
           WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
@@ -152,6 +156,6 @@ jobs:
     uses: ./.github/workflows/candidate-windows-export.yml
     with:
       project_artifact: tested-integrated-demo-project
-      suite: demo
-      exe: CodeCity_Academy_Demo.exe
-      output_artifact: CodeCity-Windows-Integrated-Demo-Candidate
+      suite: integrated
+      exe: CodeCity.exe
+      output_artifact: CodeCity-Windows
