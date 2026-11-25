@@ -1,0 +1,64 @@
+name: Greenhouse Windows preview
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  geometry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Export evaluated geometry
+        env:
+          CODECITY_RUNTIME_ONLY: '1'
+        run: blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_greenhouse_art.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: greenhouse-native-geometry
+          path: build/greenhouse-art/runtime/
+          if-no-files-found: error
+  windows:
+    needs: geometry
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        with:
+          name: greenhouse-native-geometry
+          path: runtime
+      - run: python -m pip install -r requirements.txt pyinstaller==6.16.0
+      - run: python -m unittest discover -s tests -v
+      - run: python greenhouse.py --self-test
+      - run: pyinstaller --noconfirm --onedir --windowed --name CodeCity --collect-all panda3d --collect-all direct --add-data "runtime;runtime" greenhouse.py
+      - shell: pwsh
+        run: |
+          $p = Start-Process -FilePath ".\dist\CodeCity\CodeCity.exe" -ArgumentList "--self-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Packaged asset and logic test failed: $($p.ExitCode)" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CodeCity-Windows-Integration-Preview
+          path: dist/CodeCity/
+          if-no-files-found: error

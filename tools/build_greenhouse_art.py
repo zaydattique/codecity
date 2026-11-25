@@ -3,6 +3,7 @@ import bpy
 import math
 import random
 import json
+import os
 from pathlib import Path
 from mathutils import Vector
 
@@ -82,24 +83,24 @@ for x in (-.252,.252):
     cube("Rhizobox side rail",(x,0,-.095),(.022,.19,.32),frame)
 cube("Rhizobox foot",(0,0,-.248),(.53,.22,.022),frame)
 cube("Rhizobox rear frame",(0,.17,.057),(.53,.025,.025),frame)
-seed=ellipsoid("Bean-like seed",(0,-.011,.035),(.020,.012,.012),seedmat)
+seed=ellipsoid("Bean-like seed",(0,.004,.045),(.012,.007,.007),seedmat)
 seed.rotation_euler[1]=.45
 seed.keyframe_insert("scale",frame=1)
-seed.scale=(.023,.014,.014);seed.keyframe_insert("scale",frame=25)
+seed.scale=(.014,.008,.008);seed.keyframe_insert("scale",frame=25)
 # Roots extend by tip reveal, with taper and independent lateral growth, not whole-plant scaling.
-main=[(0,-.018,.026),(.008,-.022,-.006),(-.003,-.022,-.040),(.014,-.022,-.08),(.006,-.023,-.13),(.027,-.022,-.19),(.02,-.022,-.224)]
-curve("Primary root",main,.0045,rootmat,12,82)
+main=[(0,.004,.039),(.004,.004,.015),(-.003,.004,-.020),(.006,.004,-.06),(.002,.004,-.105),(.014,.004,-.155),(.01,.004,-.195)]
+curve("Primary root",main,.0016,rootmat,12,82)
 for i in range(1,6):
     x,y,z=main[i]
     for side in (-1,1):
         length=random.uniform(.025,.08)*(1-i*.07)
         pts=[(x,y,z),(x+side*length*.28,y-.002,z-.012),(x+side*length*.68,y-.001,z-.025),(x+side*length,y-.002,z-.047)]
-        curve("Lateral root",pts,.0017,rootmat,25+i*7,68+i*7)
+        curve("Lateral root",pts,.00055,rootmat,29+i*10,76+i*7)
         for j in range(2):
             a=Vector(pts[j+1]);d=Vector((side*random.uniform(.008,.025),-.001,-random.uniform(.012,.035)))
-            curve("Fine root",[a,a+d*.45,a+d],.00065,rootmat,50+i*6+j*4,95+i*4)
-shoot=[(0,-.011,.04),(-.012,-.015,.077),(-.005,-.008,.13),(.015,0,.19),(.009,.003,.255)]
-curve("Hypocotyl and shoot",shoot,.006,stemmat,29,78)
+            curve("Fine root",[a,a+d*.45,a+d],.00020,rootmat,51+i*10+j*3,110+i*2)
+shoot=[(0,.004,.05),(-.004,.004,.067),(-.006,.007,.095),(.005,.012,.13),(.008,.015,.17)]
+curve("Hypocotyl and shoot",shoot,.0022,stemmat,29,78)
 def leaf(name,origin,direction,length,width,start,end):
     base=Vector(origin);u=Vector(direction).normalized();v=Vector((-u.y,u.x,0)).normalized()
     verts=[];faces=[];N=24;M=12
@@ -128,18 +129,18 @@ def leaf(name,origin,direction,length,width,start,end):
     for f,val in ((1,True),(start-1,True),(start,False)):
         o.hide_render=val;o.keyframe_insert("hide_render",frame=f)
     return o
-leaf("Cotyledon left",shoot[2],(-1,-.15,.28),.10,.029,52,75)
+leaf("Cotyledon left",shoot[2],(-1,-.15,.28),.043,.014,58,80)
 leaf("Cotyledon right",shoot[2],(1,.15,.28),.10,.029,52,75)
-leaf("True leaf left",shoot[3],(-.85,.45,.23),.13,.04,68,103)
-leaf("True leaf right",shoot[4],(.85,-.35,.33),.13,.042,78,116)
+leaf("True leaf left",shoot[3],(-.85,.45,.23),.065,.022,72,106)
+leaf("True leaf right",shoot[4],(.85,-.35,.33),.065,.022,82,116)
 # Nozzle and falling droplets: illustrative animation, not fluid dynamics.
 cube("Irrigation rail",(0,.12,.43),(.48,.024,.024),frame)
-cube("Nozzle",(0,-.01,.39),(.024,.025,.07),frame)
+cube("Nozzle",(0,.035,.39),(.024,.025,.07),frame)
 for i in range(12):
-    o=ellipsoid("Water droplet",(random.uniform(-.011,.011),-.012,.36),(.002,.002,.0035),water)
+    o=ellipsoid("Water droplet",(random.uniform(-.011,.011),.035,.36),(.002,.002,.0035),water)
     first=2+i*3
     o.keyframe_insert("location",frame=first)
-    o.location.z=.057;o.keyframe_insert("location",frame=first+10)
+    o.location.z=.058;o.keyframe_insert("location",frame=first+10)
     for f,val in ((1,True),(first,False),(first+10,True)):
         o.hide_render=val;o.keyframe_insert("hide_render",frame=f)
 def aim(o,target):o.rotation_euler=(Vector(target)-o.location).to_track_quat("-Z","Y").to_euler()
@@ -150,6 +151,14 @@ area("Cool fill",(.5,-.2,.55),95,.55,(.7,.85,1),(0,0,.05))
 area("Rim",(.0,.65,.8),190,.5,(1,.94,.78),(0,0,.1))
 bpy.ops.object.camera_add(location=(.40,-1.05,.27));cam=bpy.context.object
 aim(cam,(0,0,.075));cam.data.lens=55;scene.camera=cam
+# Native preview mesh cache: evaluated Blender geometry, no frame images.
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from runtime_mesh_export import export_runtime
+export_runtime(scene, OUT / "runtime")
+if os.environ.get("CODECITY_RUNTIME_ONLY") == "1":
+    print("CODECITY_RUNTIME_GEOMETRY_OK")
+    raise SystemExit(0)
 # Real camera render, full source retained, stage exports separate from Blender-only animation.
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/"greenhouse-study.blend"))
 for f in (1,48,80,120):
