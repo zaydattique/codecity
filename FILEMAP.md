@@ -73,3 +73,5 @@ Integrated demo: existing harbor_playtest.gd owns short story, mission HUD and h
 Harbor utilities chapter extends existing ai/academy.py, academy_station.gd, session_state.gd, foundation.gd/.tscn, harbor_playtest.gd and street_map.gd. Tests/test_academy.py and verification/academy_playtest.gd exercise bounded language, all seven physical outcomes and save round trip. Existing integrated and shared Windows workflows export CodeCity.exe. No new third-party assets or duplicated gameplay systems.
 
 Harbor automation extends existing ai/academy.py, academy_station.gd, tests/test_academy.py and verification/academy_playtest.gd with reserve sensor/pump, bounded dictionary and function support, visible reserve and gauge, and ten-assignment persistence checks. Existing integrated workflow captures Academy terminal and equipment evidence.
+
+Harbor access phase modifies existing harbor_layout.gd, harbor_playtest.gd, street_map.gd and street_playtest.gd, plus art/characters.json, existing character pipeline and NPC art workflow, Python npc_brain.py and its tests. No parallel map or controller. Integrated QA captures rear-court evidence and runs NPC/profile unit checks.
