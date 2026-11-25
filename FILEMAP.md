@@ -57,3 +57,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `game/core/game_settings.gd` persistent local settings autoload; `pause_settings.gd` actual pause/settings controls. Updated existing camera/map and street scene rather than parallel controllers.
 
 `verification/academy_playtest.gd` actual mission smoke, native Python bridge and denial/atomic/physical light assertions. Shared Windows exporter now has Academy suite with bundled CPython and standalone lesson test.
+
+`game/core/ui_style.gd` shared interface palette for real menu, Academy, pause controls; cabinet and road-closure geometry are authored limited equipment, not a finished world expansion.

@@ -9,6 +9,7 @@ const Car = preload("res://core/street_vehicle.gd")
 const Interaction = preload("res://core/world_interaction.gd")
 const Academy = preload("res://core/academy_station.gd")
 const PauseSettings = preload("res://core/pause_settings.gd")
+const Style = preload("res://core/ui_style.gd")
 var _cursor_unlocked := false
 var _pause_button: Button
 signal academy_completed
@@ -116,6 +117,8 @@ func _make_collision() -> void:
 	# Temporary playtest limits at actual open ends. No invisible city extension.
 	_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
 	_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
+	_make_road_closure(-16.0)
+	_make_road_closure(16.0)
 	# Furniture collisions derived from actual imported source meshes.
 	for node: Node in get_node("HarborArt").find_children("*","MeshInstance3D",true,false):
 		var m := node as MeshInstance3D
@@ -163,11 +166,13 @@ func _make_hud() -> void:
 	_vehicle_hint.visible=vehicle!=null
 	_pause_button=Button.new()
 	_pause_button.text="II   Pause"
+	_pause_button.theme=Style.theme()
 	_pause_button.position=Vector2(1130,20)
 	_pause_button.custom_minimum_size=Vector2(130,42)
 	_pause_button.pressed.connect(func(): _set_pause(true))
 	_hud.add_child(_pause_button)
 	_pause_panel=PanelContainer.new()
+	_pause_panel.theme=Style.theme()
 	_pause_panel.position=Vector2(315,30)
 	_pause_panel.custom_minimum_size=Vector2(650,0)
 	var menu := PauseSettings.new()
@@ -334,3 +339,35 @@ func _academy_editor(value: bool) -> void:
 	_pause_button.visible=not value
 	_vehicle_hint.visible=not value
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
+
+func _make_road_closure(z: float) -> void:
+	# Honest visible development boundary, matching the existing collider.
+	# Authored panels are road-closure equipment, not substitute city buildings.
+	var material := StandardMaterial3D.new()
+	material.albedo_color=Color(0.23,0.28,0.30)
+	material.roughness=0.88
+	var stripe := StandardMaterial3D.new()
+	stripe.albedo_color=Color(0.85,0.50,0.12)
+	for i: int in range(6):
+		var barrier := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size=Vector3(1.96,1.5,0.14)
+		mesh.material=material
+		barrier.mesh=mesh
+		barrier.position=Vector3(-5+i*2,0.75,z)
+		add_child(barrier)
+		var band := MeshInstance3D.new()
+		var marking := BoxMesh.new()
+		marking.size=Vector3(1.94,0.17,0.16)
+		marking.material=stripe
+		band.mesh=marking
+		band.position=barrier.position+Vector3.UP*0.48
+		add_child(band)
+	var notice := Label3D.new()
+	notice.text="ROAD CLOSED"
+	notice.font_size=68
+	notice.pixel_size=0.006
+	notice.outline_size=5
+	notice.position=Vector3(0,1.05,z-signf(z)*0.10)
+	notice.rotation.y=PI if z>0 else 0.0
+	add_child(notice)

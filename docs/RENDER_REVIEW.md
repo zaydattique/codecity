@@ -23,3 +23,5 @@ V002 actual material render review: original white emission defect removed from 
 Latest 45631491513 actual exit capture: character now stands behind open door sweep (conservative bound check also passed), no prior leg/door overlap visible; awkward idle/foot-ground pose remains. Corrected glass and rim emission visible in real game. No seated driver visual. Candidate-only art review.
 
 Owner 22.2s video showed folded/unnatural arms, camera framing, sparse facade and empty street ends. Arm source retarget reworked with actual source direction matching and preserved target geometry, not procedural placeholder motion. Require actual jogging frames before claiming visual correction.
+
+Actual Academy frames from 45663443843 confirm physical lamp lighting and working Python output. Found translucent low-contrast editor, stale displayed fixture code, empty street ends and previous arm defect. Reworked actual UI/theme and fixture, authored visible road closure, arm direction rework separately pending visual comparison. Do not call final art approved.

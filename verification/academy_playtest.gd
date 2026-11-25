@@ -34,10 +34,14 @@ func _verify() -> void:
 	if not station.opened or world.player.controls_enabled or station.lamps_online():
 		_fail("editor focus or initial lamp state")
 		return
-	if not station.run_source("set_lamp(0, True)\nimport os") or not await _wait_for_result(station) or station._lights[0].visible:
+	station._code.text="set_lamp(0, True)\nimport os"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or station._lights[0].visible or not station._output.text.contains("Unsupported"):
 		_fail("unsafe source or partial command application")
 		return
-	if not station.run_source("count=2\nfor lamp in range(count):\n    set_lamp(lamp, True)\nprint('Restored', count)") or not await _wait_for_result(station):
+	station._code.text="count = 2\nfor lamp in range(count):\n    set_lamp(lamp, True)\nprint('Restored', count)"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station):
 		_fail("Python process execution")
 		return
 	if not station.lamps_online() or not station._output.text.contains("Restored 2"):

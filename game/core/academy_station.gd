@@ -3,6 +3,7 @@ extends Node3D
 signal completed
 signal editor_changed(open: bool)
 const Bridge = preload("res://core/academy_bridge.gd")
+const Style = preload("res://core/ui_style.gd")
 var _bridge: Node
 var _lights: Array[SpotLight3D]=[]
 var _panel: PanelContainer
@@ -42,21 +43,49 @@ func setup(hud: CanvasLayer) -> void:
 	cabinet.mesh=mesh
 	cabinet.position=Vector3(0,0.55,0)
 	add_child(cabinet)
+	var screen := MeshInstance3D.new()
+	var display := BoxMesh.new()
+	display.size=Vector3(0.018,0.31,0.24)
+	var screen_material := StandardMaterial3D.new()
+	screen_material.albedo_color=Color(0.08,0.20,0.22)
+	screen_material.emission_enabled=true
+	screen_material.emission=Color(0.10,0.45,0.47)
+	screen_material.emission_energy_multiplier=1.3
+	display.material=screen_material
+	screen.mesh=display
+	screen.position=Vector3(0.283,0.83,0)
+	add_child(screen)
+	var base := StaticBody3D.new()
+	base.collision_layer=1
+	base.collision_mask=0
+	var shape := CollisionShape3D.new()
+	var bounds := BoxShape3D.new()
+	bounds.size=mesh.size
+	shape.shape=bounds
+	shape.position=cabinet.position
+	base.add_child(shape)
+	add_child(base)
 	var sign := Label3D.new()
-	sign.text="ACADEMY\nLighting control"
+	sign.text="Lighting control"
 	sign.position=Vector3(0,1.5,0)
 	sign.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	sign.font_size=44
 	sign.pixel_size=0.004
 	add_child(sign)
 	_panel=PanelContainer.new()
-	_panel.position=Vector2(150,55)
-	_panel.size=Vector2(980,610)
+	_panel.position=Vector2(115,42)
+	_panel.size=Vector2(1050,636)
+	_panel.theme=Style.theme()
 	var layout := VBoxContainer.new()
 	layout.add_theme_constant_override("separation",12)
 	_panel.add_child(layout)
+	var eyebrow := Label.new()
+	eyebrow.text="CODECITY ACADEMY   /   PYTHON FUNDAMENTALS"
+	eyebrow.add_theme_font_size_override("font_size",14)
+	eyebrow.add_theme_color_override("font_color",Color(0.48,0.85,0.89))
+	layout.add_child(eyebrow)
 	var heading := Label.new()
-	heading.text="ACADEMY  /  01  /  RESTORE THE STREET LIGHTS"
+	heading.text="01   Restore the street lights"
 	heading.add_theme_font_size_override("font_size",25)
 	layout.add_child(heading)
 	var desc := Label.new()
@@ -64,11 +93,20 @@ func setup(hud: CanvasLayer) -> void:
 	desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(desc)
 	_code=CodeEdit.new()
-	_code.custom_minimum_size=Vector2(0,260)
+	_code.custom_minimum_size=Vector2(0,250)
+	_code.add_theme_font_size_override("font_size",19)
+	_code.add_theme_color_override("font_color",Color(0.91,0.94,0.96))
+	_code.add_theme_color_override("line_number_color",Color(0.51,0.62,0.67))
 	_code.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	_code.text="# Restore both lamps\ncount = 2\nfor lamp in range(count):\n    # Write your command here\n    print(lamp)\n"
 	_code.gutters_draw_line_numbers=true
 	var highlighter := CodeHighlighter.new()
+	highlighter.number_color=Color(0.95,0.73,0.40)
+	highlighter.symbol_color=Color(0.82,0.88,0.92)
+	highlighter.function_color=Color(0.49,0.83,0.89)
+	highlighter.member_variable_color=Color(0.90,0.94,0.96)
+	highlighter.add_color_region("'","'",Color(0.65,0.87,0.67))
+	highlighter.add_color_region("\"","\"",Color(0.65,0.87,0.67))
 	highlighter.add_keyword_color("for",Color(0.66,0.76,1))
 	highlighter.add_keyword_color("in",Color(0.66,0.76,1))
 	highlighter.add_keyword_color("if",Color(0.66,0.76,1))
@@ -77,22 +115,39 @@ func setup(hud: CanvasLayer) -> void:
 	highlighter.add_color_region("#","",Color(0.5,0.6,0.6),true)
 	_code.syntax_highlighter=highlighter
 	layout.add_child(_code)
+	var output_panel := PanelContainer.new()
+	output_panel.add_theme_stylebox_override("panel",Style.panel(Color(0.065,0.10,0.12),5,12))
+	var console := VBoxContainer.new()
+	output_panel.add_child(console)
+	var output_heading := Label.new()
+	output_heading.text="PYTHON CONSOLE"
+	output_heading.add_theme_font_size_override("font_size",13)
+	output_heading.add_theme_color_override("font_color",Color(0.49,0.83,0.89))
+	console.add_child(output_heading)
 	_output=Label.new()
 	_output.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	_output.text="Python output will appear here."
-	_output.custom_minimum_size=Vector2(0,75)
-	layout.add_child(_output)
+	_output.custom_minimum_size=Vector2(0,58)
+	console.add_child(_output)
+	layout.add_child(output_panel)
 	var buttons := HBoxContainer.new()
 	_run=Button.new()
 	_run.text="Run Python"
+	_run.custom_minimum_size=Vector2(155,44)
+	_run.add_theme_stylebox_override("normal",Style.panel(Color(0.12,0.40,0.44),5,10))
 	_run.pressed.connect(func(): run_source(_code.text))
 	buttons.add_child(_run)
 	var hint := Button.new()
 	hint.text="Hint"
 	hint.pressed.connect(func(): _output.text="Inside the loop, call set_lamp(lamp, True). Then print a status message.")
+	hint.custom_minimum_size=Vector2(100,44)
 	buttons.add_child(hint)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	buttons.add_child(spacer)
 	var close := Button.new()
 	close.text="Return to street"
+	close.custom_minimum_size=Vector2(180,44)
 	close.pressed.connect(close_editor)
 	buttons.add_child(close)
 	layout.add_child(buttons)

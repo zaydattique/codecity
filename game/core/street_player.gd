@@ -1,6 +1,6 @@
 extends CharacterBody3D
 @onready var _prefs: Node = get_node("/root/GameSettings")
-## Physics/controller test with actual candidate rig. No licensed motion installed yet.
+## Candidate controller with retargeted licensed motion, collision and camera settings.
 const Orbit = preload("res://core/camera_orbit.gd")
 const WALK := 2.0
 const RUN := 4.0

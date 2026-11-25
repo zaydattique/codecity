@@ -3,6 +3,7 @@ extends Node3D
 const Sessions = preload("res://core/session_state.gd")
 const Harbor = preload("res://scenes/harbor_playtest.gd")
 const AcademyBridge = preload("res://core/academy_bridge.gd")
+const Style = preload("res://core/ui_style.gd")
 var _world: Node3D
 var _launch: Button
 var _sessions = Sessions.new()
@@ -13,13 +14,18 @@ var _profile_counter: int = 0
 @onready var _character: OptionButton = _menu.get_node("Character")
 @onready var _status: Label = _menu.get_node("Status")
 
+
 func _ready() -> void:
+	_menu.theme=Style.theme()
+	_menu.get_node("Title").add_theme_color_override("font_color",Color(0.54,0.87,0.91))
 	_mode.add_item("Living World", 0)
 	_mode.add_item("CodeCity Academy", 1)
 	_character.add_item("Adrian Cole", 0)
 	_character.add_item("Maya Bennett", 1)
 	_launch=Button.new()
 	_launch.text="Start"
+	_launch.custom_minimum_size=Vector2(0,48)
+	_launch.add_theme_stylebox_override("normal",Style.panel(Color(0.12,0.40,0.44),5,10))
 	_launch.disabled=true
 	_launch.visible=Harbor.installed()
 	_launch.pressed.connect(_open_street)
