@@ -13,3 +13,7 @@ Owner approved public main. Re-ran the local Phase 01/02 Python suite: 27 passed
 ## Free asset automation pilot | 2026-11-25
 
 Selected Kirill Sannikov's CC0 painted wooden bench from Poly Haven to prove the asset toolchain before character production. Implemented bounded HTTPS acquisition, relative-path validation, provider size/MD5 verification, SHA-256 provenance, glTF dependency checks, Blender source packing, GLB export and CPU preview rendering with geometry/scale/material checks. Local Python suite: 38 passed in 2.55s; Python compilation and static foundation checks passed. DNS access to Poly Haven/Blender failed locally and Blender/Godot binaries are absent, so real download, export and render are not yet verified. Synthetic tests are not actual art. No assets approved or committed.
+
+## Hosted verification wiring | 2026-11-25
+
+Committed a free hosted workflow with pinned actions, Python tests, Godot Linux import and explicit smoke marker, Blender LTS download/checksum and CPU-render pilot. Artifacts have seven-day retention and read-only repository permissions; no automatic commits of binary art. GitHub confirmed the main ref update and recursive tree with 31 source files. The Actions runs endpoint returned zero runs at the initial check; first execution still pending and manual workflow dispatch may be required. No runtime or visual pass is claimed.

@@ -45,3 +45,7 @@ Work on main with focused, tested changes. Do not force-push or commit generated
 ## Free asset automation pilot
 
 The pilot is a real CC0 Poly Haven painted wooden bench, not a character or finished street. From repository root run python tools/fetch_pilot_asset.py, then blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_pilot_asset.py. Outputs in ignored build/asset-pilot: bench.blend, bench.glb, preview.png, provenance.json and report.json. Powered by Poly Haven. Source downloads are size and hash checked. Art stays candidate-only until visual and engine inspection. Missing source or Blender is a hard failure. No paid API.
+
+## GitHub Actions
+
+[CodeCity verification and asset pilot](https://github.com/zaydattique/codecity/actions) uses standard public-repository Ubuntu runners, pinned action revisions, target Python, Godot archive SHA-256 and Blender official checksums. The two jobs run Python/engine smoke and the separate real asset pilot. If no push run appears, open Actions, select CodeCity verification and asset pilot, then Run workflow on main. Download foundation-logs and cc0-bench-pilot-not-approved from a successful run; inspect preview.png and report.json. Artifacts are not game-ready approvals. Initial API check returned zero runs; workflow execution remains unverified.

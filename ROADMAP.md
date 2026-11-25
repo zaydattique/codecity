@@ -22,3 +22,7 @@ Inspected remote metadata, main commit and root tree: README only. AGENTS/CLAUDE
 ## Vertical slice acceptance
 
 One detailed street with continuous sidewalks and collision/nav, one fully rigged Adrian, one original driveable coupe, six distinguishable adults, one enterable functional interior, one short A New Beginning mission. Initial sequence: arrive, explore, interact, enter/exit vehicle, drive, meet a story contact only if role and assets approved, demonstrate different reactions and one real consequence. Include save/reload and offline rehearsal before public demo. Art signoff on close-up, movement, day/night/indoor shots; six fixed-seed scenarios; no crashes or broken progression; budgets in PERFORMANCE and QA. Expansion requires owner signoff after measured Windows build.
+
+## Hosted automation checkpoint
+
+Public main source transfer and free render-pilot scripts are now committed. The pilot uses an actual CC0 prop to verify the toolchain before character production. Local Python tests passed; first hosted execution and visual approval remain pending. Phase 01 runtime gates still open. Do not expand city or generate the full cast before hero/street acceptance.

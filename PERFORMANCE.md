@@ -11,3 +11,5 @@ Record revision/build, OS, CPU/GPU driver, RAM/VRAM, renderer, resolution, prese
 ## Actual results
 
 No GPU, Godot, Blender or Windows runtime available in local staging environment. No frame metrics, RAM/VRAM performance or startup measurements. Python functional tests are not performance measurements. No minimum hardware claims.
+
+Hosted CPU smoke and pilot rendering are functional checks only. Do not report GitHub runner timings as target gaming FPS or Windows GPU benchmarks. Record actual workflow logs and exact versions before closing the engine gate.
