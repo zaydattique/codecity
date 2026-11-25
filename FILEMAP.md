@@ -27,3 +27,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 `tools/assemble_street_exteriors.py` composes matched wall/door/window/trim modules into four enclosed exterior candidates around reviewed road; `.github/workflows/street-exteriors.yml` retrieves exact reviewed artifact and renders three views. Character generator now checks actual height against profile after uniform hierarchy scaling.
 
 `tools/render_concept_coupe.py` and `.github/workflows/concept-coupe.yml` render and inventory exact alternative coupe for review, not integration. Report retains license and logo restrictions.
+
+`tools/optimize_mesh_candidates.py` shared static non-destructive mesh reduction with instance-weighted target, UV/material/bounds checks and real comparison renders. `.github/workflows/asset-optimization.yml` stages exact inspected street and car geometry; car only inspection images/report are uploaded.

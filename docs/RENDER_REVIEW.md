@@ -9,3 +9,5 @@ Adrian front/side from actual partial artifact 15011738854: visible skin, clothi
 Adrian complete five-view report confirms 1.574m height (target 1.81m), rework. Street candidate surface: credible paved/marked road, bench and lamps, no buildings; facade library: 147 genuine individual modular components. Both are original Blender outputs from run 45595559815; no complete street or playable interior approval. New four-building assembly pending.
 
 Root cause of short character height: incorrect MPFB age morph (0.29/0.30 between child and young). Correct to 0.5 young-adult for both, then verify measured height and independent visual identity. Prior outputs not final character candidates.
+
+Street assembly street_eye/overview inspected: credible closed apartment exterior shells, repetitive style and sparse world ends, 829,727 triangles. Rework optimization and variation. Replacement car exterior actual render inspected: coherent concept-coupe shape and glass, visible source markings, 213,347 tris. Rework, no integration. Original review artifacts retained. Optimized candidates must be visually compared before approval.

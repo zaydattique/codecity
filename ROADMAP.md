@@ -46,3 +46,5 @@ Phase A art progress: one real Adrian candidate (rework), one rejected coupe can
 First street art pipeline now authored: real textured 32m road/sidewalk and street furniture, separately inspect licensed facade modules before assembling buildings. Render/QA pending, no street acceptance or city expansion.
 
 Phase A checkpoint: complete Adrian five-view artifact verified but scale/style need correction. Street surface + modular source library passed render; actual four-building exterior assembly queued. Maya and replacement vehicle still outstanding; no expansion.
+
+Actual four-building exterior street candidate and second coupe candidate generated; both over budget. Run candidate mesh optimization and inspect before approval. Adult character morph corrected, both full revised renders pending. Phase A not closed; remaining interactive, art and source-specific behavior gates explicitly open.

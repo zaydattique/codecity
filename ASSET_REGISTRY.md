@@ -38,3 +38,5 @@ Complete Adrian v001 artifact 15013111694 includes five actual views; 36,362 tri
 Replacement vehicle research candidate: CarConcept pinned GLB c0f38c989a78cc4ba63253b5338705e0afb0142f. Actual review pipeline committed; no generated output or approval yet. Do not ship before removal/clearance of logos and passing visual, budget, physics and import gates.
 
 Dual candidate run 45595560052: Adrian with footwear generated, Maya failed 1.3809m. Previous age values were incorrect child-to-young morphs per pinned MPFB. Both adult profile presets corrected to 0.5; reject prior age-morphed visual candidates as final. Rebuild pending.
+
+Actual four exterior buildings assembled (artifact 15013172003): 347 mesh instances, 829,727 tris. Visually reviewed; REWORK for variation and budget. No enterable rooms, collision or navigation. Replacement CarConcept (artifact 15012938859): 97 meshes, 213,347 tris, 42 named cabin meshes, visual candidate, REWORK for triangle count and marks. No gameplay-approved assets. Optimization candidate workflow added, pending actual output.
