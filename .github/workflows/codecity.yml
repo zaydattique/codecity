@@ -65,7 +65,7 @@ jobs:
 
   asset-pilot:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -107,30 +107,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  character-candidate:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: makehumancommunity/mpfb2
           ref: 650c5c53bd6989a8ac264f31fa1d11d4a0c7bd8a
           path: references/mpfb2
           persist-credentials: false
-      - name: Install pinned Blender LTS
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP"
-          base=https://download.blender.org/release/Blender4.5
-          file=blender-4.5.17-linux-x64.tar.xz
-          curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"
-          curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums
-          grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
-          tar -xJf "$file"
-          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
       - name: Build and install pinned MPFB extension
         run: |
           set -euo pipefail
