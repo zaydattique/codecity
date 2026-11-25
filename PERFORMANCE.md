@@ -15,3 +15,5 @@ No GPU, Godot, Blender or Windows runtime available in local staging environment
 Hosted CPU smoke and pilot rendering are functional checks only. Do not report GitHub runner timings as target gaming FPS or Windows GPU benchmarks. Record actual workflow logs and exact versions before closing the engine gate.
 
 Revised targets preserve 720p30/1080p60 as goals; add isolated Academy execution resource limits, zero game-thread wait, mode-specific load and terminal latency. Later 25–40 nearby NPCs only after six pass and hardware profiling. Hosted Windows/Linux boot and tests are functional evidence, not hardware benchmarks.
+
+P08 Windows candidate export/boot and actual physics passed on GitHub windows-2025; rendered tests Ubuntu 24.04 software OpenGL (llvmpipe, Dummy audio for visual-only tests). This verifies functional execution, not gaming FPS. No real target GPU hardware measurements, frame percentiles, RAM/VRAM or load-time benchmark recorded. Keep 720p30 and 1080p60 as targets only.

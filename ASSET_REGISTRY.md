@@ -50,3 +50,5 @@ Frozen runtime candidate GLBs passed Godot skin/height/material check in run 456
 Motion candidate source Quaternius UAL1 Standard (CC0) pinned OpenCity copy; selected Idle, Walk, Jog_Fwd, Sprint, Jump. Only rotation channels, no source mannequin. Motion retarget and deformation review pending; no approved motion asset yet.
 
 Actual source inventory confirms nine locomotion/crouch/jump source clips, using exact names from run 45621192855. Retarget names and jump state logic updated; no motion approval until real engine playback.
+
+P08 motion candidate: both actual adult MPFB derivatives now contain 9 licensed Quaternius clips x 52 rotation tracks, imported and active in Godot, observed thigh quaternion motion during jog. Source CC0; no mannequin geometry. Retarget/physics candidate passed, but final motion and art review (foot plant, wall clipping, IK) still open. Included with 69,111-tri street in standalone Windows development candidate only. Vehicle candidates not shipped.

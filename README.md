@@ -87,3 +87,7 @@ godot --headless --path build/local-street/game --script res://_qa/street_playte
 godot --path build/local-street/game
 ```
 With matching Windows export templates installed and a fresh output folder, use `godot --headless --path build/local-street/game --export-release "Windows Candidate" <absolute-output-path>/CodeCity_Street_Test.exe`. Include PCK, engine license/COPYRIGHT and third-party notices. Local physical-input and performance verification are still required. These are development candidate builds only.
+
+## First standalone Windows candidate
+
+[Download Windows Street Test (latest verified candidate)](https://github.com/zaydattique/codecity/actions/runs/45622243827/artifacts/15023914487). Extract and keep EXE/PCK together. Create local temporary profile, choose Living World, select Adrian or Maya and open street physics test. Nine licensed clips, real collision, minimap/full map and pause. No installed development tools required. Hosted native Windows physics and standalone boot passed; manual user playtest, GPU metrics, art approval, vehicle, NPCs, missions, save and Academy execution are not complete. Artifacts expire; local staging instructions above preserve reproducibility. See exact run logs; do not describe as finished game.
