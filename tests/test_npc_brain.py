@@ -35,3 +35,14 @@ def test_horn_changes_behavior():
     event={"id":1,"kind":"near_collision","distance":2}
     assert b.batch([observation("marcus",event=event)])[0]["action"]=="give_space"
     assert b.states["marcus"].stress>.4
+
+
+def test_fictional_danger_response_and_memory():
+    b=Brain()
+    event={"id":10,"kind":"threat","distance":2}
+    intents=b.batch([observation(i,event=event) for i in IDS])
+    assert all(x["action"]=="give_space" and x["speed"]==2.0 for x in intents)
+    assert all(b.states[i].stress>=.8 and b.states[i].affinity<0 for i in IDS)
+    prior=b.states["nora"].affinity
+    b.batch([observation("nora",1100,event=event)])
+    assert b.states["nora"].affinity==prior

@@ -12,9 +12,15 @@ func _ready() -> void:
 	add_child(title)
 	_button("Resume",func(): resume_requested.emit())
 	_button("Settings & controls",func(): _settings.visible=not _settings.visible)
+	var scroll:=ScrollContainer.new()
+	scroll.custom_minimum_size=Vector2(0,410)
+	scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
 	_settings=VBoxContainer.new()
+	_settings.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	_settings.add_theme_constant_override("separation",8)
-	add_child(_settings)
+	scroll.add_child(_settings)
+	_settings.visibility_changed.connect(func():scroll.visible=_settings.visible)
 	_check("Auto-follow camera",_prefs.auto_camera,func(v): _prefs.auto_camera=v)
 	_check("Invert vertical look",_prefs.invert_y,func(v): _prefs.invert_y=v)
 	_slider("Mouse sensitivity",0.001,0.006,0.00025,_prefs.sensitivity,func(v): _prefs.sensitivity=v)
@@ -22,8 +28,12 @@ func _ready() -> void:
 	_slider("Master volume",0,1,0.05,_prefs.master_volume,func(v): _prefs.master_volume=v)
 	_check("Show gameplay hints",_prefs.show_hints,func(v): _prefs.show_hints=v)
 	_check("Fullscreen",_prefs.fullscreen,func(v): _prefs.fullscreen=v)
+	_check("Rotate minimap",_prefs.rotate_minimap,func(v): _prefs.rotate_minimap=v)
+	_check("VSync",_prefs.vsync,func(v): _prefs.vsync=v)
+	_select("Frame limit",["30 FPS","60 FPS","120 FPS","Unlimited"],_prefs.FPS_LIMITS.find(_prefs.fps_limit),func(i):_prefs.fps_limit=_prefs.FPS_LIMITS[i])
+	_select("Window resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],_prefs.resolution_index,func(i):_prefs.resolution_index=i)
 	var instructions := Label.new()
-	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights\nWORLD   E interact | M map | Esc pause | Tab cursor"
+	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights | H horn\nWORLD   E interact | M map | Esc pause | Tab cursor / click minimap"
 	instructions.add_theme_font_size_override("font_size",15)
 	_settings.add_child(instructions)
 	_settings.hide()
@@ -57,4 +67,18 @@ func _slider(label: String, low: float, high: float, step: float, value: float, 
 	slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	slider.value_changed.connect(func(v: float): callback.call(v); _prefs.apply(); _prefs.save())
 	row.add_child(slider)
+	_settings.add_child(row)
+
+func _select(caption: String,choices: Array,index: int,callback: Callable) -> void:
+	var row:=HBoxContainer.new()
+	var label:=Label.new()
+	label.text=caption
+	label.custom_minimum_size.x=180
+	row.add_child(label)
+	var choice:=OptionButton.new()
+	for value: String in choices:choice.add_item(value)
+	choice.select(index)
+	choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	choice.item_selected.connect(func(i: int):callback.call(i);_prefs.apply();_prefs.save())
+	row.add_child(choice)
 	_settings.add_child(row)

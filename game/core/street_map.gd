@@ -1,6 +1,8 @@
 extends Control
 ## Both the minimap and expanded map draw the same installed world footprint.
 const Layout = preload("res://core/harbor_layout.gd")
+signal expand_requested
+var rotate_with_actor := true
 var actor: Node3D
 var expanded := false
 var zoom := 1.0
@@ -11,20 +13,20 @@ var story_target := Vector2.INF
 var aerial: Texture2D
 
 func _ready() -> void:
-	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	mouse_filter=Control.MOUSE_FILTER_STOP
 
 func _process(_delta: float) -> void:
 	queue_redraw()
 
 func toggle_full() -> void:
 	expanded=not expanded
-	mouse_filter=Control.MOUSE_FILTER_STOP if expanded else Control.MOUSE_FILTER_IGNORE
+	mouse_filter=Control.MOUSE_FILTER_STOP
 	zoom=1.0
 	pan=Vector2.ZERO
 	queue_redraw()
 
 func _scale_factor() -> float:
-	return minf((size.x-48.0)/32.0,(size.y-72.0)/34.0)*zoom if expanded else 9.0
+	return minf((size.x-48.0)/Layout.MAP_EXTENT,(size.y-72.0)/Layout.MAP_EXTENT)*zoom if expanded else 9.0
 
 func _screen(p: Vector2) -> Vector2:
 	var center := Vector2.ZERO if expanded or not is_instance_valid(actor) else Layout.map_position(actor.global_position)
@@ -33,8 +35,20 @@ func _screen(p: Vector2) -> Vector2:
 func _map_rect(r: Rect2) -> Rect2:
 	return Rect2(_screen(r.position),r.size*_scale_factor())
 
+func _heading() -> Vector2:
+	if not is_instance_valid(actor):return Vector2.UP
+	var forward: Vector3=actor.global_basis.z if actor is VehicleBody3D else actor.get("_visual").global_basis.z
+	var direction:=Vector2(forward.x,forward.z)
+	return direction.normalized() if direction.length_squared()>0.001 else Vector2.UP
+
+func _rotation() -> float:
+	return 0.0 if expanded or not rotate_with_actor else Vector2.UP.angle()-_heading().angle()
+
 func _gui_input(event: InputEvent) -> void:
 	if not expanded:
+		if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
+			expand_requested.emit()
+			accept_event()
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP:
@@ -43,7 +57,7 @@ func _gui_input(event: InputEvent) -> void:
 			zoom=clampf(zoom/1.15,1.0,3.0)
 		elif event.button_index==MOUSE_BUTTON_LEFT:
 			var p: Vector2=(event.position-size*0.5-Vector2(0,8)-pan)/_scale_factor()
-			if Layout.STREET.has_point(p):
+			if Layout.walkable(p):
 				waypoint=p
 		elif event.button_index==MOUSE_BUTTON_RIGHT:
 			waypoint=Vector2.INF
@@ -56,10 +70,13 @@ func _draw() -> void:
 	var ink := Color(0.78,0.85,0.88)
 	var font := ThemeDB.fallback_font
 	draw_rect(Rect2(Vector2.ZERO,size),Color(0.035,0.055,0.075,0.97))
+	var angle:=_rotation()
+	var pivot:=size*0.5+Vector2(0,8)+pan
+	draw_set_transform(pivot-pivot.rotated(angle),angle,Vector2.ONE)
 	# All shapes use the real playable extent; no invented city districts.
 	if aerial!=null:
-		draw_texture_rect(aerial,_map_rect(Rect2(-18,-18,36,36)),false,Color(0.74,0.82,0.86))
-	draw_rect(_map_rect(Layout.STREET),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
+		draw_texture_rect(aerial,_map_rect(Rect2(-Layout.MAP_EXTENT*0.5,-Layout.MAP_EXTENT*0.5,Layout.MAP_EXTENT,Layout.MAP_EXTENT)),false,Color(0.74,0.82,0.86))
+	draw_rect(_map_rect(Layout.BLOCK),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
 	draw_rect(_map_rect(Layout.ROAD),Color(0.10,0.14,0.18,0.26 if aerial!=null else 1.0))
 	for x: float in [-3.4,3.4]:
 		draw_line(_screen(Vector2(x,-16)),_screen(Vector2(x,16)),Color(0.53,0.60,0.61),1.4,true)
@@ -70,7 +87,7 @@ func _draw() -> void:
 			draw_line(_screen(Vector2(r.position.x,y)),_screen(Vector2(r.end.x,y)),Color(0.27,0.34,0.37),1)
 	for y: int in range(-15,16,3):
 		draw_line(_screen(Vector2(0,y)),_screen(Vector2(0,y+1.4)),Color(0.55,0.61,0.63),1.5,true)
-	draw_rect(_map_rect(Layout.STREET),Color(0.40,0.53,0.56),false,1.2)
+	draw_rect(_map_rect(Layout.BLOCK),Color(0.40,0.53,0.56),false,1.2)
 	if academy:
 		var pos := _screen(Vector2(-5.25,5))
 		draw_circle(pos,6,Color(0.97,0.71,0.34))
@@ -83,20 +100,25 @@ func _draw() -> void:
 		draw_circle(_screen(waypoint),6,Color(0.92,0.68,0.23),false,2.0)
 	if is_instance_valid(actor):
 		var pos := _screen(Layout.map_position(actor.global_position))
-		var heading: Vector3 = actor.global_basis.z if actor is VehicleBody3D else -Basis(Vector3.UP,float(actor.get("yaw"))).z
-		var direction := Vector2(heading.x,heading.z).normalized()
+		var direction := _heading()
 		var side := Vector2(-direction.y,direction.x)
 		draw_circle(pos,10,Color(0.08,0.12,0.15))
 		draw_colored_polygon(PackedVector2Array([pos+direction*10,pos-direction*6+side*5,pos-direction*6-side*5]),Color(0.52,0.91,0.98))
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	if not expanded:
+		var north:=Vector2.UP.rotated(angle)
+		var point:=size*0.5+Vector2(0,8)+north*minf(size.x*0.36,size.y*0.31)
+		draw_circle(point,10,Color(0.045,0.075,0.095,0.95))
+		draw_string(font,point+Vector2(-5,5),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(0.52,0.91,0.98))
 	# Opaque header and footer keep the viewport legible when panned/zoomed.
 	draw_rect(Rect2(0,0,size.x,34),Color(0.045,0.075,0.095))
 	draw_string(font,Vector2(12,23),"HARBOR BOULEVARD",HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
-	draw_string(font,Vector2(size.x-24,23),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(0.52,0.91,0.98))
+	if expanded:draw_string(font,Vector2(size.x-24,23),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(0.52,0.91,0.98))
 	draw_rect(Rect2(0,size.y-28,size.x,28),Color(0.045,0.075,0.095))
-	draw_string(font,Vector2(12,size.y-9),"M  Close  |  Scroll to zoom  |  Click to mark" if expanded else "M  Expand map",HORIZONTAL_ALIGNMENT_LEFT,-1,12,ink)
+	draw_string(font,Vector2(12,size.y-9),"M  Close  |  Scroll to zoom  |  Click to mark" if expanded else "M / Click  Expand map",HORIZONTAL_ALIGNMENT_LEFT,-1,12,ink)
 	if expanded:
 		draw_string(font,Vector2(24,65),"Current district",HORIZONTAL_ALIGNMENT_LEFT,-1,18,ink)
-		draw_string(font,Vector2(24,86),"32 m playable street",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
+		draw_string(font,Vector2(24,86),"40 x 36 m Harbor block",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,65),"MAP LEGEND",HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
 		draw_string(font,Vector2(size.x-210,88),"Cyan  /  Player or vehicle",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,109),"Grey  /  Closed buildings",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)

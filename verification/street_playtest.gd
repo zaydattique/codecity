@@ -83,7 +83,7 @@ func _verify() -> void:
 	await ticks(110)
 	Input.action_release("move_left")
 	await ticks(12)
-	if actor.position.x < -5.78 or actor.position.x > -5.4:
+	if actor.position.x < -7.05 or actor.position.x > -6.8:
 		_fail("building wall collision")
 		return
 	actor.auto_camera=true
@@ -99,7 +99,7 @@ func _verify() -> void:
 	# Aim camera toward the real closed exterior and check the obstruction.
 	actor.yaw=-PI/2.0
 	await ticks(20)
-	if actor.camera_position().x < -5.99:
+	if actor.camera_position().x < -7.24:
 		_fail("camera crossed building collision")
 		return
 	actor.yaw=0.0
@@ -119,7 +119,66 @@ func _verify() -> void:
 	Input.action_release("move_forward")
 	Input.action_release("sprint")
 	await ticks(25)
-	world._toggle_map()
+	# A real player must traverse curb, former facade limit, alley and rear court.
+	for count: int in world._facade_counts:
+		if count<5:
+			_fail("actual imported facade group not relocated")
+			return
+	if world._court_material==null:
+		_fail("licensed paving material missing")
+		return
+	actor.auto_camera=false
+	actor.yaw=0
+	actor.global_position=Vector3(-2.9,0.04,8.0)
+	actor.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_left")
+	await ticks(57)
+	Input.action_release("move_left")
+	await ticks(18)
+	if actor.position.x > -5.8 or not actor.is_on_floor() or absf(actor.position.y-0.15)>0.06:
+		_fail("road-to-footpath or former exterior access: %s grounded=%s"%[actor.position,actor.is_on_floor()])
+		return
+	# West alley: center z=-3, then walk behind the actual building footprint.
+	actor.global_position=Vector3(-4.9,0.18,-3.0)
+	actor.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_left")
+	await ticks(205)
+	Input.action_release("move_left")
+	await ticks(18)
+	if actor.position.x > -17.0 or not actor.is_on_floor() or not Layout.walkable(Layout.map_position(actor.position)):
+		_fail("west alley to rear courtyard traversal")
+		return
+	var rear_start: Vector3=actor.position
+	Input.action_press("move_forward")
+	await ticks(65)
+	Input.action_release("move_forward")
+	await ticks(15)
+	if actor.position.z>rear_start.z-3 or not actor.is_on_floor():
+		_fail("rear court longitudinal traversal")
+		return
+	if Layout.walkable(Vector2(-12,5)) or not Layout.walkable(Vector2(-18,-3)) or not Layout.walkable(Vector2(12,0)):
+		_fail("map building and alley validity")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/rear_court.png")!=OK:
+			_fail("rear court capture")
+			return
+	# Local map follows the actor art rather than camera heading.
+	actor._visual.rotation.y=PI/2.0
+	world._map.rotate_with_actor=true
+	if not world._map._heading().rotated(world._map._rotation()).is_equal_approx(Vector2.UP):
+		_fail("minimap facing transform")
+		return
+	var click:=InputEventMouseButton.new()
+	click.button_index=MOUSE_BUTTON_LEFT
+	click.pressed=true
+	world._map._gui_input(click)
+	if not world._map.expanded or not is_zero_approx(world._map._rotation()):
+		_fail("click to expand north-up map")
+		return
 	var paused_pos: Vector3=actor.position
 	Input.action_press("move_forward")
 	await ticks(30)

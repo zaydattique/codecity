@@ -16,7 +16,7 @@ LOCATIONS={
     "bench":(4.0,2.0),
     "crossing":(0.0,0.0),
 }
-EVENTS={"greet","crowd","horn","near_collision","lamp_restored"}
+EVENTS={"greet","crowd","horn","near_collision","lamp_restored","threat"}
 IDS=("nora","omar","elena","marcus","sana","liam")
 
 
@@ -102,6 +102,10 @@ def decide(state,o):
             stress=clamp(stress+(0.25 if kind=="horn" else 0.6)*p.caution)
             affinity=clamp(affinity-0.15,-1,1)
             if tick-state.last_reaction>=90:reaction="avoid" if p.caution>.65 else "complain"
+        elif kind=="threat":
+            stress=clamp(stress+0.8)
+            affinity=clamp(affinity-0.35,-1,1)
+            reaction="avoid"
         elif kind=="crowd":
             stress=clamp(stress+(1-p.patience)*.24)
             if tick-state.last_reaction>=90 and p.patience<.6:reaction="give_space"
@@ -132,7 +136,7 @@ def decide(state,o):
         action=reaction
     new=replace(state,route_index=route,energy=energy,stress=stress,affinity=affinity,
                 last_event=last_event,last_reaction=tick if reaction else state.last_reaction,last_tick=tick)
-    return new,{"id":p.id,"action":action,"destination":destination,"speed":1.2 if not working else 1.6,
+    return new,{"id":p.id,"action":action,"destination":destination,"speed":2.0 if stress>.7 and action=="give_space" else 1.2 if not working else 1.6,
                 "valid_until":tick+120}
 
 

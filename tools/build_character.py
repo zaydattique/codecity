@@ -55,7 +55,7 @@ def main():
     import bpy
     from mathutils import Vector, Matrix
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--id', required=True, choices=['adrian','maya','nora','omar','elena','marcus','sana','liam'])
+    parser.add_argument('--id', required=True, choices=[p['id'] for group in ('playable','npcs') for p in json.loads((ROOT/'art/characters.json').read_text(encoding='utf-8'))[group]])
     parser.add_argument('--pack', type=Path, required=True)
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     profile = load_profile(args.id)

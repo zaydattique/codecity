@@ -184,11 +184,17 @@ func _try_step(motion: Vector3) -> void:
 	var raised := global_transform.translated(Vector3.UP*STEP)
 	if test_move(raised,motion):
 		return
-	var forward := raised.translated(motion)
-	var hit := KinematicCollision3D.new()
-	if test_move(forward,Vector3.DOWN*(STEP+0.03),hit) and hit.get_normal().y > 0.7:
-		global_position.y += STEP
-		apply_floor_snap()
+	# Inspect the surface beyond the leading capsule edge. The short
+	# movement sweep alone can hit the vertical curb before its top.
+	var leading:=global_position+motion.normalized()*(RADIUS+motion.length()+0.04)
+	var ray:=PhysicsRayQueryParameters3D.create(leading+Vector3.UP*(STEP+0.06),leading-Vector3.UP*0.04,1,[get_rid()])
+	var surface:=get_world_3d().direct_space_state.intersect_ray(ray)
+	if surface.is_empty() or surface.normal.y<0.7:return
+	var rise: float=surface.position.y-global_position.y
+	if rise<0.025 or rise>STEP+0.01:return
+	# Do not snap down onto the old road before horizontal movement.
+	global_position.y+=rise+0.015
+	velocity.y=0.0
 
 func _set_crouch(wanted: bool) -> void:
 	if wanted == _crouched:

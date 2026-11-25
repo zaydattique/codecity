@@ -25,3 +25,5 @@ Six NPC source candidates total 252,446 triangles before LOD; this is geometry c
 Integrated run 45669907874 passed automated Linux/Windows headless physics and actual software-rendered street evidence. These are functional checks, not frame-time measurements. New seven-assignment chapter adds bounded list/while evaluation and UI only; new hardware, frame-time, memory and manual listening evidence unavailable. No performance target claim.
 
 Seven-assignment integrated game passed automated Linux/Windows run 45672930556. No new target hardware measurements. Automation chapter adds one bounded reserve mesh assembly and gauge, no expansion or new third-party asset library; actual render and frame-time impact remain unmeasured.
+
+Ten-assignment integrated 45674994813 passed automated Linux/Windows verification. Relayout adds four paved planes and bounded fence instances, no extra active NPCs. Six additional rig candidates are not active and no NPC density/FPS increase is claimed. Profile actual target hardware before increasing active population. New render and collision tests pending.

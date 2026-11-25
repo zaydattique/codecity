@@ -113,3 +113,6 @@ Verified Linux and native Windows run 45669907874 produced the integrated game c
 
 ## Current verified game build
 [CodeCity Windows](https://github.com/zaydattique/codecity/actions/runs/45672930556/artifacts/15051665168) is the seven-assignment build from successful native Linux/Windows run 45672930556, merged at e1eb090b. Extract together and launch CodeCity.exe. The next automation chapter adds three water/power assignments, bounded dictionaries and functions, physical reserve and gauge; its tests are pending. No final art, performance or complete curriculum claim.
+
+## Latest verified Windows game
+[CodeCity Windows](https://github.com/zaydattique/codecity/actions/runs/45674994813/artifacts/15051078444), ten Academy assignments, six active NPCs, driving and story, verified Linux/Windows and merged at 0a431a0. Current Harbor block is 32m street, four closed exteriors, no working interior. Next branch reworks that same block to a 40 x 36m bounding area with alleys and rear courts; this is not yet verified. Six extra civilian art candidates and danger reaction foundation are not yet active gameplay.

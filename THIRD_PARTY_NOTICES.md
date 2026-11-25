@@ -106,3 +106,5 @@ CarConcept derivative changes: remove source Khronos_C artwork references, dashb
 Academy candidate Windows package adds CPython 3.14.10 standard library/runtime under Python Software Foundation license; include runtime LICENSE.txt. Original synthesized lesson confirmation tone is authored in game/core/academy_station.gd. No external sound assets claimed.
 
 Harbor automation uses original authored utility equipment geometry, existing Godot UI and existing Python runtime. No new third-party asset or library introduced by this chapter.
+
+Harbor block relayout reuses existing reviewed licensed facade and paving assets and original authored boundary rails. Additional civilian art candidates use existing pinned MPFB CC0 pack and licensed UAL retarget pipeline; no new upstream source or license introduced. No proprietary game assets used.
