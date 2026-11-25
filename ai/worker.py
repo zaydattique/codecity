@@ -1,7 +1,14 @@
-"""Phase 01 transport probe. No NPC decisions are implemented in this phase."""
+"""Bounded trusted transport for Python NPC decision batches."""
 import json
 import re
 import sys
+
+try:
+    from .npc_brain import Brain
+except ImportError:
+    from npc_brain import Brain
+
+BRAIN=Brain()
 
 VERSION = 1
 MAX_FRAME = 65536
@@ -35,13 +42,22 @@ def handle(frame: bytes) -> dict:
     rid = req.get("id")
     if not isinstance(rid, str) or not ID.fullmatch(rid):
         rid = None
-    if (set(req) != {"version", "id", "op"} or rid is None
-            or type(req.get("version")) is not int
+    if (rid is None or type(req.get("version")) is not int
             or req["version"] != VERSION or not isinstance(req.get("op"), str)):
+        return {"version": VERSION, "id": rid, "error": "invalid_schema"}
+    if req["op"] == "npc_batch":
+        if set(req)!={"version","id","op","observations"}:
+            return {"version": VERSION, "id": rid, "error": "invalid_schema"}
+        try:
+            intents=BRAIN.batch(req["observations"])
+        except (ValueError,TypeError,KeyError,OverflowError):
+            return {"version": VERSION, "id": rid, "error": "invalid_observation"}
+        return {"version":VERSION,"id":rid,"op":"npc_intents","intents":intents}
+    if set(req)!={"version","id","op"}:
         return {"version": VERSION, "id": rid, "error": "invalid_schema"}
     if req["op"] != "ping":
         return {"version": VERSION, "id": rid, "error": "unsupported_operation"}
-    return {"version": VERSION, "id": rid, "op": "pong", "capabilities": ["ping"]}
+    return {"version": VERSION, "id": rid, "op": "pong", "capabilities": ["ping","npc_batch"]}
 
 
 def main() -> int:

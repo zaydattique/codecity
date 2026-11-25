@@ -84,3 +84,5 @@ P09 driving candidate milestone verified at e895798: two existing heroes/street,
 Owner feedback shifts immediate priority to P08/P09 defect remediation and first Academy demo before NPC expansion. First outdoor Python lighting mission uses two actual street fixtures, no fake interior. Implemented bounded restricted language interpreter, process bridge and mode activation, pending integration/packaging regression. Full P23 NPCs, final art and unrestricted sandbox remain open.
 
 Camera/map/pause/settings fixes implemented following owner video; first Academy mission source integrated. Animation arm distortion and actual new build verification still open; do not advertise old build as fixed.
+
+P23 Python decision core implemented (six independent stateful NPC policies and IPC batch). Actual NPC art/rigs, movement/navigation, bounded runtime bridge and visible behavior remain pending. User requested education demo priority, so no cloned NPC visuals or fake behavior in university package.

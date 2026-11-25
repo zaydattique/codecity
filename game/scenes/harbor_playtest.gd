@@ -155,6 +155,8 @@ func _make_hud() -> void:
 	_map.position=Vector2(20,480)
 	_map.size=Vector2(224,220)
 	_map.clip_contents=true
+	if DisplayServer.get_name()!="headless":
+		_make_overhead_map()
 	_hud.add_child(_map)
 	_status=Label.new()
 	_status.position=Vector2(20,20)
@@ -371,3 +373,26 @@ func _make_road_closure(z: float) -> void:
 	notice.position=Vector3(0,1.05,z-signf(z)*0.10)
 	notice.rotation.y=PI if z>0 else 0.0
 	add_child(notice)
+
+func _make_overhead_map() -> void:
+	var overhead := SubViewport.new()
+	overhead.size=Vector2i(512,512)
+	overhead.render_target_update_mode=SubViewport.UPDATE_DISABLED
+	overhead.world_3d=get_viewport().world_3d
+	add_child(overhead)
+	# Exclude dynamic actors from the static map image. Their markers stay live.
+	for actor: Node3D in [player,vehicle]:
+		if actor!=null:
+			for node: Node in actor.find_children("*","MeshInstance3D",true,false):
+				(node as MeshInstance3D).layers=2
+	var camera := Camera3D.new()
+	camera.projection=Camera3D.PROJECTION_ORTHOGONAL
+	camera.size=36
+	camera.cull_mask=1
+	camera.position=Vector3(0,60,0)
+	camera.rotation_degrees=Vector3(-90,0,0)
+	camera.far=100
+	overhead.add_child(camera)
+	camera.current=true
+	_map.aerial=overhead.get_texture()
+	overhead.render_target_update_mode=SubViewport.UPDATE_ONCE

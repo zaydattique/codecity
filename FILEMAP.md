@@ -59,3 +59,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `verification/academy_playtest.gd` actual mission smoke, native Python bridge and denial/atomic/physical light assertions. Shared Windows exporter now has Academy suite with bundled CPython and standalone lesson test.
 
 `game/core/ui_style.gd` shared interface palette for real menu, Academy, pause controls; cabinet and road-closure geometry are authored limited equipment, not a finished world expansion.
+
+`ai/npc_brain.py` six-profile bounded deterministic NPC decision engine; `tests/test_npc_brain.py` behavior and batch tests; existing worker now supports npc_batch. No visible actors integrated. Full/minimap now optionally uses one actual overhead render texture plus live coordinates; headless retains vector geometry.

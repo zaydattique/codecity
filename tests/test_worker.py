@@ -12,7 +12,7 @@ PING = b'{"version":1,"id":"boot.1","op":"ping"}\n'
 
 
 def test_ping():
-    assert handle(PING) == {"version": 1, "id": "boot.1", "op": "pong", "capabilities": ["ping"]}
+    assert handle(PING) == {"version": 1, "id": "boot.1", "op": "pong", "capabilities": ["ping","npc_batch"]}
 
 
 @pytest.mark.parametrize("payload", [b'{', b'\xff', b'{"x":NaN}', b'{"id":1,"id":2}', b'['*2000])
@@ -47,3 +47,10 @@ def test_process_rejects_partial_and_oversize():
                                 capture_output=True, timeout=5)
         assert result.returncode == 2
         assert json.loads(result.stdout)['error'] == 'invalid_frame'
+
+
+def test_npc_worker_process_roundtrip():
+    request={"version":1,"id":"npc.1","op":"npc_batch","observations":[{"id":"nora","position":[-4.5,0],"minute":600,"tick":1000,"reached":False,"player_distance":1,"event":{"id":1,"kind":"greet","distance":1}}]}
+    result=subprocess.run([sys.executable,str(ROOT/'ai/worker.py')],input=json.dumps(request).encode()+b"\n",capture_output=True,timeout=5,check=True)
+    response=json.loads(result.stdout)
+    assert response["op"]=="npc_intents" and response["intents"][0]["action"]=="acknowledge"

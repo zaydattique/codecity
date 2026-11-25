@@ -7,6 +7,7 @@ var zoom := 1.0
 var pan := Vector2.ZERO
 var waypoint := Vector2.INF
 var academy := false
+var aerial: Texture2D
 
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -55,14 +56,16 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	draw_rect(Rect2(Vector2.ZERO,size),Color(0.035,0.055,0.075,0.97))
 	# All shapes use the real playable extent; no invented city districts.
-	draw_rect(_map_rect(Layout.STREET),Color(0.24,0.30,0.33))
-	draw_rect(_map_rect(Layout.ROAD),Color(0.10,0.14,0.18))
+	if aerial!=null:
+		draw_texture_rect(aerial,_map_rect(Rect2(-18,-18,36,36)),false,Color(0.74,0.82,0.86))
+	draw_rect(_map_rect(Layout.STREET),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
+	draw_rect(_map_rect(Layout.ROAD),Color(0.10,0.14,0.18,0.26 if aerial!=null else 1.0))
 	for x: float in [-3.4,3.4]:
 		draw_line(_screen(Vector2(x,-16)),_screen(Vector2(x,16)),Color(0.53,0.60,0.61),1.4,true)
 	for r: Rect2 in Layout.BUILDINGS:
-		draw_rect(_map_rect(r),Color(0.18,0.25,0.29))
+		draw_rect(_map_rect(r),Color(0.18,0.25,0.29,0.20 if aerial!=null else 1.0))
 		draw_rect(_map_rect(r),Color(0.39,0.49,0.52),false,1.5)
-		for y: int in range(int(r.position.y)+3,int(r.end.y),3):
+		for y: int in range(int(r.position.y)+3,int(r.end.y),3) if aerial==null else []:
 			draw_line(_screen(Vector2(r.position.x,y)),_screen(Vector2(r.end.x,y)),Color(0.27,0.34,0.37),1)
 	for y: int in range(-15,16,3):
 		draw_line(_screen(Vector2(0,y)),_screen(Vector2(0,y+1.4)),Color(0.55,0.61,0.63),1.5,true)
