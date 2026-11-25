@@ -120,7 +120,7 @@ func _refresh_binding_labels() -> void:
 		_binding_buttons[action].text=_prefs.binding_label(action)
 
 func _input(event: InputEvent) -> void:
-	if _listening.is_empty() or not is_visible_in_tree() or not _settings.is_visible_in_tree():
+	if _listening.is_empty() or not is_visible_in_tree() or not is_instance_valid(_settings) or not _settings.is_visible_in_tree():
 		_listening=""
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
