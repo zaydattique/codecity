@@ -168,9 +168,13 @@ func _relayout_art() -> void:
 		for i: int in range(Layout.BUILDING_IDS.size()):
 			if not name_lower.begins_with(Layout.BUILDING_IDS[i]):continue
 			_facade_counts[i]+=1
+			var depth: float=Layout.BUILDING_DEPTH_SCALE[i]
+			var front: float=6.0 if i<2 else -6.0
+			var reshape:=Transform3D(Basis.from_scale(Vector3(depth,1,1)),Vector3(front*(1.0-depth),0,0))
+			m.global_transform=reshape*m.global_transform
 			m.global_position+=Layout.BUILDING_OFFSETS[i]
 			# Distinct exterior finish on wall surfaces only, not windows or doors.
-			if "wall_" in name_lower:
+			if "wall_" in name_lower or "crown_" in name_lower:
 				for s: int in range(m.mesh.get_surface_count()):
 					var original:=m.get_active_material(s)
 					if not original is StandardMaterial3D:continue
