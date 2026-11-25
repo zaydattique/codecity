@@ -156,8 +156,52 @@ func _verify() -> void:
 		if actor.action!="idle" or actor.expires!=-1:
 			_fail("fallback continued to claim Python decisions")
 			return
-	print("CODECITY_NPC_PLAYTEST_OK six rigs persistent Python independent movement greeting pause idle fallback")
 	world.queue_free()
+	await process_frame
+	if not Crowd.installed(true):
+		_fail("twelve distinct city rig outputs missing")
+		return
+	var city:=Harbor.new()
+	if not city.prepare("maya",false,true,true):
+		_fail("city crowd preparation")
+		return
+	root.add_child(city)
+	var city_crowd: Node3D=city.crowd
+	if city_crowd==null or city_crowd.actors.size()!=12 or not await _wait_batch(city_crowd,0):
+		_fail("twelve actual city actors and first Python batch")
+		return
+	var city_positions: Dictionary={}
+	for id: String in Crowd.CITY_IDS:city_positions[id]=city_crowd.actors[id].global_position
+	await create_timer(2.0).timeout
+	var moved_city:=0
+	for id: String in Crowd.CITY_IDS:
+		var resident: CharacterBody3D=city_crowd.actors[id]
+		if resident.global_position.distance_to(city_positions[id])>0.25:moved_city+=1
+		if not resident.is_on_floor() or resident.global_position.z<60:
+			_fail("actual park actor floor or route")
+			return
+	if moved_city<4 or city_crowd.failed:
+		_fail("six additional independent city residents")
+		return
+	var rhea: CharacterBody3D=city_crowd.actors["rhea"]
+	city.player.global_position=rhea.global_position+Vector3(1,0,0)
+	city_crowd.perceive("greet",rhea.global_position,2.5)
+	if not await _wait_batch(city_crowd,city_crowd.accepted_batches) or rhea.action!="acknowledge" or city._subtitle_queue.is_empty() and not city._subtitle.text.contains("Rhea"):
+		_fail("actual contextual subtitle")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		var camera:=Camera3D.new()
+		city.add_child(camera)
+		camera.global_position=rhea.global_position+Vector3(6,4,9)
+		camera.look_at(rhea.global_position+Vector3.UP*0.9)
+		camera.current=true
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_park_npcs.png")!=OK:
+			_fail("park actor capture")
+			return
+	print("CODECITY_CITY_NPC_OK twelve distinct rigs")
+	print("CODECITY_NPC_PLAYTEST_OK core and city rigs persistent Python movement dialogue pause fallback")
+	city.queue_free()
 	quit(0)
 
 func _fail(message: String) -> void:
