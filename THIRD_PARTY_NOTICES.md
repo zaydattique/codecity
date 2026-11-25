@@ -90,3 +90,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+
+Legacy system pack fallback: Makehuman-2/MH2_Asset_Repository_CCO, catalog pin bce7f85e476d70e3c6120a93145fb2037324060d, README declares original legacy unaltered CC0 assets, LICENSE CC0. Release legacy-mh_system_CC0.zip SHA-256 d38970b0a2a06dbcb2d3f55aa3d673c45bc88e7bd1f4afa0368a0782938d55bc. Candidate compatibility and provenance review still required. Spectral GT RS by JaronKBragg7337, CC0-1.0, pin 34499c501908818a2b08e589a7aecf963343cee7, GLB git blob f5b814848453a6c75a48f5047fdadaa7bdc78969, source license https://github.com/JaronKBragg7337/spectral-gt-rs/blob/34499c501908818a2b08e589a7aecf963343cee7/LICENSE . Source declares cockpit, separated geometry, four clips, +X front. No browser code copied. Import/render candidate only; no handling or fidelity approval.

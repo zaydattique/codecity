@@ -65,3 +65,5 @@ Local PowerShell (install pytest and pinned tools first): `powershell -Execution
 Latest verified Windows run 45593768569: 65 Python tests, Godot boot, exact bench import. Foundation and licensed asset production now run independently. Select Adrian or Maya in the asset workflow's manual Run workflow action; generated front/side/rear/three-quarter/face previews remain candidates. No automatic approval.
 
 Verified at 58f9591: Windows 65 tests, foundation and session markers passed; exact bench import passed. Upstream OpenCity/Truck Town passed headless smoke, three other candidates failed cleanup checks. Camera orbit math adapted from MIT OpenCity, not yet wired to an actual player controller.
+
+Phase A: a pinned CC0 legacy system pack fallback is available through the character downloader; candidate output provenance records actual URL and SHA-256. A threaded resource loader has been added for future real loading UI. Independent sports coupe candidate workflow checks pinned CC0 GLB and renders exterior/cockpit. Neither character nor car outputs are claimed until actual workflow results are reviewed.

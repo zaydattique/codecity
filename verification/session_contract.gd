@@ -2,6 +2,7 @@ extends SceneTree
 const Sessions = preload("res://core/session_state.gd")
 const Interaction = preload("res://core/world_interaction.gd")
 const Orbit = preload("res://core/camera_orbit.gd")
+const Loader = preload("res://core/scene_loader.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -52,6 +53,17 @@ func _verify() -> void:
 	var half: float = Orbit.follow_weight(9.0, 1.0 / 60.0)
 	if not is_equal_approx(whole, 1.0 - (1.0 - half) * (1.0 - half)):
 		_fail("camera smoothing frame invariance")
+		return
+	var loader = Loader.new()
+	var approved := PackedStringArray(["res://scenes/foundation.tscn"])
+	if loader.request("res://unapproved.tscn", approved) or not loader.request(approved[0], approved) or loader.request(approved[0], approved):
+		_fail("loading request admission")
+		return
+	var deadline := Time.get_ticks_msec() + 5000
+	while loader.poll() == Loader.Status.LOADING and Time.get_ticks_msec() < deadline:
+		await create_timer(0.01).timeout
+	if loader.status != Loader.Status.READY or loader.progress != 1.0 or loader.take_scene() == null or loader.take_scene() != null:
+		_fail("threaded load completion")
 		return
 	state.deactivate()
 	if state.complete_mission("other", "academy"):

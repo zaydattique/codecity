@@ -1,0 +1,56 @@
+name: CodeCity vehicle candidate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/render_vehicle_candidate.py'
+      - '.github/workflows/vehicle-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  vehicle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: JaronKBragg7337/spectral-gt-rs
+          ref: 34499c501908818a2b08e589a7aecf963343cee7
+          path: references/spectral
+          persist-credentials: false
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Render actual CC0 vehicle and cockpit
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_vehicle_candidate.py 2>&1 | tee build/vehicle.log
+          grep -q CODECITY_VEHICLE_CANDIDATE_OK build/vehicle.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: vehicle-candidate-not-approved
+          path: |
+            build/vehicle.log
+            build/vehicle-candidate/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -76,7 +76,7 @@ def main():
     user_data = Path(L.get_user_data())
     user_data.mkdir(parents=True, exist_ok=True)
     categories = ('clothes','hair','skins','eyes','eyebrows','eyelashes','teeth','tongue')
-    roots = [p for p in (staged, staged/'data', *[p for p in staged.iterdir() if p.is_dir()]) if (p/'skins').is_dir() and (p/'clothes').is_dir()]
+    roots = [p for p in (staged, *[d for d in staged.rglob('*') if d.is_dir()]) if all((p/c).is_dir() for c in categories)]
     roots = list(dict.fromkeys(roots))
     if len(roots) != 1:
         raise ValueError("Unexpected system asset pack structure")
@@ -174,7 +174,13 @@ def main():
         scene.render.filepath=str(base/f'{name}.png')
         bpy.ops.render.render(write_still=True)
     names=[f'{args.id}.blend',f'{args.id}.glb','front.png','side.png','rear.png','three_quarter.png','face.png']
-    report={'status':'candidate_only','profile':args.id,'triangles':triangles,'bones':len(rigs[0].data.bones),'height_m':height,'mpfb_commit':PIN,'pack_url':PACK,'pack_sha256':hashlib.file_digest(args.pack.open('rb'),'sha256').hexdigest(),'source_license':'CC0-1.0','output_hashes':{n:hashlib.sha256((base/n).read_bytes()).hexdigest() for n in names},'limitations':['generic CC0 outfit and hair; not final design','no motion clips or LODs','no Godot deformation or gameplay approval']}
+    with args.pack.open('rb') as stream:
+        pack_digest = hashlib.file_digest(stream,'sha256').hexdigest()
+    source_file = args.pack.with_suffix('.source.json')
+    source = json.loads(source_file.read_text(encoding='utf-8')) if source_file.exists() else {'url':'local pack; source review required','sha256':pack_digest}
+    if source['sha256'] != pack_digest:
+        raise RuntimeError('Pack provenance hash mismatch')
+    report={'status':'candidate_only','profile':args.id,'triangles':triangles,'bones':len(rigs[0].data.bones),'height_m':height,'mpfb_commit':PIN,'pack_url':source['url'],'pack_sha256':pack_digest,'source_license':'CC0-1.0','output_hashes':{n:hashlib.sha256((base/n).read_bytes()).hexdigest() for n in names},'limitations':['generic CC0 outfit and hair; not final design','no motion clips or LODs','no Godot deformation or gameplay approval']}
     (base/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print('CODECITY_CHARACTER_CANDIDATE_OK')
 

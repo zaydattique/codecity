@@ -25,3 +25,5 @@ Adrian/Maya candidates use MPFB 2.0.18 and official CC0 system pack (base, targe
 Godot imported exact bench GLB successfully in run 45587661323, job 139113299318. Albedo texture present, 630 triangles, 1.164944 x 0.889291 x 0.496543 m (Godot Y-up). Visual and import candidate gates pass; gameplay collision/seating and final integration remain pending.
 
 Revised directive: exactly two heroes, six independently acting NPCs in slice; later 24 civilian configurations are not separately authored meshes. One bench candidate remains the only visually reviewed/imported model. No approved gameplay assets. System pack download has two official mirrors; actual character outputs still pending.
+
+Vehicle candidate: vehicle.spectral_coupe.v001, source https://github.com/JaronKBragg7337/spectral-gt-rs (CC0), pinned GLB, cockpit and wheels declared by upstream. Render pipeline written, actual mesh counts and render approval pending. Do not rename as finished CodeCity coupe; evaluate budget and appearance first.
