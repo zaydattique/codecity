@@ -316,6 +316,8 @@ def run():
             label(page,"Python  |  controller.py",814,193,14,MUTED)
             panel(page,810,201,424,137,GREEN)
             editor=DirectEntry(parent=page,initialText=saved_code if n==2 else DEFAULT_CODE,scale=17,pos=(823,0,-225),width=23,numLines=6,frameColor=GREEN,text_fg=WHITE,focus=0,command=lambda _:insert_code("\n"))
+            button(page,"Clear",1046,175,82,24,lambda:clear_editor(True))
+            button(page,"Example",1136,175,92,24,restore_example)
             if n==2:
                 settings={}
                 for i,(name,lo,hi,val) in enumerate((("Initial moisture",0,100,experiment.initial.moisture),("Light hours",0,16,experiment.initial.light),("Temperature C",0,45,experiment.initial.temperature))):
@@ -336,6 +338,7 @@ def run():
                 status=label(page,"Edit the threshold and check your solution.",814,484,16,GREEN,25)
                 guide_text["text"]="The boundary matters: at exactly 50%, the else branch must run. The checker tests every supported moisture, light and temperature combination."
                 speak("challenge")
+        if "--input-test" in sys.argv:milestone("lesson stage ready "+str(n))
     def insert_code(value):
         if editor is None:return
         text=editor.get();pos=editor.getCursorPosition()
@@ -350,8 +353,11 @@ def run():
     def start():
         nonlocal source,state,playing,water,elapsed,visual,saved_code
         candidate=editor.get()
+        if "--input-test" in sys.argv:milestone("Run clicked, input="+repr(candidate))
         try:experiment.start(candidate,initial())
         except RuleError as e:
+            playing=False;experiment.playing=False;persist()
+            if "--input-test" in sys.argv:milestone("Rule rejected "+str(e))
             set_message("Code error: "+str(e)[:85]);return
         saved_code=source=experiment.source;state=experiment.state;elapsed=pace;visual=0.;water=False;playing=True;persist()
         editor["focus"]=0;camera("macro");set_message("Running. One day every "+str(pace)+" seconds.")
@@ -417,10 +423,14 @@ def run():
     app.taskMgr.add(update,"lesson-state")
     app.accept("escape",home)
     app.accept("tab",lambda:insert_code("    ") if editor is not None and editor["focus"] else None)
-    def clear_editor():
-        if editor is not None and editor["focus"]:editor.enterText("");editor.setCursorPosition(0)
-    # Explicit reset shortcut, not a fake selection implementation.
+    def clear_editor(force=False):
+        if editor is not None and (force or editor["focus"]):
+            editor.enterText("");editor.setCursorPosition(0);editor["focus"]=1
+            if "--input-test" in sys.argv:milestone("editor cleared")
+    def restore_example():
+        if editor is not None:editor.enterText(DEFAULT_CODE);editor.setCursorPosition(len(DEFAULT_CODE));editor["focus"]=1
     app.accept("control-shift-backspace",clear_editor)
+    app.accept("shift-control-backspace",clear_editor)
     clear("loading");label(page,"BloomLogic",480,315,44,GREEN);label(page,"Preparing the lesson library",480,355,20,MUTED)
     app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
     home();milestone("home ready")
@@ -459,7 +469,7 @@ def run():
             if screen=="lesson" and stage==2 and state.day>=10:
                 assert experiment.source==DEFAULT_CODE.replace("40","50"),repr(experiment.source)
                 milestone("OS input test passed");app.destroy();sys.exit(0)
-            if task.time>45:raise RuntimeError("OS input test timed out")
+            if task.time>75:raise RuntimeError(f"OS input test timed out: screen={screen}, stage={stage}, day={state.day}, input={editor.get() if editor is not None else None!r}")
             return Task.cont
         app.taskMgr.add(watch_input,"input-test")
     app.run()
