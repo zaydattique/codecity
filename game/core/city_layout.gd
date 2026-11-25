@@ -79,7 +79,8 @@ static func walkable(p: Vector2) -> bool:
 		for footprint: Rect2 in Harbor.BUILDINGS:
 			if footprint.has_point(p):return false
 	for item: Dictionary in parcels(cell):
-		if Rect2(item["rect"]).has_point(p):return false
+		var footprint: Rect2=item["rect"]
+		if footprint.has_point(p):return false
 	return true
 
 static func _pixel_rect(r: Rect2,side: int) -> Rect2i:
