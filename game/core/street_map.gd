@@ -7,6 +7,7 @@ var zoom := 1.0
 var pan := Vector2.ZERO
 var waypoint := Vector2.INF
 var academy := false
+var story_target := Vector2.INF
 var aerial: Texture2D
 
 func _ready() -> void:
@@ -74,6 +75,10 @@ func _draw() -> void:
 		var pos := _screen(Vector2(-5.25,5))
 		draw_circle(pos,6,Color(0.97,0.71,0.34))
 		if expanded:draw_string(font,pos+Vector2(13,4),"Lighting control",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
+	if story_target.is_finite():
+		var target := _screen(story_target)
+		draw_circle(target,8,Color(0.97,0.71,0.34),false,2.5)
+		if expanded:draw_string(font,target+Vector2(12,4),"Nora",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
 	if waypoint.is_finite():
 		draw_circle(_screen(waypoint),6,Color(0.92,0.68,0.23),false,2.0)
 	if is_instance_valid(actor):
