@@ -19,7 +19,7 @@ on:
       coupe_run:
         description: Completed coupe candidate run ID
         required: true
-        default: '45629610589'
+        default: '45630525421'
 permissions:
   contents: read
   actions: read
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: neutralized-coupe-review
-          run-id: ${{ github.event.workflow_run.id || inputs.coupe_run || '45629610589' }}
+          run-id: ${{ github.event.workflow_run.id || inputs.coupe_run || '45630525421' }}
           github-token: ${{ github.token }}
           path: build/coupe-input
       - name: Stage reviewed candidate street and exact neutralized coupe
