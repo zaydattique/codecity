@@ -64,6 +64,16 @@ def neutralize(raw):
             node["children"]=[i for i in node["children"] if i not in marks]
     for scene in doc["scenes"]:
         scene["nodes"]=[i for i in scene["nodes"] if i not in marks]
+    # Original showroom poses include 30-degree front steering and wheel roll.
+    # Reset the four exact source wheel groups to straight local axle bases;
+    # preserve their original translation and all actual descendant geometry.
+    for name in WHEELS.values():
+        matches=[n for n in doc["nodes"] if n.get("name")==name]
+        if len(matches)!=1 or len(matches[0].get("matrix",[]))!=16:
+            raise ValueError("Unexpected source wheel transform "+name)
+        node=matches[0]
+        m=node["matrix"]
+        node["matrix"]=[1,0,0,0,0,1,0,0,0,0,1,0,m[12],m[13],m[14],1]
     for mesh in doc["meshes"]:
         for prim in mesh["primitives"]:
             prim.get("extensions",{}).pop("KHR_materials_variants",None)
@@ -79,7 +89,7 @@ def neutralize(raw):
 
 def bounds(objects):
     bpy.context.view_layer.update()
-    pts=[o.matrix_world@Vector(v) for o in objects if o.type=="MESH" for v in o.bound_box]
+    pts=[o.matrix_world@v.co for o in objects if o.type=="MESH" for v in o.data.vertices]
     if not pts:raise ValueError("Missing actual mesh geometry")
     return (Vector(tuple(min(p[i] for p in pts) for i in range(3))),Vector(tuple(max(p[i] for p in pts) for i in range(3))))
 
@@ -239,7 +249,7 @@ def main():
     door.matrix_world=previous
     report={"status":"development_candidate_only","source_sha256":SHA,"source_commit":PIN,
             "license":"CC-BY-4.0","attribution":"Eric Chadwick / Darmstadt Graphics Group GmbH (2024); based on Unity Fan CC0 model",
-            "modifications":"mesh reduction, excluded branding textures/plate/emblem, normalized orientation, wheel sockets",
+            "modifications":"mesh reduction, excluded branding textures/plate/emblem, normalized orientation, neutral wheel pose and wheel sockets",
             "excluded_texture_references":removed,"triangles_before":before,"triangles_after":after,
             "dimensions_godot_m":[span.x,span.z,span.y],"wheels":wheel_report,
             "door_pivots":["DoorPivot_L","DoorPivot_R"],"glb_sha256":hashlib.sha256((OUT/"coupe.glb").read_bytes()).hexdigest(),
