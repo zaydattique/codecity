@@ -40,3 +40,5 @@ Hosted Windows 44/44 and Godot headless boot passed (45588073887); Linux 44/44 a
 Dual-mode profile/session and range contract passed hosted Windows; Python 65 tests pass. Upstream isolated smoke passed for OpenCity and Truck Town, failed strict leak checks for GDQuest/Easy Vehicle/Road Generator. First small camera math adaptation added, pending regression; no demo art copied. Art candidate acquisition remains blocking the real vertical slice.
 
 Phase A remains open: Windows/Linux foundation and camera regression verified, two-mode contracts implemented, actual threaded load regression queued, legacy character archive fallback added, sports coupe candidate render workflow added. Real characters, car inspection, detailed street, interactive UI and source-specific gameplay checks pending; no expansion.
+
+Phase A art progress: one real Adrian candidate (rework), one rejected coupe candidate; Maya and detailed street missing. Foundation, session, camera and threaded loading contracts passed hosted Windows/Linux. Do not mark Phase A complete until actual acceptable hero/street/coupe and relevant interaction/interactive evidence exist. No city expansion.

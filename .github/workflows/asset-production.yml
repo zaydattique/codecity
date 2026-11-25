@@ -14,13 +14,13 @@ on:
       character:
         description: Candidate character (no automatic approval)
         type: choice
-        options: [adrian, maya]
-        default: adrian
+        options: [both, adrian, maya]
+        default: both
 permissions:
   contents: read
 concurrency:
   group: codecity-art-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   asset-pilot:
     runs-on: ubuntu-24.04
@@ -94,20 +94,22 @@ jobs:
           sha256sum "$RUNNER_TEMP/system-assets.zip"
       - name: Build selected candidate and inspect render outputs
         env:
-          CHARACTER: ${{ inputs.character || 'adrian' }}
+          CHARACTER: ${{ inputs.character || 'both' }}
         run: |
           set -euo pipefail
-          case "$CHARACTER" in adrian|maya) ;; *) exit 2 ;; esac
+          case "$CHARACTER" in both) characters=(adrian maya) ;; adrian|maya) characters=("$CHARACTER") ;; *) exit 2 ;; esac
           mkdir -p build/characters
-          blender --background --disable-autoexec --python-exit-code 1 --python tools/build_character.py -- --id "$CHARACTER" --pack "$RUNNER_TEMP/system-assets.zip" 2>&1 | tee build/characters/candidate.log
-          grep -q CODECITY_CHARACTER_CANDIDATE_OK build/characters/candidate.log
-          for f in "$CHARACTER.blend" "$CHARACTER.glb" front.png side.png rear.png three_quarter.png face.png report.json; do test -s "build/characters/$CHARACTER/$f"; done
+          for id in "${characters[@]}"; do
+            blender --background --disable-autoexec --python-exit-code 1 --python tools/build_character.py -- --id "$id" --pack "$RUNNER_TEMP/system-assets.zip" 2>&1 | tee "build/characters/$id.log"
+            grep -q CODECITY_CHARACTER_CANDIDATE_OK "build/characters/$id.log"
+            for f in "$id.blend" "$id.glb" front.png side.png rear.png three_quarter.png face.png report.json; do test -s "build/characters/$id/$f"; done
+          done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: character-candidate-not-approved
           path: |
-            build/characters/candidate.log
+            build/characters/*.log
             build/characters/*/*.blend
             build/characters/*/*.glb
             build/characters/*/*.png

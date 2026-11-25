@@ -92,7 +92,7 @@ def main():
         'rig':'game_engine', 'eyes':'high-poly/high-poly.mhclo',
         'eyebrows':'eyebrow001/eyebrow001.mhclo', 'eyelashes':'eyelashes01/eyelashes01.mhclo',
         'hair':f"{preset['hair']}/{preset['hair']}.mhclo",
-        'clothes':[f"{preset['clothes']}/{preset['clothes']}.mhclo"],
+        'clothes':[f"{preset['clothes']}/{preset['clothes']}.mhclo", f"{preset['shoes']}/{preset['shoes']}.mhclo"],
         'skin_mhmat':f"{preset['skin']}/{preset['skin']}.mhmat",
         'skin_material_type':'GAMEENGINE', 'eyes_material_type':'MAKESKIN',
         'teeth':'teeth_base/teeth_base.mhclo', 'tongue':'tongue01/tongue01.mhclo'
@@ -105,7 +105,7 @@ def main():
     meshes = [o for o in bpy.context.scene.objects if o.type=='MESH']
     rigs = [o for o in bpy.context.scene.objects if o.type=='ARMATURE']
     # Do not silently accept missing assets even if the upstream library logs a warning.
-    required = (preset['hair'],preset['clothes'],'eyebrow001','eyelashes01','high-poly','teeth_base','tongue01')
+    required = (preset['hair'],preset['clothes'],preset['shoes'],'eyebrow001','eyelashes01','high-poly','teeth_base','tongue01')
     asset_names = ' '.join(o.name.lower() for o in meshes)
     if len(rigs)!=1 or len(rigs[0].data.bones)<20 or any(s not in asset_names for s in required):
         raise RuntimeError(f"Missing rig or body parts: {asset_names}")
@@ -149,9 +149,9 @@ def main():
     scene.world=bpy.data.worlds.new('Neutral studio')
     scene.world.use_nodes=True
     scene.world.node_tree.nodes['Background'].inputs[0].default_value=(0.25,0.27,0.30,1)
-    scene.world.node_tree.nodes['Background'].inputs[1].default_value=0.7
+    scene.world.node_tree.nodes['Background'].inputs[1].default_value=0.45
     center=(lo+hi)/2
-    for offset,power in [((2,-3,3),600),((-2,-1,2),350),((0,2,3),400)]:
+    for offset,power in [((2,-3,3),400),((-2,-1,2),180),((0,2,3),260)]:
         bpy.ops.object.light_add(type='AREA',location=center+Vector(offset))
         lamp=bpy.context.object
         lamp.data.energy=power
