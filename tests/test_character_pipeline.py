@@ -43,3 +43,12 @@ def test_adult_profile_morphs():
         assert profile['age'] >= 18
         assert 0.5 <= profile['candidate']['age'] <= 0.65
         assert profile['candidate']['shoes']
+
+
+def test_npc_distinct_authored_profiles():
+    from ai.npc_brain import IDS, PROFILES
+    profiles=[load_profile(i) for i in IDS]
+    assert all(p['name']==PROFILES[p['id']].name for p in profiles)
+    assert len({p['candidate']['clothes'] for p in profiles})==6
+    assert len({p['candidate']['hair'] for p in profiles})==6
+    assert all(p['age']>=18 and .5<=p['candidate']['age']<=.65 for p in profiles)

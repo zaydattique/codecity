@@ -62,3 +62,5 @@ V002 neutralized coupe material derivative: run 45630525421 artifact 15030332702
 P09 technical candidate v002 integrated in Windows driving test 45631491513 artifact 15031685807. Actual 4 wheels and door geometry, revised PBR material, cockpit preserved, 59,528 tris. Development distribution only. No final art/LOD/seat fit approval. No vehicle binary committed.
 
 Locomotion rework: exact UAL1 source and frozen MPFB rigs retained; arm-direction correction uses source actual joint directions rather than only rest rotation deltas. New derivative and visible deformation QA pending.
+
+Six NPC profiles authored: Nora Silva, Omar Rahman, Elena Park, Marcus Reed, Sana Malik, Liam Walsh. Distinct adult morph, height, hair, clothing and skin selections from verified CC0 pack. Six independent editable rig/render/runtime GLB builds configured. Candidate outputs pending; no accepted visuals yet.

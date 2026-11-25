@@ -86,3 +86,5 @@ Owner feedback shifts immediate priority to P08/P09 defect remediation and first
 Camera/map/pause/settings fixes implemented following owner video; first Academy mission source integrated. Animation arm distortion and actual new build verification still open; do not advertise old build as fixed.
 
 P23 Python decision core implemented (six independent stateful NPC policies and IPC batch). Actual NPC art/rigs, movement/navigation, bounded runtime bridge and visible behavior remain pending. User requested education demo priority, so no cloned NPC visuals or fake behavior in university package.
+
+P07/P23 current goal: six distinct adult rigs with independent Python decisions, safe bounded IPC and physical sidewalk movement. Reuse current 32m street and two heroes, no city expansion. Added six cast presets and independent build jobs, with exact asset source and motion pipeline. Risks: art variation, shape fitting, triangle cost, process timing and blocked paths. Require six actual imports, real motion, collision, independent decisions and runtime failure test. No clone/primitive fallback. Prior Academy/Windows run 45664681340 passed.

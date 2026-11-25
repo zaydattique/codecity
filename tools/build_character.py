@@ -45,21 +45,24 @@ def load_profile(character_id):
     data = json.loads((ROOT/'art/characters.json').read_text(encoding='utf-8'))
     if data['version'] != 1 or len(data['playable']) != 2:
         raise ValueError("Exactly two playable profiles required")
-    return next(p for p in data['playable'] if p['id'] == character_id)
+    profiles=data['playable']+data.get('npcs',[])
+    if len({p['id'] for p in profiles})!=len(profiles):
+        raise ValueError('Duplicate character identity')
+    return next(p for p in profiles if p['id'] == character_id)
 
 
 def main():
     import bpy
     from mathutils import Vector, Matrix
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--id', required=True, choices=['adrian','maya'])
+    parser.add_argument('--id', required=True, choices=['adrian','maya','nora','omar','elena','marcus','sana','liam'])
     parser.add_argument('--pack', type=Path, required=True)
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     profile = load_profile(args.id)
     preset = profile['candidate']
     # MPFB 2.0.18 age=0.5 is the young-adult target; values below it blend child geometry.
     if not 0.5 <= preset['age'] <= 0.65:
-        raise ValueError('Protagonists must use adult age morphs')
+        raise ValueError('Characters must use adult age morphs')
     base = ROOT/'build'/'characters'/args.id
     base.mkdir(parents=True, exist_ok=False)
     # Use installed extension, not copied GPL program code in the game.

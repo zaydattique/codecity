@@ -61,3 +61,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `game/core/ui_style.gd` shared interface palette for real menu, Academy, pause controls; cabinet and road-closure geometry are authored limited equipment, not a finished world expansion.
 
 `ai/npc_brain.py` six-profile bounded deterministic NPC decision engine; `tests/test_npc_brain.py` behavior and batch tests; existing worker now supports npc_batch. No visible actors integrated. Full/minimap now optionally uses one actual overhead render texture plus live coordinates; headless retains vector geometry.
+
+`art/characters.json` now includes six non-playable adult candidate presets, separate from two protagonists; existing character builder accepts these six IDs. `.github/workflows/npc-cast.yml` builds/retargets six separate rigs, not clones.
