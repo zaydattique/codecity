@@ -92,6 +92,35 @@ func _verify() -> void:
 	if not await _wait_for_result(station) or not station._practice_done.has(6) or not station.lamps_online():
 		_fail("backup arithmetic and logic assignment")
 		return
+	# New physical equipment exercises: tank volume, gauge, dictionary allocation and function return.
+	station._lesson_picker.item_selected.emit(7)
+	station._code.text="while water_level() < 60:\n    pump(20)\nprint(water_level())"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(7) or station._water_litres!=60 or not is_equal_approx(station._water_column.scale.y,0.6) or station._water_gauge.value!=60:
+		_fail("physical reserve fill or gauge")
+		return
+	station._code.text="for i in range(6):\n    pump(20)\nprint('Overflow')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or station._water_litres!=60 or not is_equal_approx(station._water_column.scale.y,0.6):
+		_fail("invalid pump trial modified actual equipment")
+		return
+	station._lesson_picker.item_selected.emit(8)
+	station._code.text="allocation = {'east': 20, 'west': 20}\npump(allocation['east'])\npump(allocation['west'])\nprint('Allocated')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(8) or station._water_litres!=40 or station.lamps_online():
+		_fail("dictionary allocation")
+		return
+	station._lesson_picker.item_selected.emit(9)
+	station._code.text="def volume(cycles):\n    return cycles * 10\npump(volume(2))\npump(volume(2))\nset_lamp(0, True)\nset_lamp(1, True)\nprint('Emergency systems online')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(9) or station._water_litres!=40 or not station.lamps_online():
+		_fail("combined physical emergency restart")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/academy_reserve_terminal.png")!=OK:
+			_fail("reserve terminal capture")
+			return
 	station._lesson_picker.item_selected.emit(0)
 	station._code.text="count = 2\nfor lamp in range(count):\n    set_lamp(lamp, True)\nprint('Restored', count)"
 	station._run.pressed.emit()
@@ -103,7 +132,7 @@ func _verify() -> void:
 		return
 	var active: Dictionary=menu.active_snapshot()
 	var progress: Dictionary=menu._sessions.snapshot(active["profile_id"])["progress"]
-	if progress["academy"]!=["north_circuit","south_circuit","dispatch_notice","circuit_inspection","maintenance_schedule","backup_power","street_lighting"] or not progress["living_world"].is_empty():
+	if progress["academy"]!=["north_circuit","south_circuit","dispatch_notice","circuit_inspection","maintenance_schedule","backup_power","water_reserve","pump_allocation","emergency_restart","street_lighting"] or not progress["living_world"].is_empty():
 		_fail("Academy mission progression")
 		return
 	# Explicit temporary-file round trip verifies persistence even in headless QA.

@@ -23,3 +23,5 @@ P09 functional QA: four suspension contacts, 1.964m along heading and 12.56km/h 
 Six NPC source candidates total 252,446 triangles before LOD; this is geometry count only, not a GPU benchmark. Actual engine crowd performance, memory and animation update cost remain unmeasured. Keep crowd to six in this slice.
 
 Integrated run 45669907874 passed automated Linux/Windows headless physics and actual software-rendered street evidence. These are functional checks, not frame-time measurements. New seven-assignment chapter adds bounded list/while evaluation and UI only; new hardware, frame-time, memory and manual listening evidence unavailable. No performance target claim.
+
+Seven-assignment integrated game passed automated Linux/Windows run 45672930556. No new target hardware measurements. Automation chapter adds one bounded reserve mesh assembly and gauge, no expansion or new third-party asset library; actual render and frame-time impact remain unmeasured.

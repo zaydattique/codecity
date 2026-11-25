@@ -108,15 +108,19 @@ jobs:
           timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/academy_playtest.gd 2>&1 | tee build/evidence/academy.log
           grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/*.log; then exit 1; fi
-      - name: Render actual populated street
+      - name: Render actual populated street and Academy equipment
         env:
           CODECITY_NPC_SCRIPT: ${{ github.workspace }}/ai/worker.py
+          CODECITY_ACADEMY_SCRIPT: ${{ github.workspace }}/ai/academy.py
         run: |
           set -euo pipefail
           godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/npc-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/npc_playtest.gd -- --capture 2>&1 | tee build/evidence/render.log
           grep -q CODECITY_NPC_PLAYTEST_OK build/evidence/render.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/render.log; then exit 1; fi
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/npc-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/academy_playtest.gd -- --capture 2>&1 | tee build/evidence/academy-render.log
+          grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy-render.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/academy-render.log; then exit 1; fi
           cp build/npc-game/_qa/*.png build/evidence/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -137,12 +141,12 @@ jobs:
           cat > build/integrated-package/distribution/README.txt <<'EOF'
           CODECITY | Living World and Academy
           Launch CodeCity.exe. Keep the EXE, PCK, python directory and all Python modules together.
-          Academy: approach the lighting cabinet, E, select an exercise, write and run Python.
+          Academy: approach Harbor utilities, press E, select an assignment, write and run Python to control lamps and reserve equipment.
           Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
           WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
           Six distinct candidate NPCs run an offline Python decision worker.
           Mixed Godot/GDScript and Python; restricted teaching interpreter, not full Python.
-          No final art approval, durable save, interior or hardware performance guarantee.
+          Local profile assignment progress is saved; world position is not. No final art, interior or hardware performance guarantee.
           EOF
           tar --exclude=.godot --exclude='*.import' -czf build/integrated-package/tested-project.tar.gz -C build/integrated-package game distribution
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -104,3 +104,5 @@ Quaternius Universal Animation Library Standard: CC0-1.0, original https://quate
 CarConcept derivative changes: remove source Khronos_C artwork references, dashboard and tire-side maps, named plate and steering emblem; normalize orientation and wheel socket hierarchy, optimize geometry. Attribution CC-BY-4.0 Eric Chadwick / Darmstadt Graphics Group GmbH (2024), based on Unity Fan CC0, source https://github.com/KhronosGroup/glTF-Sample-Assets/tree/e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea/Models/CarConcept ; license https://creativecommons.org/licenses/by/4.0/ . Separate trademarks excluded, actual derivative visual review required. No claim of legal clearance of unseen marks.
 
 Academy candidate Windows package adds CPython 3.14.10 standard library/runtime under Python Software Foundation license; include runtime LICENSE.txt. Original synthesized lesson confirmation tone is authored in game/core/academy_station.gd. No external sound assets claimed.
+
+Harbor automation uses original authored utility equipment geometry, existing Godot UI and existing Python runtime. No new third-party asset or library introduced by this chapter.

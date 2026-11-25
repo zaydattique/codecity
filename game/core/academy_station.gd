@@ -16,8 +16,8 @@ var _lesson := 0
 var _lesson_picker: OptionButton
 var _description: Label
 var _practice_done: Dictionary = {}
-const LESSON_TITLES := ["01   Power restoration | for", "02   North circuit | variables", "03   South circuit | conditions", "04   Dispatch notice | print", "05   Circuit inspection | while", "06   Maintenance schedule | lists", "07   Backup power | logic"]
-const LESSON_IDS := ["street_lighting","north_circuit","south_circuit","dispatch_notice","circuit_inspection","maintenance_schedule","backup_power"]
+const LESSON_TITLES := ["01   Power restoration | for", "02   North circuit | variables", "03   South circuit | conditions", "04   Dispatch notice | print", "05   Circuit inspection | while", "06   Maintenance schedule | lists", "07   Backup power | logic","08   Water reserve | while","09   Pump allocation | dictionaries","10   Emergency restart | functions"]
+const LESSON_IDS := ["street_lighting","north_circuit","south_circuit","dispatch_notice","circuit_inspection","maintenance_schedule","backup_power","water_reserve","pump_allocation","emergency_restart"]
 const LESSON_DESCRIPTIONS := [
 	"Harbor's two street lights are offline. Restore both with a for loop and send a status message.",
 	"Isolate the north circuit. Store its ID and power state in variables. Turn on lamp 0 only.",
@@ -25,7 +25,10 @@ const LESSON_DESCRIPTIONS := [
 	"Send a dispatch message to the cabinet's physical display. Leave both test circuits off.",
 	"Inspect both circuits with a while loop. Increment the counter until both lamps are online.",
 	"Use a list containing lamp IDs 0 and 1. Read the IDs by index and restore both circuits.",
-	"Use arithmetic and Boolean logic to decide whether backup power can supply both lamps. Each lamp needs 30 units; available power is 80."]
+	"Use arithmetic and Boolean logic to decide whether backup power can supply both lamps. Each lamp needs 30 units; available power is 80.",
+	"Fill the emergency reserve to 60 L. Use while and water_level() to monitor the tank. pump(units) transfers 1 to 20 L per call.",
+	"Use a dictionary for the east and west allocations (20 L each). Read both keys and pump their amounts. Target: 40 L.",
+	"Define a function with a parameter and return a value. Use its result to pump 20 L twice, then restore both lamps. Target: 40 L and both circuits online."]
 const LESSON_STARTERS := [
 	"# Restore both lamps\ncount = 2\nfor lamp in range(count):\n    # Write your command here\n    print(lamp)\n",
 	"# Use variables to power lamp 0\nlamp = 0\npower = True\n# Write your command here\n",
@@ -33,7 +36,10 @@ const LESSON_STARTERS := [
 	"# Send a message to dispatch\n# Use print() to send the notice\n",
 	"lamp = 0\nwhile lamp < 2:\n    # Power the current lamp\n    lamp = lamp + 1\nprint('Inspection complete')\n",
 	"schedule = [0, 1]\n# Read each list item by index\nprint('Schedule complete')\n",
-	"available = 80\nrequired = 30 * 2\nbackup_ready = True\n# Check capacity and readiness\n"]
+	"available = 80\nrequired = 30 * 2\nbackup_ready = True\n# Check capacity and readiness\n",
+	"while water_level() < 60:\n    # Transfer 20 litres per cycle\n    print(water_level())\n",
+	"allocation = {'east': 20, 'west': 20}\n# Read both allocations and pump them\n",
+	"def volume(cycles):\n    return cycles * 10\n# Use volume(2) twice, then restore lamps\n"]
 const LESSON_HINTS := [
 	"Inside the loop, call set_lamp(lamp, True). Then print a status message.",
 	"Call set_lamp(lamp, power), then print a message. Leave lamp 1 off.",
@@ -41,9 +47,17 @@ const LESSON_HINTS := [
 	"Try print('Harbor ready'). Your actual output appears on the cabinet.",
 	"Use set_lamp(lamp, True) inside the while loop, before incrementing lamp.",
 	"Try set_lamp(schedule[0], True) and set_lamp(schedule[1], True).",
-	"Use if available >= required and backup_ready: then switch on both lamps and print a status."]
-const LESSON_REQUIREMENTS := [["for"],["assignment"],["if"],["print"],["while"],["list","index"],["arithmetic","boolean","if"]]
-const TARGETS := [[true,true],[true,false],[false,true],[false,false],[true,true],[true,true],[true,true]]
+	"Use if available >= required and backup_ready: then switch on both lamps and print a status.",
+	"Inside the while loop use pump(20). Print a status after the loop.",
+	"Call pump(allocation['east']) and pump(allocation['west']), then print a status.",
+	"Call pump(volume(2)) twice, then set_lamp(0, True), set_lamp(1, True) and print a status."]
+const LESSON_REQUIREMENTS := [["for"],["assignment"],["if"],["print"],["while"],["list","index"],["arithmetic","boolean","if"],["while","sensor","pump"],["dict","key","pump"],["function","return","pump"]]
+const TARGETS := [[true,true],[true,false],[false,true],[false,false],[true,true],[true,true],[true,true],[false,false],[false,false],[true,true]]
+const WATER_TARGETS := [0,0,0,0,0,0,0,60,40,40]
+var _water_litres := 0
+var _water_column: MeshInstance3D
+var _tank_readout: Label3D
+var _water_gauge: ProgressBar
 var _progress: Label
 var _circuit_status: Label
 var _display: Label3D
@@ -121,6 +135,7 @@ func setup(hud: CanvasLayer) -> void:
 	_display.pixel_size=0.003
 	_display.modulate=Color(0.45,0.95,0.86)
 	add_child(_display)
+	_build_reserve()
 	_panel=PanelContainer.new()
 	_panel.position=Vector2(62,36)
 	_panel.size=Vector2(1156,648)
@@ -164,6 +179,10 @@ func setup(hud: CanvasLayer) -> void:
 	_circuit_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	_circuit_status.add_theme_color_override("font_color",Color(0.60,0.89,0.78))
 	right.add_child(_circuit_status)
+	_water_gauge=ProgressBar.new()
+	_water_gauge.max_value=100
+	_water_gauge.custom_minimum_size=Vector2(0,22)
+	right.add_child(_water_gauge)
 	_code=CodeEdit.new()
 	_code.custom_minimum_size=Vector2(0,280)
 	_code.add_theme_font_size_override("font_size",19)
@@ -179,6 +198,8 @@ func setup(hud: CanvasLayer) -> void:
 	highlighter.member_variable_color=Color(0.90,0.94,0.96)
 	highlighter.add_color_region("'","'",Color(0.65,0.87,0.67))
 	highlighter.add_color_region("\"","\"",Color(0.65,0.87,0.67))
+	for keyword: String in ["while","def","return","else","and","or","not"]:
+		highlighter.add_keyword_color(keyword,Color(0.66,0.76,1))
 	highlighter.add_keyword_color("for",Color(0.66,0.76,1))
 	highlighter.add_keyword_color("in",Color(0.66,0.76,1))
 	highlighter.add_keyword_color("if",Color(0.66,0.76,1))
@@ -249,7 +270,7 @@ func _select_lesson(index: int) -> void:
 	_lesson_picker.select(index)
 	_description.text=LESSON_DESCRIPTIONS[index]
 	_code.text=_drafts.get(index,LESSON_STARTERS[index] if _assist.selected==0 else "")
-	_output.text="Practice completed earlier. Run again to test your code." if _practice_done.has(index) else "Run your code to test the lamps. Each run starts with both lamps off."
+	_output.text="Practice completed earlier. Run again to test your code." if _practice_done.has(index) else "Run your code to test the lamps. Each trial starts with both circuits off and the reserve empty."
 
 func open_editor() -> void:
 	if opened:return
@@ -294,7 +315,15 @@ func _apply(result: Dictionary) -> void:
 		return
 	# Each run is a fresh trial. Reject the entire batch before mutating lights.
 	var state: Array[bool]=[false,false]
+	var litres:=0
 	for command: Variant in commands:
+		if command is Dictionary and command.size()==1 and command.has("pump"):
+			var amount: Variant=command["pump"]
+			if not (amount is int or amount is float) or amount!=int(amount) or amount<1 or amount>20 or litres+int(amount)>100:
+				_output.text="Invalid reserve command."
+				return
+			litres+=int(amount)
+			continue
 		if not command is Dictionary or command.size()!=2 or not command.has("lamp") or not command.has("on"):
 			_output.text="Invalid command."
 			return
@@ -304,18 +333,20 @@ func _apply(result: Dictionary) -> void:
 			return
 		state[int(id)]=command["on"]
 	for i: int in range(2):_lights[i].visible=state[i]
+	_water_litres=litres
+	_update_reserve()
 	_output.text=output+"\nLamps online: %d / 2"%(int(state[0])+int(state[1]))
 	_display.text=output.strip_edges().replace("\n"," ").left(42) if not output.strip_edges().is_empty() else "NO MESSAGE"
 	_refresh_progress()
 	var concepts: Variant=result.get("concepts",[])
-	var matches: bool=state[0]==TARGETS[_lesson][0] and state[1]==TARGETS[_lesson][1]
+	var matches: bool=state[0]==TARGETS[_lesson][0] and state[1]==TARGETS[_lesson][1] and litres==WATER_TARGETS[_lesson]
 	var taught:=true
 	if not concepts is Array:taught=false
 	else:
 		for concept: String in LESSON_REQUIREMENTS[_lesson]:
 			if not concepts.has(concept):taught=false
 	if not matches or output.strip_edges().is_empty() or not taught:
-		_output.text+="\nTarget not met. Check the required Python concept and circuit state."
+		_output.text+="\nTarget not met. Check the required Python concept and equipment targets."
 		return
 	_output.text+="\nAssignment complete. Results applied to Harbor utilities."
 	if not _practice_done.has(_lesson):
@@ -346,7 +377,7 @@ func _refresh_progress() -> void:
 		_lesson_picker.set_item_text(i,LESSON_TITLES[i]+("  |  Complete" if _practice_done.has(i) else ""))
 	var energized:=int(_lights[0].visible)+int(_lights[1].visible)
 	_screen_material.emission=Color(0.12,0.75,0.48) if energized==2 else (Color(0.9,0.53,0.13) if energized==1 else Color(0.12,0.35,0.40))
-	_circuit_status.text="LIVE CIRCUITS\nNorth  |  %s\nSouth  |  %s"%["ONLINE" if _lights[0].visible else "OFFLINE","ONLINE" if _lights[1].visible else "OFFLINE"]
+	_circuit_status.text="LIVE CIRCUITS\nNorth  |  %s\nSouth  |  %s\nReserve  |  %d / 100 L"%["ONLINE" if _lights[0].visible else "OFFLINE","ONLINE" if _lights[1].visible else "OFFLINE",_water_litres]
 
 func lamps_online() -> bool:
 	return _lights.size()==2 and _lights[0].visible and _lights[1].visible
@@ -368,3 +399,72 @@ func _completion_tone() -> AudioStreamWAV:
 	clip.mix_rate=rate
 	clip.data=samples
 	return clip
+
+# Authored outdoor utility equipment candidate; actual volume is driven by validated commands.
+func _build_reserve() -> void:
+	var frame:=Node3D.new()
+	frame.position=Vector3(0,0,-1.0)
+	add_child(frame)
+	var steel:=StandardMaterial3D.new()
+	steel.albedo_color=Color(0.22,0.27,0.29)
+	steel.metallic=0.65
+	steel.roughness=0.42
+	for y: float in [0.10,1.03]:
+		var cap:=MeshInstance3D.new()
+		var cylinder:=CylinderMesh.new()
+		cylinder.top_radius=0.29
+		cylinder.bottom_radius=0.29
+		cylinder.height=0.12
+		cylinder.material=steel
+		cap.mesh=cylinder
+		cap.position.y=y
+		frame.add_child(cap)
+	var glass:=StandardMaterial3D.new()
+	glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.albedo_color=Color(0.56,0.78,0.84,0.20)
+	glass.roughness=0.12
+	var vessel:=MeshInstance3D.new()
+	var shell:=CylinderMesh.new()
+	shell.top_radius=0.26
+	shell.bottom_radius=0.26
+	shell.height=0.83
+	shell.material=glass
+	vessel.mesh=shell
+	vessel.position.y=0.565
+	frame.add_child(vessel)
+	var water:=StandardMaterial3D.new()
+	water.albedo_color=Color(0.10,0.55,0.66)
+	water.roughness=0.18
+	var fill:=CylinderMesh.new()
+	fill.top_radius=0.23
+	fill.bottom_radius=0.23
+	fill.height=0.80
+	fill.material=water
+	_water_column=MeshInstance3D.new()
+	_water_column.mesh=fill
+	frame.add_child(_water_column)
+	var body:=StaticBody3D.new()
+	var shape:=CollisionShape3D.new()
+	var collision:=CylinderShape3D.new()
+	collision.radius=0.29
+	collision.height=1.10
+	shape.shape=collision
+	shape.position.y=0.55
+	body.add_child(shape)
+	frame.add_child(body)
+	_tank_readout=Label3D.new()
+	_tank_readout.text="RESERVE  0 L"
+	_tank_readout.position.y=1.23
+	_tank_readout.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	_tank_readout.font_size=32
+	_tank_readout.pixel_size=0.004
+	frame.add_child(_tank_readout)
+	_update_reserve()
+
+func _update_reserve() -> void:
+	var fraction:=float(_water_litres)/100.0
+	_water_column.visible=_water_litres>0
+	_water_column.scale.y=maxf(0.001,fraction)
+	_water_column.position.y=0.15+0.40*fraction
+	_tank_readout.text="RESERVE  %d L"%_water_litres
+	if is_instance_valid(_water_gauge):_water_gauge.value=_water_litres

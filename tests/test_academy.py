@@ -45,3 +45,36 @@ def test_executed_concepts_not_dead_code():
     r=Interpreter().run("if False:\n    x = [1]\n    while True:\n        print(x[0])\nprint('Ready')")
     assert "list" not in r["concepts"] and "while" not in r["concepts"]
     assert r["concepts"]==["if","print"]
+
+
+def test_water_sensor_and_while():
+    r=Interpreter().run("while water_level() < 60:\n    pump(20)\nprint(water_level())")
+    assert r["commands"]==[{"pump":20}]*3
+    assert r["output"]=="60"
+    assert {"while","sensor","pump"} <= set(r["concepts"])
+
+def test_dictionary_and_reusable_function():
+    r=Interpreter().run("def volume(cycles):\n    return cycles * 10\nallocation = {'east': 2, 'west': 2}\npump(volume(allocation['east']))\npump(volume(allocation['west']))\nprint(water_level())")
+    assert r["commands"]==[{"pump":20}]*2 and r["output"]=="40"
+    assert {"function","return","dict","key","pump"} <= set(r["concepts"])
+
+@pytest.mark.parametrize("source",[
+    "pump(21)", "pump(True)", "pump(0)",
+    "for i in range(6):\n    pump(20)",
+    "x = {'a': [1]}", "x = {1: 2}", "x = {'a': 1}\nprint(x['b'])",
+    "x = {'a': 1}\nx['a'] = 2",
+    "def f(x):\n    return f(x)\nprint(f(1))",
+    "def f(x=1):\n    return x\nprint(f())",
+    "def f(x):\n    import os\n    return x",
+    "def f(x):\n    return x\nprint(f())",
+    "def f(x):\n    x = x + 1\nprint(f(1))",
+    "def pump(x):\n    return x",
+    "if True:\n    def f(x):\n        return x",
+    "return 1",
+])
+def test_water_and_function_denial(source):
+    with pytest.raises(LessonError):Interpreter().run(source)
+
+def test_overfill_does_not_return_partial_commands():
+    r=handle({"version":1,"id":"a"*32,"source":"set_lamp(0, True)\nfor i in range(6):\n    pump(20)"})
+    assert not r["ok"] and r["commands"]==[]
