@@ -128,7 +128,11 @@ func _step(motion: Vector3) -> void:
 	if test_move(global_transform,Vector3.UP*0.20):return
 	var raised := global_transform.translated(Vector3.UP*0.20)
 	if test_move(raised,motion):return
-	var hit := KinematicCollision3D.new()
-	if test_move(raised.translated(motion),Vector3.DOWN*0.23,hit) and hit.get_normal().y>0.7:
-		global_position.y+=0.20
-		apply_floor_snap()
+	var leading:=global_position+motion.normalized()*(0.27+motion.length()+0.04)
+	var ray:=PhysicsRayQueryParameters3D.create(leading+Vector3.UP*0.26,leading-Vector3.UP*0.04,1,[get_rid()])
+	var surface:=get_world_3d().direct_space_state.intersect_ray(ray)
+	if surface.is_empty() or surface.normal.y<0.7:return
+	var rise: float=surface.position.y-global_position.y
+	if rise>=0.025 and rise<=0.21:
+		global_position.y+=rise+0.015
+		velocity.y=0.0
