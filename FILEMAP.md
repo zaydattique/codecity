@@ -33,3 +33,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 `verification/phase_a_asset_review.gd` and `.github/workflows/phase-a-art-review.yml`: staged exact candidate GLB import and real Godot software-rendered views, no shipping asset changes. Optimizer retries intact source after overaggressive planar dissolve.
 
 Existing foundation scene now contains the working temporary profile, two modes and two protagonist selectors. Session contract regression exercises the actual UI signal connections and draft selection; no fake launch or save. Real art review references exact budget-passing street GLB.
+
+`tools/freeze_character_morphs.py`: offline GLB default-morph runtime derivative, keeps skin hierarchy/materials, no animated morphs accepted. `tests/test_freeze_character_morphs.py`: sparse accessors, skin retention, rejection. Art review stages separate derivatives, records hashes and still verifies actual imported geometry.

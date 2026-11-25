@@ -42,6 +42,14 @@ jobs:
           echo "c2c5c5425b03133f0dc995fb1c7d6cc3788b4df7d0dbfcac050658e1bb1503e1  adrian.glb" | sha256sum -c -
           echo "fa575b54117955bb5095ed8fd7fbf91318f436160193456e8e69ce82960482ee  maya.glb" | sha256sum -c -
           echo "cbd75043c055ea6b15275670c2dd540410559a5b47c585ab4f411a3eca3529f9  street.glb" | sha256sum -c -
+      - name: Freeze default character morphs for runtime import
+        run: |
+          set -euo pipefail
+          mkdir -p build/frozen
+          python tools/freeze_character_morphs.py build/review-game/_qa/adrian.glb build/frozen/adrian.glb
+          python tools/freeze_character_morphs.py build/review-game/_qa/maya.glb build/frozen/maya.glb
+          cp build/frozen/*.glb build/review-game/_qa/
+          sha256sum build/frozen/*.glb | tee build/review-evidence/frozen-sha256.txt
       - name: Install pinned Godot
         run: |
           set -euo pipefail
@@ -70,6 +78,8 @@ jobs:
         if: always()
         with:
           name: phase-a-engine-review
-          path: build/review-evidence/
+          path: |
+            build/review-evidence/
+            build/frozen/
           if-no-files-found: ignore
           retention-days: 7
