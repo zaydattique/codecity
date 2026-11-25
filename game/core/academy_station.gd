@@ -47,6 +47,7 @@ const TARGETS := [[true,true],[true,false],[false,true],[false,false],[true,true
 var _progress: Label
 var _circuit_status: Label
 var _display: Label3D
+var _screen_material: StandardMaterial3D
 var _assist: OptionButton
 var _hint: Button
 var _drafts: Dictionary={}
@@ -86,6 +87,7 @@ func setup(hud: CanvasLayer) -> void:
 	var display := BoxMesh.new()
 	display.size=Vector3(0.018,0.31,0.24)
 	var screen_material := StandardMaterial3D.new()
+	_screen_material=screen_material
 	screen_material.albedo_color=Color(0.08,0.20,0.22)
 	screen_material.emission_enabled=true
 	screen_material.emission=Color(0.10,0.45,0.47)
@@ -328,6 +330,8 @@ func _apply(result: Dictionary) -> void:
 func _set_assistance(index: int) -> void:
 	_hint.visible=index!=2
 	_hint.disabled=index==2
+	if _code.text==LESSON_STARTERS[_lesson] or _code.text.is_empty():
+		_code.text=LESSON_STARTERS[_lesson] if index==0 else ""
 	_description.text=LESSON_DESCRIPTIONS[_lesson]
 
 func restore_progress(ids: Array) -> void:
@@ -340,6 +344,8 @@ func _refresh_progress() -> void:
 	_progress.text="%d / %d assignments completed"%[_practice_done.size(),LESSON_IDS.size()]
 	for i: int in range(LESSON_IDS.size()):
 		_lesson_picker.set_item_text(i,LESSON_TITLES[i]+("  |  Complete" if _practice_done.has(i) else ""))
+	var energized:=int(_lights[0].visible)+int(_lights[1].visible)
+	_screen_material.emission=Color(0.12,0.75,0.48) if energized==2 else (Color(0.9,0.53,0.13) if energized==1 else Color(0.12,0.35,0.40))
 	_circuit_status.text="LIVE CIRCUITS\nNorth  |  %s\nSouth  |  %s"%["ONLINE" if _lights[0].visible else "OFFLINE","ONLINE" if _lights[1].visible else "OFFLINE"]
 
 func lamps_online() -> bool:
