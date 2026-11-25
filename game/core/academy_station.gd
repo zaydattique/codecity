@@ -278,7 +278,7 @@ func _apply(result: Dictionary) -> void:
 	_run.disabled=false
 	_lesson_picker.disabled=false
 	_assist.disabled=false
-	_hint.disabled=_assist.selected!=0
+	_hint.disabled=_assist.selected==2
 	var output: Variant=result.get("output","Invalid result.")
 	if not output is String or output.length()>512:
 		_output.text="Invalid Python result."
@@ -306,7 +306,7 @@ func _apply(result: Dictionary) -> void:
 	_display.text=output.strip_edges().replace("\n"," ").left(42) if not output.strip_edges().is_empty() else "NO MESSAGE"
 	_refresh_progress()
 	var concepts: Variant=result.get("concepts",[])
-	var matches: bool=state==TARGETS[_lesson]
+	var matches: bool=state[0]==TARGETS[_lesson][0] and state[1]==TARGETS[_lesson][1]
 	var taught:=true
 	if not concepts is Array:taught=false
 	else:
@@ -326,7 +326,8 @@ func _apply(result: Dictionary) -> void:
 	_refresh_progress()
 
 func _set_assistance(index: int) -> void:
-	_hint.visible=index==0
+	_hint.visible=index!=2
+	_hint.disabled=index==2
 	_description.text=LESSON_DESCRIPTIONS[_lesson]
 
 func restore_progress(ids: Array) -> void:
