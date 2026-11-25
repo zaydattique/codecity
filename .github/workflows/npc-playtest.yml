@@ -53,7 +53,13 @@ jobs:
           run-id: ${{ github.event.workflow_run.id || inputs.cast_run || '45666586177' }}
           github-token: ${{ github.token }}
           path: build/cast
-      - name: Stage exact distinct actual model outputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: npc-*-candidate
+          run-id: 45683856272
+          github-token: ${{ github.token }}
+          path: build/cast-extra
+      - name: Stage exact twelve distinct actual model outputs
         run: |
           set -euo pipefail
           mkdir -p build/previous build/npc-game build/evidence
@@ -66,8 +72,9 @@ jobs:
           import hashlib,json,shutil
           from pathlib import Path
           seen=set()
-          for id in ("nora","omar","elena","marcus","sana","liam"):
-              folder=Path(f"build/cast/npc-{id}-candidate/{id}")
+          for i,id in enumerate(("nora","omar","elena","marcus","sana","liam","jules","rhea","vincent","farah","theo","iris")):
+              base="cast" if i<6 else "cast-extra"
+              folder=Path(f"build/{base}/npc-{id}-candidate/{id}")
               report=json.loads((folder/"report.json").read_text())
               motion=json.loads((folder/"runtime.motion.json").read_text())
               glb=folder/"runtime.glb"
@@ -101,7 +108,7 @@ jobs:
           timeout 240 "$godot" --headless --path build/npc-game --editor --import 2>&1 | tee build/evidence/import.log
           timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/npc_playtest.gd 2>&1 | tee build/evidence/npc.log
           grep -q CODECITY_NPC_PLAYTEST_OK build/evidence/npc.log
-          timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/street_playtest.gd -- --motion 2>&1 | tee build/evidence/street.log
+          timeout 180 "$godot" --headless --path build/npc-game --script res://_qa/street_playtest.gd -- --motion 2>&1 | tee build/evidence/street.log
           grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street.log
           timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/vehicle_playtest.gd 2>&1 | tee build/evidence/vehicle.log
           grep -q CODECITY_VEHICLE_PLAYTEST_OK build/evidence/vehicle.log
@@ -121,7 +128,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/npc-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/academy_playtest.gd -- --capture 2>&1 | tee build/evidence/academy-render.log
           grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy-render.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/academy-render.log; then exit 1; fi
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/npc-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/street_playtest.gd -- --motion --capture 2>&1 | tee build/evidence/street-render.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/npc-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/street_playtest.gd -- --motion --capture 2>&1 | tee build/evidence/street-render.log
           grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street-render.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/street-render.log; then exit 1; fi
           cp build/npc-game/_qa/*.png build/evidence/
@@ -147,7 +154,7 @@ jobs:
           Academy: approach Harbor utilities, press E, select an assignment, write and run Python to control lamps and reserve equipment.
           Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
           WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
-          Six distinct candidate NPCs run an offline Python decision worker.
+          Twelve distinct NPC rigs run an offline Python decision worker in the streamed city.
           Mixed Godot/GDScript and Python; restricted teaching interpreter, not full Python.
           Local profile assignment progress is saved; world position is not. No final art, interior or hardware performance guarantee.
           EOF
