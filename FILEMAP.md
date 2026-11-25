@@ -51,3 +51,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `.github/workflows/vehicle-playtest.yml` stages exact tested street and neutralized coupe artifact, validates source and GLB digests/report, tests actual physics and renders driving/exit evidence. Candidate verification only, no automatic car distribution.
 
 `.github/workflows/candidate-windows-export.yml` shares pinned Windows editor/template, QA and standalone export code between street/vehicle builds. `art/coupe-review-sha256.txt` exact development-package review gate (not final art approval). Foundation CLI --vehicle-smoke uses real menu, world and wheel contact checks from exported EXE.
+
+`ai/academy.py` bounded Python subset interpreter and CLI; `tests/test_academy.py` execution/denial/atomic/limit tests; `game/core/academy_bridge.gd` trusted bounded process bridge and `academy_station.gd` real lamp control/CodeEdit. Existing menu and street integrate separate Academy mode.

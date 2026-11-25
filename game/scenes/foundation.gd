@@ -2,6 +2,7 @@ extends Node3D
 ## Development profile/mode selection. No world launch until approved assets exist.
 const Sessions = preload("res://core/session_state.gd")
 const Harbor = preload("res://scenes/harbor_playtest.gd")
+const AcademyBridge = preload("res://core/academy_bridge.gd")
 var _world: Node3D
 var _launch: Button
 var _sessions = Sessions.new()
@@ -18,7 +19,7 @@ func _ready() -> void:
 	_character.add_item("Adrian Cole", 0)
 	_character.add_item("Maya Bennett", 1)
 	_launch=Button.new()
-	_launch.text="Open street physics test"
+	_launch.text="Start"
 	_launch.disabled=true
 	_launch.visible=Harbor.installed()
 	_launch.pressed.connect(_open_street)
@@ -67,23 +68,24 @@ func _on_apply_pressed() -> void:
 	if not _sessions.select_draft(id, Sessions.MODES[_mode.selected], Sessions.CHARACTERS[_character.selected]):
 		_status.text = "Invalid selection."
 		return
-	_launch.disabled=not Harbor.installed() or _mode.selected!=0
+	_launch.disabled=not Harbor.installed() or (_mode.selected==1 and AcademyBridge.paths().is_empty())
 	_status.text = "Selected: %s / %s." % [_mode.get_item_text(_mode.selected), _character.get_item_text(_character.selected)]
 	if _mode.selected==1:
-		_status.text += " Academy mission runtime not installed."
+		_status.text += " Python lighting mission ready." if not _launch.disabled else " Python mission runtime unavailable."
 	elif not Harbor.installed():
 		_status.text += " World not installed."
 	else:
-		_status.text += " Candidate street test available."
+		_status.text += " Harbor Boulevard ready."
 
 func _open_street() -> void:
 	if _world != null:
 		return
 	var draft := _sessions.draft_selection()
-	if draft.get("mode")!="living_world":
+	if draft.get("mode") not in ["living_world","academy"]:
 		return
+	if draft.get("mode")=="academy" and AcademyBridge.paths().is_empty():return
 	var world = Harbor.new()
-	if not world.prepare(draft.get("character","")):
+	if not world.prepare(draft.get("character",""),draft.get("mode")=="academy"):
 		world.free()
 		_status.text="Street candidate could not load."
 		return
@@ -94,6 +96,7 @@ func _open_street() -> void:
 		return
 	_world=world
 	world.leave_requested.connect(_close_street)
+	world.academy_completed.connect(func(): _sessions.complete_mission("street_lighting","academy"))
 	$CanvasLayer.hide()
 
 func _close_street() -> void:

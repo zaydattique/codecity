@@ -6,6 +6,11 @@ const Player = preload("res://core/street_player.gd")
 const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
 const Interaction = preload("res://core/world_interaction.gd")
+const Academy = preload("res://core/academy_station.gd")
+signal academy_completed
+var academy_mode := false
+var station: Node3D
+var _editor_open := false
 var vehicle: VehicleBody3D
 var _vehicle_hint: Label
 var _driving := false
@@ -25,7 +30,8 @@ static func installed() -> bool:
 			return false
 	return true
 
-func prepare(character: String) -> bool:
+func prepare(character: String, education: bool=false) -> bool:
+	academy_mode=education
 	if is_inside_tree() or character not in ["adrian","maya"] or not installed():
 		return false
 	var street := load(Assets+"street.glb") as PackedScene
@@ -45,7 +51,7 @@ func prepare(character: String) -> bool:
 	player.position=Layout.SPAWN
 	_character=character
 	add_child(player)
-	if ResourceLoader.exists(Assets+"coupe.glb","PackedScene"):
+	if not academy_mode and ResourceLoader.exists(Assets+"coupe.glb","PackedScene"):
 		var coupe := load(Assets+"coupe.glb") as PackedScene
 		vehicle=Car.new()
 		if not vehicle.configure(coupe):
@@ -66,6 +72,17 @@ func _ready() -> void:
 	_make_collision()
 	_make_light()
 	_make_hud()
+	if academy_mode:
+		station=Academy.new()
+		station.position=Vector3(-5.25,0.15,5.0)
+		add_child(station)
+		station.setup(_hud)
+		station.completed.connect(func(): academy_completed.emit())
+		station.editor_changed.connect(_academy_editor)
+		# Dusk lighting makes the real restored fixtures visibly affect the street.
+		for node: Node in get_children():
+			if node is DirectionalLight3D:node.light_energy=0.22
+			if node is WorldEnvironment:node.environment.ambient_light_energy=0.23
 	_ready_world=true
 	if DisplayServer.get_name()!="headless":
 		Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
@@ -161,6 +178,13 @@ func _make_hud() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_world:
 		return
+	if _editor_open:
+		if event.is_action_pressed("pause_game"):station.close_editor()
+		return
+	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and Interaction.within_range(player,station,2.5):
+		station.open_editor()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("pause_game"):
 		if _map.expanded:
 			_toggle_map()
@@ -201,8 +225,12 @@ func _exit_tree() -> void:
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
 func _process(_delta: float) -> void:
-	if not _ready_world or vehicle==null or not vehicle.built:
+	if not _ready_world:return
+	if academy_mode:
+		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
+		_vehicle_hint.text="E  Lighting control" if Interaction.within_range(player,station,2.5) else "Restore street lighting | Walk to the Academy cabinet"
 		return
+	if vehicle==null or not vehicle.built:return
 	if _driving:
 		_vehicle_hint.text="Coupe | %.0f km/h\nW/S accelerate or reverse | A/D steer\nSpace brake | L lights | F exit when stopped"%vehicle.speed_kmh()
 	elif player.global_position.distance_to(vehicle.entry_point())<=2.1:
@@ -221,7 +249,7 @@ func _update_actor_hud() -> void:
 
 func _sync_controls() -> void:
 	_update_actor_hud()
-	var enabled: bool=not _paused and not _map.expanded
+	var enabled: bool=not _paused and not _map.expanded and not _editor_open
 	player.controls_enabled=enabled and not _driving
 	if vehicle!=null:
 		vehicle.input_enabled=enabled and _driving
@@ -273,3 +301,12 @@ func _safe_exit() -> Vector3:
 		if space.intersect_shape(shape,1).is_empty():
 			return feet
 	return Vector3.INF
+
+func _academy_editor(value: bool) -> void:
+	_editor_open=value
+	player.stop_controls()
+	_sync_controls()
+	_map.visible=not value
+	_status.visible=not value
+	_vehicle_hint.visible=not value
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
