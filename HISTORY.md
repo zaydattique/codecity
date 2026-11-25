@@ -1,0 +1,11 @@
+# History
+
+## Phase 01 staging | 2026-11-25
+
+Inspected `zaydattique/codecity` at `5b7b3234320a50e68da02102bb2c9a555a12e82d`: only README existed, no AGENTS or CLAUDE. GitHub reported public visibility conflicting with required private status; no remote commit or PR made. Prepared the local `phase/01-foundation` branch with the original requirements, foundational documents, minimal development boot scene, clock, event bus, input configuration, Python protocol probe, tests and static checks. Audited seven pinned source candidates, including non-commercial GDQuest art and legacy Vehicle project risks; no imported third-party code or assets. Godot, Blender and Windows/GPU runtime are unavailable; candidate clones and engine download failed due to DNS. No art or export claimed. Verification results below; Phase 01 remains open pending Windows engine and source-isolation checks.
+
+Verification on Linux x86_64 with Git 2.47.3 and Python 3.13.5: `python -m pytest -q` returned 16 passed in 2.51s; `python tools/check_foundation.py` passed. Process tests used actual stdin/stdout and a five-second test timeout. Exact production Python 3.14.10, Godot import/smoke, visual QA, upstream runtime compatibility and Windows export are unverified. Local commit only; private-repo gate remains open.
+
+## Foundation transfer and preflight | 2026-11-25
+
+Owner approved public main. Re-ran the local Phase 01/02 Python suite: 27 passed in 2.48s; static references OK. Transferred the foundation, source audit and preflight to the remote repository. The Godot runtime gate, actual artwork and upstream isolation remain open. No approved binary assets.

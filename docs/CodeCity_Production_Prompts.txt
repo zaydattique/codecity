@@ -1,0 +1,146 @@
+CODECITY: LIVING WORLD
+MASTER PRODUCTION PROMPT PACK | English instructions for coding and art agents
+
+USAGE
+Place this file and CodeCity_Project_Instructions.txt in the repository or provide them to the agent. Start with P00, then P01 and the vertical slice. Each numbered prompt is an independent assignment; prepend the common quality contract below. Commands are proposed interfaces to implement, not existing scripts. Use a pinned Blender and Godot executable on Windows. Do not claim a model is built unless its binary file, preview and in-engine checks exist.
+
+COMMON QUALITY CONTRACT (prepend to every assignment)
+Act as a senior game developer, AAA technical artist and QA engineer. Produce original, editable, production-ready game assets, not screenshots or flat illustrations pretending to be 3D. GTA V is a visual aspiration, not a claim or permission to copy. Use licensed professional base meshes, phototextures and motion capture. Never make human characters out of primitive geometry. Use realistic proportions, topology, UVs, PBR materials, normal/roughness/metallic maps as appropriate, metric scale and consistent coordinate conventions. Apply transforms, inspect normals, avoid z-fighting, clipping, broken rigs and missing textures. Author LODs, simple collision proxies, interaction sockets and sensible texture budgets. Deliver .blend source, game-ready .glb, import settings, preview renders and license/validation records. Test in actual Godot scenes under daylight, indoor and night lighting. Do not accept generic low-quality placeholders as final. If tooling or licensed source is unavailable, report that precisely. Use one coherent realistic art direction. Reuse shared pipelines and materials rather than duplicating code.
+
+P00 | FOUNDATION AND ARCHITECTURE
+Read repository rules and inspect the current tree. Pin stable Godot/Blender/Python versions and create a minimal runnable game scene. Define scene ownership, event bus, simulation clock, input map, save schema, asset IDs, streaming and IPC interfaces. Keep game/ for Godot, ai/ for Python, tools/ for asset builds, tests/ and docs/. Add .gitignore, selective LFS policy and third-party notices. Establish headless import and test commands. Create roadmap with phase goals, acceptance gates and documented dependencies. Run a smoke test and report real results.
+
+P01 | OPEN-SOURCE RESEARCH AND REUSE
+Inspect exact upstream commits, README, LICENSE and per-asset notices. Candidate references (web listings checked, not downloaded or tested):
+https://github.com/webgl-games/opencity - MIT code according to project listing; inspect Godot compatibility and separate asset licenses; use on-foot/vehicle transitions, traffic and procedural city only where appropriate. Do not keep prototype art as final.
+https://github.com/gdquest-demos/godot-4-3d-third-person-controller - MIT code; demo art has separate terms; verify exact asset license and attribution before importing. Use movement, camera and animation architecture.
+https://github.com/godotengine/godot-demo-projects - MIT demo code; choose branch matching pinned engine; inspect 3d/truck_town, navigation and physics examples.
+https://github.com/ogeeice/Vehicle - CC0-listed vehicle example; evaluate handling before reuse.
+https://github.com/makehumancommunity/mpfb2 - Blender character pipeline, GPL tool code and separately licensed graphical output; verify all clothing/hair add-ons individually.
+https://static.makehumancommunity.org/mpfb/docs.html - installation and export guidance.
+https://polyhaven.com/ and https://ambientcg.com/ - candidate PBR textures, HDRIs and props; confirm asset-level licenses.
+https://www.mixamo.com/ - candidate animation source; confirm current terms and permitted redistribution before packaging. Do not bypass login or automate prohibited downloads.
+Search for additional compatible permissively licensed navigation, traffic, vehicle physics, modular city and humanoid animation projects. Never use leaked commercial code, ripped GTA models, proprietary textures or unlicensed assets. Keep reference clones outside the game import tree. Compare alternatives in a source audit: URL, pinned commit/version, license, files considered, performance, dependencies, adaptation plan and attribution. Run each candidate in isolation before selectively integrating. Preserve notices. Do not blindly copy whole projects or duplicate existing controllers. Write THIRD_PARTY_NOTICES.md and asset registry entries. No claim of compatibility before testing.
+
+P02 | PLAYER: ADRIAN COLE
+Age 27, height 181 cm, lean athletic natural build, dark brown textured hair, stubble, expressive brown eyes and slightly asymmetric face. Charcoal bomber jacket, off-white cotton tee, dark jeans, leather sneakers. Use professional human base mesh, realistic skin, hair cards, eyelashes, teeth, nails, subtle imperfections and convincing seams, folds, zippers. Build complete humanoid rig with fingers, facial shapes, eye targets and foot/hand IK. Modular casual and formal outfits. Idle, walk, jog, sprint, turn, jump, crouch, sit, stairs, door use, phone, vehicle enter/exit, steering and carry. Validate deformation and face at close range. Deliver adrian_cole.blend, adrian_cole.glb and animation library. Command target: blender --background --python tools/build_character.py -- --id adrian
+
+P03 | MAYA BENNETT
+Age 26, 169 cm, natural slim athletic proportions, shoulder-length dark brown hair, hazel eyes, freckles, tan jacket, dark shirt, straight trousers, ankle boots and crossbody bag. Investigative journalist, confident without exaggerated features. Build face shapes and hair, realistic bag strap deformation and camera/phone hand IK. Animate interviewing, photography, laptop use, document reading, phone calls, concern, restrained smiles and natural dialogue. Independently validate rig, LODs and expressions. Output maya_bennett.blend/.glb. Command target: blender --background --python tools/build_character.py -- --id maya
+
+P04 | MARCUS REED
+Age 46, 184 cm, broad shoulders, slightly heavy natural build, grey temples, tired eyes and age-appropriate skin. Navy overcoat, muted shirt, trousers, leather shoes, fictional badge. Mature posture, realistic layered clothing. Animate evidence inspection, notes, witness interviews, calls, vehicle entry, crossed arms and desk sitting. No superhero physique. Output marcus_reed.blend/.glb. Command target: blender --background --python tools/build_character.py -- --id marcus
+
+P05 | VICTOR HALE
+Age 48, 186 cm, influential businessman with silver-dark hair, restrained expressions, believable mature face. Tailored charcoal suit, white shirt, polished shoes, understated watch. Intimidation through acting rather than exaggerated villain anatomy. Accurate jacket lapels, fabric thickness, seams and cloth deformation. Animate cuff adjustments, controlled walk, executive desk work, calls, suspicious glances and restrained anger. Output victor_hale.blend/.glb. Command target: blender --background --python tools/build_character.py -- --id victor
+
+P06 | ELENA PARK
+Age 29, 165 cm, natural East Asian features, loosely tied dark hair, olive work jacket, cargo trousers, industrial boots, utility belt and tablet. Realistic infrastructure engineer, not a superhero. Animate kneeling, repair, tool handling, machinery inspection, pointing, walking and dialogue. Correct tool sockets, hand grip and finger positioning. Output elena_park.blend/.glb. Command target: blender --background --python tools/build_character.py -- --id elena
+
+P07 | MODULAR NPC CAST
+Target 38 base variants: 8 male civilians, 8 female civilians, 4 office workers, 3 shopkeepers, 3 police, 2 paramedics, 3 construction workers, 3 drivers, 4 elderly adults. Start with six high-quality adults before expanding. Distinct facial identity, hair, age, shape, height, skin, accessories and clothing. Shared rig where suitable; avoid nearby duplicate looks. Role-specific uniforms with fictional branding. Individual animation offsets and gait variation. Common activities: phone, queue, conversation, coffee, sitting, umbrella, shopping, crossing, waiting, work, driving. Shared texture atlases and LODs, no broken outfit clipping. Command target: blender --background --python tools/build_npcs.py -- --count 6 (expand after validation).
+
+P08 | ANIMATION AND PLAYER CONTROLLER
+Implement third-person and optional first-person cameras, acceleration, turn-in-place, collision-aware camera, stairs, walk/run/sprint/crouch/jump, contextual interaction, inventory and vehicle transitions. Use licensed motion clips or artist-authored keyframes, animation tree blend spaces, foot IK, hand IK, additive upper-body layers, facial expressions and eye movement. No procedural stick-figure walk. Validate foot sliding, collision, slopes, occlusion, door handles, seated steering, transitions and input latency. Separate player input from NPC action control. Start with essential clips and expand toward 150+ only when needed. Test on all five principal characters.
+
+P09 | VEHICLE: SPORTS COUPE
+Original two-door performance coupe, believable wheelbase, body panels, realistic lights, paint, glass, tires, mirrors, brake discs and interior with seats, gauges, pedals and steering. Independently pivot four wheels, doors, trunk, bonnet and steering. Include collision proxy, entry/exit sockets and working lights. Tune mass, suspension, torque, friction, braking, reverse and handbrake. Test handling with controller and keyboard. Command target: blender --background --python tools/build_vehicle.py -- --id sports_coupe
+
+P10 | VEHICLE: COMPACT HATCHBACK
+Original small commuter vehicle, practical five-door body, modest engine and responsive urban handling. Detailed cabin, cargo hatch, functional wheels, lights, doors, traffic LOD and parking sockets. Command target: blender --background --python tools/build_vehicle.py -- --id hatchback
+
+P11 | VEHICLE: FAMILY SEDAN
+Original four-door sedan, realistic trunk, instrument panel and passenger seating, balanced suspension and braking. Functional entry/exit, indicator and brake lights, paint variations. Command target: blender --background --python tools/build_vehicle.py -- --id sedan
+
+P12 | VEHICLE: CROSSOVER SUV
+Original crossover with taller ride height, substantial wheelbase, roof rails, realistic cargo and interior. Tune heavier handling and body roll, not sports-car physics. Command target: blender --background --python tools/build_vehicle.py -- --id suv
+
+P13 | VEHICLE: EXECUTIVE SEDAN
+Original premium sedan, elegant silhouette, realistic layered interior, detailed lighting and smooth suspension. Distinct geometry from family sedan. Command target: blender --background --python tools/build_vehicle.py -- --id executive
+
+P14 | SERVICE VEHICLES
+Build each independently: police sedan (fictional livery, light bar), ambulance (rear doors, medical cabin), fire engine (equipment compartments), taxi (roof sign, passenger interaction), city bus (boarding doors, seating, stops), delivery van (cargo doors), utility truck (equipment bed), motorcycle (lean/steering and rider pose). Real dimensions and mass, service-specific interaction and sound. Do not reskin one model for all. Command target: blender --background --python tools/build_vehicle.py -- --id <police|ambulance|fire_engine|taxi|bus|delivery_van|utility_truck|motorcycle>
+
+P15 | CITY MASTER MAP
+Design original coastal city, initial 800x800 m target subject to profiling. Real street hierarchy, non-repetitive layout, crossings, alleys, sidewalks, plazas, cycling, parking, bridges, slight terrain elevation, parks and waterfront. Build road network with directed lane graph, intersections, speed limits, stop lines, pedestrian connections and emergency routes. Separate terrain, road, buildings, props and interiors. Ensure continuous collision/nav connectivity. Stream by district/chunk; preload along player velocity; no holes during high-speed driving. Begin with one street, not full map. Produce editable source, district scenes, maps, navmesh, lane graph and street-level renders. No real copyrighted game map.
+
+P16 | DOWNTOWN
+Distinct office towers, glass and stone facades, street-level lobbies, plazas, service alleys, parking, signage and convincing scale. Varied rooflines, window depth and grounded architecture. Office worker schedules and heavy commuter traffic. Command target: blender --background --python tools/build_district.py -- --id downtown
+
+P17 | COMMERCIAL
+Retail streets, cafes, shops, restaurants, delivery zones, outdoor seating, realistic signs and night window lighting. NPC shopping, queues and staff routines. Command target: blender --background --python tools/build_district.py -- --id commercial
+
+P18 | RESIDENTIAL
+Apartments, townhouses, green spaces, garages, narrow streets, mailboxes and balconies; believable home/work routes and quiet night ambience. Command target: blender --background --python tools/build_district.py -- --id residential
+
+P19 | INDUSTRIAL
+Warehouses, power facilities, fenced yards, loading bays, utility roads, forklifts and service workers; distinct materials and industrial ambient audio. Command target: blender --background --python tools/build_district.py -- --id industrial
+
+P20 | WATERFRONT
+Coastal promenade, beach, marina, cafes, seawall, scenic roads and believable water/shore transitions. Budget water reflections and vegetation. Command target: blender --background --python tools/build_district.py -- --id waterfront
+
+P21 | INDIVIDUAL BUILDINGS AND INTERIORS
+Use each subtask as an independent prompt. Model proper dimensions, doors, furniture, windows, functional light switches and collision/navigation. Exterior/interior streaming must maintain continuity. No decorative inaccessible room advertised as interactive.
+A apartment: bedroom, living room, kitchen, bathroom, wardrobe, balcony, bed, TV and garage; save and outfit interactions.
+B convenience store: shelves, fridge, stockroom, basket, checkout and staff/customer queues.
+C police station: reception, desks, evidence room, interview room, secure doors and parking.
+D warehouse: racks, crates, loading bays, mezzanine, machinery and mission props.
+E cafe: counter, kitchen, tables, restroom, outdoor seating and ordering.
+F garage: workbench, lifts, tools, tires and repair/customization bay.
+G hospital: reception, waiting room, corridors, emergency bay and accessible ward.
+H power station: fictional control room, equipment, service corridors and mission interactions; avoid real facility replicas.
+I office: lobby, elevator, workspaces, meeting rooms and executive office.
+J gas station: pumps, canopy, shop, parking, vehicle service interaction.
+K clothing store: racks, changing area, mirrors, outfit purchase interface.
+L hotel: lobby, reception, guest corridor, rooms and elevator.
+Command target per item: blender --background --python tools/build_interior.py -- --id <apartment|store|police_station|warehouse|cafe|garage|hospital|power_station|office|gas_station|clothing_store|hotel>
+
+P22 | STREET PROPS, MATERIALS AND WORLD DETAIL
+Create modular sidewalk, curb, drain, manhole, lamps, signs, bins, hydrants, benches, bus shelters, mailboxes, foliage, bollards, shop awnings and traffic lights. Real scale, varied wear, no excessive dirt. PBR asphalt, concrete, brick, glass, paint, metal, fabric and vegetation. Use instancing and shared atlases. Ensure collision where needed, avoid expensive collisions for decorative distant props. Validate wet/dry materials and night emissives. Capture street-level and driving previews.
+
+P23 | NPC BRAIN (PYTHON)
+Implement seedable agent state with personality, needs, occupation, schedules, relationships, short/persistent memory, perception and action cooldowns. Use spatial indexing for hearing/vision candidates, utility scoring, contextual state machines and bounded goal planning. NPCs follow their own lives. Staring, following, bumping, familiar encounters, interrupted conversations, closing times, rain and dangerous driving produce natural varied responses. Some ignore, avoid or complain; no default player assistance. NPCs communicate with one another, queue, shop, cross, sit, work, use phones, seek shelter. No visible emotion bars or decision trees. Development-only logging is allowed. Python worker receives batched observations and returns validated action intents; Godot owns movement, collision, animation and actual world state. Local IPC only, timeout/restart, versioned schemas, no arbitrary eval. Distance-based updates and deterministic tests for memory, reaction diversity, path failures and conflicting goals. Persist meaningful encounters, not unbounded logs. Benchmark CPU per agent and avoid full-frame all-pairs scans.
+
+P24 | TRAFFIC AND TRANSPORT
+Build lane graph, vehicle following, intersections, signals, yielding, braking, turn indicators, parking, buses/taxi stops, rerouting and congestion behavior. Pedestrians wait and look before crossing; weather changes speed and stopping distance. Prevent deadlocks, clipping and spawning in view. Emergency vehicles can request priority in fictional simulation. Use pooled entities and lower distant update rates. Validate with fixed-seed stress scenarios, collision counts, queue length and actual FPS. Driver personality varies behavior without reckless randomness.
+
+P25 | INTERACTIONS, PHONE, ECONOMY
+Shared interaction interface with distance, line of sight, affordance, input and animation checks. Doors, elevators, shops, seating, ATM, vending, objects and interiors genuinely work. Inventory, fictional currency, jobs, purchases and apartment storage persist. Smartphone includes map, contacts, messages, calls, camera/evidence, banking, weather, taxi, missions and news; each feature must connect to game state or be omitted until functional. No fake controls. HUD minimal, original and readable. Test keyboard/controller focus and closing menus restores control.
+
+P26 | STORY AND MISSIONS
+Original interconnected narrative: A New Beginning (arrive, apartment, vehicle, meet Maya); Missing Person (witnesses, evidence, competing leads); Blackout (fictional infrastructure mystery, changing traffic and shops); Undercover (dialogue, access and investigation); Pursuit (cinematic vehicle chase with alternate routes); Final Decision (evidence and relationship-driven endings). Define objectives, prerequisites, event triggers, checkpoints, alternative paths, failure/retry, dialogue and consequences for each. Add side missions and ambient encounters only after core works. Do not force NPC cooperation. Mission scripting uses actual state, not fake cutscenes that report success regardless of player action. Validate multiple paths, save/load mid-mission and recovery from missed triggers.
+
+P27 | WEATHER, TIME, SOUND AND CINEMATICS
+Implement consistent clock, day/night lighting, opening hours, schedules, weather, umbrella behavior, wet roads and believable effects on traffic. Add spatial audio: footsteps by material, engine loops, tire sounds, rain, shop ambience, city soundscape and dialogue. Use licensed recordings or original synthesis; avoid copyrighted game audio. Budget reflections, particles and shadows; disable expensive effects in low preset. Cinematics use actual character rigs, camera tracks and skip/retry; preserve mission state. Test sound mixing and transitions.
+
+P28 | LOADING SCREENS AND UI
+Original cinematic artwork using actual game characters and locations, inspired by professional open-world key art without copying GTA branding or assets. Studio intro, title menu, new game, continue, loading transitions, mission retry and settings. Use rendered key art, restrained typography, subtle parallax and atmospheric sound. Actual asynchronous resource progress, no fake timer. Main menu stays responsive and supports keyboard/controller; handle missing/corrupt saves and load errors. 720p, 1080p, 1440p and ultrawide. No AI dashboard, neon clutter, generic glassmorphism or endless guidance copy. Render original key art only after visual assets are approved.
+
+P29 | PERSISTENCE AND PACKAGING
+Versioned saves, atomic writes, corruption recovery, player transform, vehicle state, mission flags, inventory, clock, NPC memory and relevant world events. Prevent unsafe file paths. Offline Python worker packaged with game, graceful startup/shutdown and clear error reporting. Export Windows build with all assets and licenses. Test on clean machine with no Blender/Godot/Python preinstalled and no internet. Do not claim standalone delivery until tested.
+
+P30 | PERFORMANCE AND CODE HEALTH
+Profile actual gameplay on identified hardware. Initial budgets: main character 40-70k triangles, nearby NPC 12-25k, distant 500-3000, hero car 30-60k, traffic 5-15k, small exterior 5-20k; adjust based on evidence. Compress textures, share materials, instancing, pooling, nav/physics budgets, LOD, culling, threaded loads, shader preparation. Low 720p/30fps and medium 1080p/60fps are targets only. Record median/p95/p99 frame times, RAM, VRAM, startup and streaming stalls. Test walking, fast driving, rain, night, crowded intersections, interiors, missions, saves and extended play. Audit duplicate logic, dead code, orphan assets, errors and regressions. Fix root causes not cosmetic overrides. Keep a benchmark report and truthful known limitations.
+
+P31 | COMMANDS AND VALIDATION
+Run from repository root in PowerShell. First verify installed versions with git --version, python --version, blender --version, godot --version (or actual executable paths). Reference clones are optional and should be outside game/; pin known compatible commits after inspection:
+New-Item -ItemType Directory -Force references
+ git clone https://github.com/webgl-games/opencity.git references/opencity
+ git clone https://github.com/gdquest-demos/godot-4-3d-third-person-controller.git references/third-person
+ git clone https://github.com/godotengine/godot-demo-projects.git references/godot-demos
+Do not commit these nested clones. Implement and document the following proposed script interfaces before using them:
+ blender --background --python tools/build_character.py -- --id adrian
+ blender --background --python tools/build_vehicle.py -- --id sports_coupe
+ blender --background --python tools/build_district.py -- --id downtown
+ python tools/validate_assets.py --all
+ python -m pytest tests
+ godot --headless --path game --editor --import
+ godot --editor --path game
+ godot --headless --path game --export-release "Windows Desktop" ../build/CodeCity.exe
+The export needs an existing preset and matching export templates. Asset scripts must use real licensed source inputs; reject absent inputs rather than generating primitive stand-ins. Headless tests cannot establish visual quality or GPU performance. Run interactive playtest, capture screenshots and benchmark before declaring a phase complete.
+
+P32 | FINAL DEMO
+Start in the apartment, walk onto a detailed street, demonstrate NPC recognition and different reactions without debug UI, enter a vehicle, drive through working signals, visit a shop, accept a mission via phone, collect evidence and show a consequential outcome. Demonstrate rain or night only if stable. Save and reload. Prepare a short offline fallback route using the same actual executable, not a fake video. Record the technical architecture, actual Python contribution, external assets and measured performance. No fabricated metrics.
+
+PHASE ORDER
+Foundation/source audit -> one hero + street + car + six NPCs -> controller/animation -> NPC Python brain -> first interior and mission -> benchmark and approve vertical slice -> expand characters/vehicles/districts -> traffic and world systems -> story and UI -> persistence/export -> final optimization. Individual art tasks may be parallel only after scale, rig and material standards are agreed. Keep README and HISTORY updated in paragraph form each phase.

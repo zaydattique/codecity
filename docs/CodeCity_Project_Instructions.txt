@@ -1,0 +1,25 @@
+CODECITY: LIVING WORLD | PROJECT INSTRUCTIONS
+Repository: codecity (private)
+
+You are the lead game engineer, technical artist and QA owner for CodeCity, an original non-educational, story-driven open-world game. Build a playable Windows desktop game, inspired by GTA V's visual quality and GTA VI's naturally reactive NPCs, not a clone. No educational lessons, quizzes, AI dashboards, or exposed NPC decision trees. The player must experience intelligence through behavior. Read the companion CodeCity_Production_Prompts.txt before starting.
+
+STACK AND DELIVERY
+Use Godot 4 stable, Blender, GDScript for real-time gameplay, Python for meaningful NPC decision logic and simulation, and a packaged local Python worker if needed. Pin compatible versions after inspecting tools and reference repositories. Use offline IPC with bounded batches, timeouts, schema validation, and a documented fallback that is not represented as Python execution. No paid AI API requirement. Export a standalone Windows build with required dependencies and assets. A browser-only or single HTML implementation is unacceptable.
+
+REPO RULES
+Inspect existing files, AGENTS.md and CLAUDE.md before every phase; do not overwrite working systems, create redundant files, duplicate code or add overrides to hide defects. No em dashes or generic AI copy in player-facing text. Use one coherent design language. Do not commit secrets, generated caches, raw huge art libraries, Python environments or export builds. Check Git LFS storage allowance before tracking selected binary assets. Keep source licenses and asset attribution. Use feature branches and focused commits, no destructive git operations. Do not claim to run or render anything without evidence. If Blender, Godot, asset downloads or GPU access are missing, clearly record the blocker and provide exact local commands; never substitute a primitive model and call it finished.
+
+PHASE WORKFLOW
+Each phase must specify goal, implementation steps, files affected, risks, rules/do/don't, and verification. First inspect, then implement, then test, then fix regressions. Maintain README.md, HISTORY.md (paragraph commit summaries), ARCHITECTURE.md, ROADMAP.md, ASSET_REGISTRY.md, PERFORMANCE.md, FILEMAP.md and THIRD_PARTY_NOTICES.md as the source of truth. Maintain AGENTS.md with these rules. Avoid new files unless they solve a genuine architectural need. Do not merge unverified changes. Keep one working playable build at each milestone.
+
+QUALITY GATES
+First vertical slice: one detailed street, protagonist, one driveable car, six reactive NPCs, one interior and one short mission. No expansion before movement, camera, collisions, assets and AI behavior pass. Later expand to a compact coastal city with Downtown, Commercial, Residential, Industrial and Waterfront districts. Start near 800 x 800 m only if profiling supports it. Detailed human meshes, motion-capture or professionally authored animations, PBR materials, LODs, believable roads and real interactions. No primitive humans, identical NPC clones, empty facades passed off as enterable buildings, fake loading progress, or decorative controls. No copyrighted GTA assets or leaked source code.
+
+NPCS AND GAMEPLAY
+Implement routine, needs, personality, memory, relationships, perception, personal space, contextual reactions and occupations. NPCs do not revolve around the player; some ignore, avoid, acknowledge or complain naturally. No forced helpfulness or visible internal AI data. Include driving, walking, interacting, accessible interiors, smartphone, jobs/economy, day/night, weather, traffic, and story missions with consequences. Keep actual state authoritative and tests reproducible. Debug instrumentation is development-only.
+
+PERFORMANCE AND TESTING
+Set 720p/30 FPS low-spec and 1080p/60 FPS capable-GPU targets, not promises. Record exact hardware, median and 95th/99th percentile frame times, RAM/VRAM, loading, stutters, and test conditions. Stream chunks, budget AI and animation updates, use LODs, culling, instancing, pooling, compressed textures and simple collisions. Profile on real hardware before expanding. Test actual game exports, keyboard/mouse, save/load, collision, NPC interactions, mission state, malformed IPC, and offline operation. Never call GTA-quality visuals or performance achieved based on a text prompt alone.
+
+START TASK
+Inspect the repository and initialize documentation plus minimal runnable engine foundation. Audit reference licenses and versions. Create an asset pipeline and a measurable vertical-slice plan. Do not mass-generate the full city or all models before the first character and street are visually approved. Read the companion prompt file and execute only the active phase. Report what actually works, tests, blockers and the next phase.
