@@ -95,3 +95,5 @@ With matching Windows export templates installed and a fresh output folder, use 
 ## First driving-enabled Windows candidate
 
 [Download Driving Test v2](https://github.com/zaydattique/codecity/actions/runs/45631491513/artifacts/15031685807). Extract, keep EXE and PCK together, choose Living World and either character; approach the parked coupe, press F, W/S drive/reverse, A/D steer, Space brake, L headlights, stop before F exit. Latest actual Linux/Windows street and vehicle tests plus standalone exported car/actor/suspension smoke passed. Candidate includes exact reviewed CC-BY derivative, not a final car or game. No seated driver mesh, final IK, NPCs, interior, missions, save or Academy execution. Hosted artifacts expire; retain candidate files outside git.
+
+Academy demo checkpoint: 45664681340 passed Linux/Windows street, vehicle and actual Python lesson, including standalone bundled CPython. A separate public v0.2.0 Academy prerelease workflow is configured; verify release before using the link. Six new NPC candidates are being built separately and are not in that package.

@@ -65,3 +65,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `art/characters.json` now includes six non-playable adult candidate presets, separate from two protagonists; existing character builder accepts these six IDs. `.github/workflows/npc-cast.yml` builds/retargets six separate rigs, not clones.
 
 `game/core/npc_bridge.gd`, `npc_director.gd`, `street_npc.gd` implement persistent IPC, bounded six-agent decision orchestration and actual rig locomotion. Existing `ai/worker.py` adds mailbox mode, preserving stdin protocol; new persistent-process test. No fake actors.
+
+`verification/npc_playtest.gd` and `.github/workflows/npc-playtest.yml` real cast/IPC/physics regression and evidence. `.github/workflows/publish-academy-prerelease.yml` publishes previously verified Academy package separately from NPC work.
