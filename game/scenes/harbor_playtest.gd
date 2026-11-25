@@ -279,6 +279,9 @@ func _make_hud() -> void:
 	_map=Map.new()
 	_map.actor=player
 	_map.academy=academy_mode
+	_map.rotate_with_actor=_prefs.rotate_minimap
+	_map.expand_requested.connect(func():
+		if not _paused and not _editor_open:_toggle_map())
 	_map.position=Vector2(20,480)
 	_map.size=Vector2(224,220)
 	_map.clip_contents=true
@@ -314,6 +317,7 @@ func _make_hud() -> void:
 	_refresh_hints()
 
 func _refresh_hints() -> void:
+	_map.rotate_with_actor=_prefs.rotate_minimap
 	_status.visible=_prefs.show_hints and not _paused and not _editor_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
