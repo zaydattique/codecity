@@ -26,7 +26,7 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: optimized-candidates-not-approved
-          run-id: 45597251013
+          run-id: 45601941130
           github-token: ${{ github.token }}
           path: build/street-input
       - name: Stage exact reviewed GLBs
@@ -41,7 +41,7 @@ jobs:
           cd build/review-game/_qa
           echo "c2c5c5425b03133f0dc995fb1c7d6cc3788b4df7d0dbfcac050658e1bb1503e1  adrian.glb" | sha256sum -c -
           echo "fa575b54117955bb5095ed8fd7fbf91318f436160193456e8e69ce82960482ee  maya.glb" | sha256sum -c -
-          echo "2a966c0acc2d8a251c7cc15f5ccb9dd634c4b12cad0f609173bf458a298a695c  street.glb" | sha256sum -c -
+          echo "cbd75043c055ea6b15275670c2dd540410559a5b47c585ab4f411a3eca3529f9  street.glb" | sha256sum -c -
       - name: Install pinned Godot
         run: |
           set -euo pipefail

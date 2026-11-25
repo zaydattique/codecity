@@ -52,3 +52,5 @@ Actual four-building exterior street candidate and second coupe candidate genera
 Both adult rigged candidates generated and inspected; height and triangle gates pass, art and animation remain open. Optimized coupe hits 60k budget, street exceeds 110k. Direct-collapse retry and real Godot staged candidate import/render checks queued. Phase A remains open pending actual tests, approval and remaining art work.
 
 Numerical street/coupe budgets now pass on revised optimizer; latest Windows/Linux 67 tests and smoke/session pass. Imported character raw AABB check failed; measuring actual skinned world-space vertices and preserving both bounds in QA. Engine-render and actual art review still required.
+
+Profile/mode/character draft UI now implemented and connected to authoritative in-memory state, engine regression pending. Both numerical geometry budgets pass, actual optimized street visual inspection passed geometry-preservation review only; real character render/import test still running. No production approval or gameplay.

@@ -7,6 +7,7 @@ const MODES: Array[String] = ["living_world", "academy"]
 const CHARACTERS: Array[String] = ["adrian", "maya"]
 var _profiles: Dictionary = {}
 var _active: Dictionary = {}
+var _draft: Dictionary = {}
 
 func create_profile(id: String, display_name: String) -> bool:
 	var pattern := RegEx.new()
@@ -23,6 +24,16 @@ func create_profile(id: String, display_name: String) -> bool:
 	_profiles[id] = {"name": name, "character": "adrian",
 		"progress": {"living_world": [], "academy": []}}
 	return true
+
+## A menu choice is not a spawned gameplay session and does not change progression.
+func select_draft(profile_id: String, mode: String, character: String) -> bool:
+	if not _profiles.has(profile_id) or not MODES.has(mode) or not CHARACTERS.has(character):
+		return false
+	_draft = {"profile_id": profile_id, "mode": mode, "character": character}
+	return true
+
+func draft_selection() -> Dictionary:
+	return _draft.duplicate(true)
 
 func activate(profile_id: String, mode: String, character: String, spawn: Node3D) -> bool:
 	if not _profiles.has(profile_id) or not MODES.has(mode) or not CHARACTERS.has(character):

@@ -65,6 +65,37 @@ func _verify() -> void:
 	if loader.status != Loader.Status.READY or loader.progress != 1.0 or loader.take_scene() == null or loader.take_scene() != null:
 		_fail("threaded load completion")
 		return
+	# Exercise the actual menu scene and its connected controls, not a duplicate mock.
+	var menu_scene := load("res://scenes/foundation.tscn") as PackedScene
+	var menu := menu_scene.instantiate()
+	root.add_child(menu)
+	var fields := menu.get_node("CanvasLayer/Center/VBox")
+	var profile_input := fields.get_node("ProfileName") as LineEdit
+	var mode_input := fields.get_node("Mode") as OptionButton
+	var character_input := fields.get_node("Character") as OptionButton
+	var apply := fields.get_node("Apply") as Button
+	if mode_input.item_count != 2 or character_input.item_count != 2:
+		_fail("menu options")
+		return
+	apply.pressed.emit()
+	if not menu.selection_snapshot().is_empty():
+		_fail("empty profile accepted")
+		return
+	profile_input.text = "Review Player"
+	mode_input.select(1)
+	character_input.select(1)
+	apply.pressed.emit()
+	var selection: Dictionary = menu.selection_snapshot()
+	if selection.get("mode") != "academy" or selection.get("character") != "maya" or not menu.active_snapshot().is_empty():
+		_fail("menu selection activated nonexistent world")
+		return
+	mode_input.select(0)
+	character_input.select(0)
+	apply.pressed.emit()
+	if menu.selection_snapshot().get("mode") != "living_world" or menu.selection_snapshot().get("character") != "adrian":
+		_fail("menu mode switching")
+		return
+	menu.queue_free()
 	state.deactivate()
 	if state.complete_mission("other", "academy"):
 		_fail("inactive completion")

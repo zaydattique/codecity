@@ -23,18 +23,52 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="VBox" type="VBoxContainer" parent="CanvasLayer/Center"]
-theme_override_constants/separation = 16
+custom_minimum_size = Vector2(540, 0)
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CanvasLayer/Center/VBox"]
 theme_override_font_sizes/font_size = 42
-text = "CODECITY: LIVING WORLD"
+text = "CODECITY"
 horizontal_alignment = 1
 
-[node name="Status" type="Label" parent="CanvasLayer/Center/VBox"]
-text = "Development foundation | No gameplay assets loaded"
+[node name="Subtitle" type="Label" parent="CanvasLayer/Center/VBox"]
+text = "Profile and mode selection"
 horizontal_alignment = 1
+
+[node name="ProfileName" type="LineEdit" parent="CanvasLayer/Center/VBox"]
+custom_minimum_size = Vector2(0, 44)
+placeholder_text = "Local profile name"
+max_length = 48
+
+[node name="ModeLabel" type="Label" parent="CanvasLayer/Center/VBox"]
+text = "Game mode"
+
+[node name="Mode" type="OptionButton" parent="CanvasLayer/Center/VBox"]
+custom_minimum_size = Vector2(0, 44)
+
+[node name="CharacterLabel" type="Label" parent="CanvasLayer/Center/VBox"]
+text = "Character"
+
+[node name="Character" type="OptionButton" parent="CanvasLayer/Center/VBox"]
+custom_minimum_size = Vector2(0, 44)
+
+[node name="Apply" type="Button" parent="CanvasLayer/Center/VBox"]
+custom_minimum_size = Vector2(0, 44)
+text = "Select profile"
+
+[node name="Status" type="Label" parent="CanvasLayer/Center/VBox"]
+text = "Development build. No playable world is installed."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Note" type="Label" parent="CanvasLayer/Center/VBox"]
+text = "Selections are temporary until save and world systems are connected."
+theme_override_colors/font_color = Color(0.61, 0.66, 0.71, 1)
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="Exit" type="Button" parent="CanvasLayer/Center/VBox"]
 text = "Exit"
 
+[connection signal="pressed" from="CanvasLayer/Center/VBox/Apply" to="." method="_on_apply_pressed"]
 [connection signal="pressed" from="CanvasLayer/Center/VBox/Exit" to="." method="_on_exit_pressed"]

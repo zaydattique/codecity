@@ -1,11 +1,23 @@
 extends Node3D
-## Development boot scene only. No art, player controller or gameplay claims.
+## Development profile/mode selection. No world launch until approved assets exist.
+const Sessions = preload("res://core/session_state.gd")
+var _sessions = Sessions.new()
+var _profile_counter: int = 0
+@onready var _menu: VBoxContainer = $CanvasLayer/Center/VBox
+@onready var _name: LineEdit = _menu.get_node("ProfileName")
+@onready var _mode: OptionButton = _menu.get_node("Mode")
+@onready var _character: OptionButton = _menu.get_node("Character")
+@onready var _status: Label = _menu.get_node("Status")
 
 func _ready() -> void:
+	_mode.add_item("Living World", 0)
+	_mode.add_item("CodeCity Academy", 1)
+	_character.add_item("Adrian Cole", 0)
+	_character.add_item("Maya Bennett", 1)
 	if "--smoke" in OS.get_cmdline_user_args():
 		call_deferred("_smoke")
 	else:
-		$CanvasLayer/Center/VBox/Exit.grab_focus()
+		_name.grab_focus()
 
 func _smoke() -> void:
 	var previous: int = WorldClock.tick
@@ -25,6 +37,31 @@ func _smoke() -> void:
 		return
 	print("CODECITY_FOUNDATION_SMOKE_OK")
 	get_tree().quit(0)
+
+func _on_apply_pressed() -> void:
+	# A single temporary profile per distinct name, bounded by existing state limits.
+	var display_name := _name.text.strip_edges()
+	if display_name.is_empty():
+		_status.text = "Enter a profile name."
+		return
+	var current := _sessions.draft_selection()
+	var id: String = current.get("profile_id", "")
+	if id.is_empty() or _sessions.snapshot(id).get("name", "") != display_name:
+		_profile_counter += 1
+		id = "local_%d" % _profile_counter
+		if not _sessions.create_profile(id, display_name):
+			_status.text = "Profile name or session limit is invalid."
+			return
+	if not _sessions.select_draft(id, Sessions.MODES[_mode.selected], Sessions.CHARACTERS[_character.selected]):
+		_status.text = "Invalid selection."
+		return
+	_status.text = "Selected: %s / %s. World not installed." % [_mode.get_item_text(_mode.selected), _character.get_item_text(_character.selected)]
+
+func selection_snapshot() -> Dictionary:
+	return _sessions.draft_selection()
+
+func active_snapshot() -> Dictionary:
+	return _sessions.active_selection()
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
