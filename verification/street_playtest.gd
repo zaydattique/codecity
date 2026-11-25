@@ -1,6 +1,7 @@
 extends SceneTree
 const Harbor = preload("res://scenes/harbor_playtest.gd")
 const Layout = preload("res://core/harbor_layout.gd")
+const City = preload("res://core/city_layout.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -223,8 +224,74 @@ func _verify() -> void:
 	if not other.player.is_on_floor() or not is_equal_approx(other.player.height_m,1.69) or (require_motion and not other.player.motion_installed):
 		_fail("second protagonist spawn")
 		return
-	print("CODECITY_STREET_PLAYTEST_OK walking jump wall map pause both protagonists")
 	other.queue_free()
+	await process_frame
+	# Validate the actual city plan, not a decorative map.
+	var styles: Dictionary={}
+	var towers:=0
+	var buildings:=0
+	for x: int in range(-City.RADIUS,City.RADIUS+1):
+		for z: int in range(-City.RADIUS,City.RADIUS+1):
+			for item: Dictionary in City.parcels(Vector2i(x,z)):
+				var rect: Rect2=item["rect"]
+				if not City.BOUNDS.encloses(rect) or City.walkable(rect.get_center()):
+					_fail("city parcel or waypoint mismatch")
+					return
+				styles[item["style"]]=true
+				towers+=int(item["tower"])
+				buildings+=1
+	if styles.size()!=50 or towers!=10 or buildings<50 or City.EXTENT!=1200.0:
+		_fail("city layout counts")
+		return
+	var city=Harbor.new()
+	if not city.prepare("adrian",false,false,true):
+		_fail("city preparation")
+		return
+	root.add_child(city)
+	await ticks(25)
+	if not city.city_enabled or not is_instance_valid(city.city_stream) or city.city_stream._chunks.size()!=9 or city.city_stream.built_parcels<4:
+		_fail("actual city chunk assembly")
+		return
+	var walker: CharacterBody3D=city.player
+	walker.auto_camera=false
+	walker.yaw=0
+	walker.global_position=Vector3(0,0.04,14.0)
+	walker.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_back")
+	await ticks(465)
+	Input.action_release("move_back")
+	await ticks(20)
+	if walker.position.z<43 or not walker.is_on_floor() or not city.city_stream._chunks.has(Vector2i(0,1)) or city.city_stream._chunks.size()>9:
+		_fail("continuous city traversal: %s"%walker.position)
+		return
+	# Actual generated parcel collision and floor at a neighboring city block.
+	var target: Dictionary=City.parcels(Vector2i(1,1))[0] if not City.PARK_CELLS.has(Vector2i(1,1)) else City.parcels(Vector2i(1,0))[0]
+	var parcel: Rect2=target["rect"]
+	var center:=parcel.get_center()
+	walker.global_position=Vector3(parcel.position.x-2,0.04,center.y)
+	walker.velocity=Vector3.ZERO
+	await ticks(25)
+	Input.action_press("move_right")
+	await ticks(80)
+	Input.action_release("move_right")
+	await ticks(15)
+	if walker.position.x>parcel.position.x-0.15 or not walker.is_on_floor():
+		_fail("generated building actual collision")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_buildings.png")!=OK:
+			_fail("city building capture")
+			return
+		city._toggle_map()
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_full_map.png")!=OK:
+			_fail("city full map capture")
+			return
+	print("CODECITY_CITY_LAYOUT_OK extent=1200 styles=",styles.size()," towers=",towers," parcels=",buildings)
+	print("CODECITY_STREET_PLAYTEST_OK walking jump wall map pause both protagonists and city traversal")
+	city.queue_free()
 	quit(0)
 
 func _fail(message: String) -> void:
