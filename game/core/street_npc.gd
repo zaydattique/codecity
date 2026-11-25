@@ -215,6 +215,7 @@ func _tick_body(delta: float) -> void:
 	if _dead_elapsed>=death_length+2.5 and _fade_materials.is_empty() and _art.visible:
 		for node: Node in _art.find_children("*","MeshInstance3D",true,false):
 			var mesh:=node as MeshInstance3D
+			if mesh.mesh==null:continue
 			for i: int in range(mesh.mesh.get_surface_count()):
 				var active:=mesh.get_active_material(i)
 				if not active is StandardMaterial3D:continue
