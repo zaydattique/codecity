@@ -16,3 +16,5 @@ Phase 01: inspect exact repo base and visibility; confirm owner-approved public 
 | Performance | scenarios from PERFORMANCE | measured target and percentile report; no expansion without review |
 
 Use seeded fixtures, record exact reproduction, expected/actual, revision, logs and capture, prioritize crashes/data loss, gameplay blockers, visual/performance regressions. Re-run the failing test and full affected suite after root-cause fixes. No hidden overrides. Record owner approval for visual gate and build. No benchmark or screenshot may substitute for a playtest.
+
+Hosted Windows smoke and exact reviewed bench GLB import are separate checks. The bench import uses run 45585769664 artifact before expiry; verify SHA-256 and stage only in an isolated copy of game. Collision, interaction and Windows interactive tests remain separate gates.
