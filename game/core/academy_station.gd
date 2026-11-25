@@ -18,7 +18,7 @@ func setup(hud: CanvasLayer) -> void:
 	_bridge.finished.connect(_apply)
 	for z: float in [-10.0,10.0]:
 		var lamp := SpotLight3D.new()
-		lamp.position=Vector3(5.15,3.4,z)
+		lamp.position=Vector3(5.15,3.4,z)-global_position
 		lamp.rotation_degrees=Vector3(-90,0,0)
 		lamp.light_color=Color(1,0.80,0.48)
 		lamp.light_energy=4.5

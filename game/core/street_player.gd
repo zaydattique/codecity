@@ -11,6 +11,11 @@ var height_m := 1.81
 var yaw := 0.0
 var pitch := -0.18
 var sensitivity := 0.0025
+var auto_camera := true
+var invert_y := false
+var _move_reference_yaw := 0.0
+var _last_input := Vector2.ZERO
+var _manual_camera_until := 0
 var controls_enabled := true
 var first_person := false
 var _capsule: CapsuleShape3D
@@ -66,6 +71,8 @@ func configure(model: PackedScene, height: float) -> bool:
 func _ready() -> void:
 	if _camera != null:
 		_camera.current = true
+		apply_camera_settings()
+		GameSettings.changed.connect(apply_camera_settings)
 		_update_camera(1.0)
 		if motion_installed:
 			_animation.play("idle")
@@ -74,16 +81,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not controls_enabled:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		yaw = wrapf(yaw - event.relative.x * sensitivity, -PI, PI)
-		pitch = clampf(pitch + event.relative.y * sensitivity, -1.1, 0.5)
+		look_delta(event.relative)
 	elif event.is_action_pressed("camera_view"):
 		first_person = not first_person
+
+func apply_camera_settings() -> void:
+	auto_camera=GameSettings.auto_camera
+	invert_y=GameSettings.invert_y
+	sensitivity=GameSettings.sensitivity
+	_camera.fov=GameSettings.fov
+
+func look_delta(relative: Vector2) -> void:
+	yaw=wrapf(yaw-relative.x*sensitivity,-PI,PI)
+	pitch=clampf(pitch-relative.y*sensitivity*(-1.0 if invert_y else 1.0),-1.1,0.5)
+	_move_reference_yaw=yaw
+	_manual_camera_until=Time.get_ticks_msec()+1100
 
 func _physics_process(delta: float) -> void:
 	if _camera == null or not controls_enabled:
 		return
 	var input := Input.get_vector("move_left","move_right","move_forward","move_back")
-	var direction := (Basis(Vector3.UP,yaw) * Vector3(input.x,0,input.y))
+	# Freeze the reference during a held directional input so automatic follow
+	# cannot cause endless circular walking. Mouse input can reset this basis.
+	if not input.is_equal_approx(_last_input) or first_person or not auto_camera:
+		_move_reference_yaw=yaw
+	_last_input=input
+	var direction := Basis(Vector3.UP,_move_reference_yaw)*Vector3(input.x,0,input.y)
 	var speed := RUN
 	if Input.is_action_pressed("walk"):
 		speed = WALK
@@ -107,6 +130,9 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.01:
 		var target_yaw := atan2(direction.x,direction.z)
 		_visual.rotation.y = lerp_angle(_visual.rotation.y,target_yaw,Orbit.follow_weight(12.0,delta))
+		if auto_camera and not first_person and Time.get_ticks_msec()>=_manual_camera_until:
+			var behind := atan2(-direction.x,-direction.z)
+			yaw=lerp_angle(yaw,behind,Orbit.follow_weight(5.0,delta))
 	_update_camera(delta)
 	_update_motion()
 
@@ -190,7 +216,7 @@ func _update_camera(delta: float) -> void:
 	if first_person:
 		_visual.visible=false
 		_camera.global_position=focus
-		_camera.look_at(focus-Basis(Vector3.UP,yaw)*Vector3(0,sin(pitch),cos(pitch)))
+		_camera.look_at(focus+Basis(Vector3.UP,yaw)*Vector3(0,sin(pitch),-cos(pitch)))
 		return
 	_visual.visible=true
 	var ray := PhysicsRayQueryParameters3D.create(focus,ideal,5,[get_rid()])
@@ -210,6 +236,7 @@ func _update_camera(delta: float) -> void:
 func stop_controls() -> void:
 	controls_enabled=false
 	velocity=Vector3.ZERO
+	_last_input=Vector2.ZERO
 	if motion_installed:
 		_animation.play("idle",0.15)
 

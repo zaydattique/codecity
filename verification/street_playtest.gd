@@ -27,6 +27,13 @@ func _verify() -> void:
 	if require_motion and (not actor.motion_installed or actor.motion_clip()!="idle"):
 		_fail("licensed idle clip missing; installed=%s clip=%s"%[actor.motion_installed,actor.motion_clip()])
 		return
+	# Keep legacy cardinal collision fixture deterministic; separately exercise auto-follow below.
+	actor.auto_camera=false
+	actor.look_delta(Vector2(0,-30))
+	if actor.pitch<=-0.18:
+		_fail("vertical mouse look inverted")
+		return
+	actor.pitch=-0.18
 	var start: Vector3=actor.position
 	Input.action_press("move_forward")
 	await ticks(45)
@@ -79,6 +86,16 @@ func _verify() -> void:
 	if actor.position.x < -5.78 or actor.position.x > -5.4:
 		_fail("building wall collision")
 		return
+	actor.auto_camera=true
+	actor._manual_camera_until=0
+	actor.yaw=0.0
+	Input.action_press("move_left")
+	await ticks(45)
+	Input.action_release("move_left")
+	if absf(angle_difference(actor.yaw,PI/2.0))>0.18:
+		_fail("automatic camera did not follow behind heading")
+		return
+	actor.auto_camera=false
 	# Aim camera toward the real closed exterior and check the obstruction.
 	actor.yaw=-PI/2.0
 	await ticks(20)

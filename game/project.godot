@@ -8,11 +8,13 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 [autoload]
 WorldClock="*res://core/world_clock.gd"
 EventBus="*res://core/event_bus.gd"
+GameSettings="*res://core/game_settings.gd"
 
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
 
 [input]
 
@@ -91,6 +93,11 @@ vehicle_toggle={
 vehicle_lights={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":76)]
+}
+
+menu_cursor={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194306)]
 }
 
 [rendering]

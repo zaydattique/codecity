@@ -7,6 +7,9 @@ const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
 const Interaction = preload("res://core/world_interaction.gd")
 const Academy = preload("res://core/academy_station.gd")
+const PauseSettings = preload("res://core/pause_settings.gd")
+var _cursor_unlocked := false
+var _pause_button: Button
 signal academy_completed
 var academy_mode := false
 var station: Node3D
@@ -144,42 +147,52 @@ func _make_hud() -> void:
 	add_child(_hud)
 	_map=Map.new()
 	_map.actor=player
-	_map.position=Vector2(20,20)
-	_map.size=Vector2(200,220)
+	_map.academy=academy_mode
+	_map.position=Vector2(20,480)
+	_map.size=Vector2(224,220)
 	_map.clip_contents=true
 	_hud.add_child(_map)
 	_status=Label.new()
-	_status.position=Vector2(20,252)
+	_status.position=Vector2(20,20)
 	_update_actor_hud()
 	_hud.add_child(_status)
 	_vehicle_hint=Label.new()
-	_vehicle_hint.position=Vector2(20,355)
+	_vehicle_hint.position=Vector2(20,435)
 	_hud.add_child(_vehicle_hint)
 	_vehicle_hint.visible=vehicle!=null
+	_pause_button=Button.new()
+	_pause_button.text="II   Pause"
+	_pause_button.position=Vector2(1130,20)
+	_pause_button.custom_minimum_size=Vector2(130,42)
+	_pause_button.pressed.connect(func(): _set_pause(true))
+	_hud.add_child(_pause_button)
 	_pause_panel=PanelContainer.new()
-	_pause_panel.position=Vector2(470,240)
-	_pause_panel.custom_minimum_size=Vector2(340,0)
-	var menu := VBoxContainer.new()
-	var title := Label.new()
-	title.text="Paused"
-	menu.add_child(title)
-	var resume := Button.new()
-	resume.text="Resume"
-	resume.pressed.connect(func(): _set_pause(false))
-	menu.add_child(resume)
-	var back := Button.new()
-	back.text="Return to profiles"
-	back.pressed.connect(func(): leave_requested.emit())
-	menu.add_child(back)
+	_pause_panel.position=Vector2(315,30)
+	_pause_panel.custom_minimum_size=Vector2(650,0)
+	var menu := PauseSettings.new()
+	menu.resume_requested.connect(func(): _set_pause(false))
+	menu.leave_requested.connect(func(): leave_requested.emit())
 	_pause_panel.add_child(menu)
 	_hud.add_child(_pause_panel)
 	_pause_panel.hide()
+	GameSettings.changed.connect(_refresh_hints)
+	_refresh_hints()
+
+func _refresh_hints() -> void:
+	_status.visible=GameSettings.show_hints and not _paused and not _editor_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_world:
 		return
 	if _editor_open:
-		if event.is_action_pressed("pause_game"):station.close_editor()
+		if event.is_action_pressed("menu_cursor") and not _paused and not _map.expanded:
+		_cursor_unlocked=not _cursor_unlocked
+		player.stop_controls()
+		_sync_controls()
+		Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if _cursor_unlocked else Input.MOUSE_MODE_CAPTURED
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("pause_game"):station.close_editor()
 		return
 	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and Interaction.within_range(player,station,2.5):
 		station.open_editor()
@@ -203,9 +216,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _toggle_map() -> void:
 	_map.toggle_full()
-	_map.position=Vector2(260,65) if _map.expanded else Vector2(20,20)
-	_map.size=Vector2(760,580) if _map.expanded else Vector2(200,220)
-	_status.visible=not _map.expanded
+	_map.position=Vector2(160,55) if _map.expanded else Vector2(20,480)
+	_map.size=Vector2(960,610) if _map.expanded else Vector2(224,220)
+	_refresh_hints()
+	_pause_button.visible=not _map.expanded
 	player.stop_controls()
 	_sync_controls()
 	_vehicle_hint.visible=vehicle!=null and not _map.expanded
@@ -213,10 +227,13 @@ func _toggle_map() -> void:
 
 func _set_pause(value: bool) -> void:
 	_paused=value
+	_cursor_unlocked=false
 	get_tree().paused=value
 	player.stop_controls()
 	_sync_controls()
 	_pause_panel.visible=value
+	_pause_button.visible=not value
+	_refresh_hints()
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 func _exit_tree() -> void:
@@ -226,17 +243,19 @@ func _exit_tree() -> void:
 
 func _process(_delta: float) -> void:
 	if not _ready_world:return
+	if _paused:return
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
 		_vehicle_hint.text="E  Lighting control" if Interaction.within_range(player,station,2.5) else "Restore street lighting | Walk to the Academy cabinet"
 		return
 	if vehicle==null or not vehicle.built:return
 	if _driving:
-		_vehicle_hint.text="Coupe | %.0f km/h\nW/S accelerate or reverse | A/D steer\nSpace brake | L lights | F exit when stopped"%vehicle.speed_kmh()
+		_vehicle_hint.text="%.0f km/h"%vehicle.speed_kmh()
+		_vehicle_hint.visible=not _map.expanded
 	elif player.global_position.distance_to(vehicle.entry_point())<=2.1:
 		_vehicle_hint.text="F  Enter coupe" if vehicle.stopped() else "Wait until the coupe stops."
 	else:
-		_vehicle_hint.text="Approach the parked coupe to drive."
+		_vehicle_hint.text=""
 
 func _update_actor_hud() -> void:
 	if _status==null:
@@ -249,7 +268,7 @@ func _update_actor_hud() -> void:
 
 func _sync_controls() -> void:
 	_update_actor_hud()
-	var enabled: bool=not _paused and not _map.expanded and not _editor_open
+	var enabled: bool=not _paused and not _map.expanded and not _editor_open and not _cursor_unlocked
 	player.controls_enabled=enabled and not _driving
 	if vehicle!=null:
 		vehicle.input_enabled=enabled and _driving
@@ -307,6 +326,7 @@ func _academy_editor(value: bool) -> void:
 	player.stop_controls()
 	_sync_controls()
 	_map.visible=not value
-	_status.visible=not value
+	_refresh_hints()
+	_pause_button.visible=not value
 	_vehicle_hint.visible=not value
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
