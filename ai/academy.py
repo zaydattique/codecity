@@ -182,7 +182,7 @@ class Interpreter:
             if isinstance(n,ast.Call) and (not isinstance(n.func,ast.Name) or n.func.id not in ("print","set_lamp","range") or n.keywords):
                 raise LessonError("Only print(), range() and set_lamp() are available.")
         try:self.block(tree.body)
-        except (ArithmeticError,RecursionError) as e:raise LessonError(str(e)[:120]) from None
+        except (ArithmeticError,ValueError,RecursionError) as e:raise LessonError(str(e)[:120]) from None
         return {"ok":True,"output":"\n".join(self.output),"commands":self.commands,
                 "completed":all(self.lamps) and bool(self.output),"steps":self.steps,
                 "concepts":sorted(self.concepts)}
