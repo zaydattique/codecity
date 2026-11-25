@@ -144,11 +144,11 @@ jobs:
           Remove-Item Env:CODECITY_NPC_SCRIPT -ErrorAction SilentlyContinue
           Remove-Item Env:CODECITY_PYTHON -ErrorAction SilentlyContinue
           $exe=(Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
-          $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-demo.log"
-          $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--demo-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
+          $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-integrated.log"
+          $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--integrated-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
           if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Packaged crowd timeout" }
-          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_DEMO_OK)) { throw "Packaged crowd or story failed" }
-          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged demo errors" }
+          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_INTEGRATED_OK)) { throw "Packaged crowd or story failed" }
+          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged integrated game errors" }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.output_artifact }}
