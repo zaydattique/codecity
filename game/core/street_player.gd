@@ -1,4 +1,5 @@
 extends CharacterBody3D
+@onready var _prefs: Node = get_node("/root/GameSettings")
 ## Physics/controller test with actual candidate rig. No licensed motion installed yet.
 const Orbit = preload("res://core/camera_orbit.gd")
 const WALK := 2.0
@@ -72,7 +73,7 @@ func _ready() -> void:
 	if _camera != null:
 		_camera.current = true
 		apply_camera_settings()
-		GameSettings.changed.connect(apply_camera_settings)
+		_prefs.changed.connect(apply_camera_settings)
 		_update_camera(1.0)
 		if motion_installed:
 			_animation.play("idle")
@@ -86,10 +87,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		first_person = not first_person
 
 func apply_camera_settings() -> void:
-	auto_camera=GameSettings.auto_camera
-	invert_y=GameSettings.invert_y
-	sensitivity=GameSettings.sensitivity
-	_camera.fov=GameSettings.fov
+	auto_camera=_prefs.auto_camera
+	invert_y=_prefs.invert_y
+	sensitivity=_prefs.sensitivity
+	_camera.fov=_prefs.fov
 
 func look_delta(relative: Vector2) -> void:
 	yaw=wrapf(yaw-relative.x*sensitivity,-PI,PI)

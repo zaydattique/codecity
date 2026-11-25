@@ -34,7 +34,7 @@ func submit(source: String) -> bool:
 		return false
 	file.store_string(JSON.stringify({"id":_id,"version":1,"source":source}))
 	file.close()
-	_pid=OS.create_process(command[0],PackedStringArray([command[1],_request,_reply]),false)
+	_pid=OS.create_process(command[0],PackedStringArray(["-I","-S",command[1],_request,_reply]),false)
 	if _pid<=0:
 		_cleanup()
 		return false

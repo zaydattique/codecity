@@ -1,4 +1,5 @@
 extends Node3D
+@onready var _prefs: Node = get_node("/root/GameSettings")
 ## Explicit candidate playtest; no finished animations, interiors or missions claimed.
 signal leave_requested
 const Layout = preload("res://core/harbor_layout.gd")
@@ -175,11 +176,11 @@ func _make_hud() -> void:
 	_pause_panel.add_child(menu)
 	_hud.add_child(_pause_panel)
 	_pause_panel.hide()
-	GameSettings.changed.connect(_refresh_hints)
+	_prefs.changed.connect(_refresh_hints)
 	_refresh_hints()
 
 func _refresh_hints() -> void:
-	_status.visible=GameSettings.show_hints and not _paused and not _editor_open and not _map.expanded
+	_status.visible=_prefs.show_hints and not _paused and not _editor_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_world:return
