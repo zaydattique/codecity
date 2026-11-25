@@ -24,7 +24,7 @@ func toggle_full() -> void:
 	queue_redraw()
 
 func _scale_factor() -> float:
-	return minf((size.x-48.0)/32.0,(size.y-72.0)/34.0)*zoom if expanded else 9.0
+	return minf((size.x-48.0)/Layout.MAP_EXTENT,(size.y-72.0)/Layout.MAP_EXTENT)*zoom if expanded else 9.0
 
 func _screen(p: Vector2) -> Vector2:
 	var center := Vector2.ZERO if expanded or not is_instance_valid(actor) else Layout.map_position(actor.global_position)
@@ -43,7 +43,7 @@ func _gui_input(event: InputEvent) -> void:
 			zoom=clampf(zoom/1.15,1.0,3.0)
 		elif event.button_index==MOUSE_BUTTON_LEFT:
 			var p: Vector2=(event.position-size*0.5-Vector2(0,8)-pan)/_scale_factor()
-			if Layout.STREET.has_point(p):
+			if Layout.walkable(p):
 				waypoint=p
 		elif event.button_index==MOUSE_BUTTON_RIGHT:
 			waypoint=Vector2.INF
@@ -58,8 +58,8 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO,size),Color(0.035,0.055,0.075,0.97))
 	# All shapes use the real playable extent; no invented city districts.
 	if aerial!=null:
-		draw_texture_rect(aerial,_map_rect(Rect2(-18,-18,36,36)),false,Color(0.74,0.82,0.86))
-	draw_rect(_map_rect(Layout.STREET),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
+		draw_texture_rect(aerial,_map_rect(Rect2(-Layout.MAP_EXTENT*0.5,-Layout.MAP_EXTENT*0.5,Layout.MAP_EXTENT,Layout.MAP_EXTENT)),false,Color(0.74,0.82,0.86))
+	draw_rect(_map_rect(Layout.BLOCK),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
 	draw_rect(_map_rect(Layout.ROAD),Color(0.10,0.14,0.18,0.26 if aerial!=null else 1.0))
 	for x: float in [-3.4,3.4]:
 		draw_line(_screen(Vector2(x,-16)),_screen(Vector2(x,16)),Color(0.53,0.60,0.61),1.4,true)
@@ -70,7 +70,7 @@ func _draw() -> void:
 			draw_line(_screen(Vector2(r.position.x,y)),_screen(Vector2(r.end.x,y)),Color(0.27,0.34,0.37),1)
 	for y: int in range(-15,16,3):
 		draw_line(_screen(Vector2(0,y)),_screen(Vector2(0,y+1.4)),Color(0.55,0.61,0.63),1.5,true)
-	draw_rect(_map_rect(Layout.STREET),Color(0.40,0.53,0.56),false,1.2)
+	draw_rect(_map_rect(Layout.BLOCK),Color(0.40,0.53,0.56),false,1.2)
 	if academy:
 		var pos := _screen(Vector2(-5.25,5))
 		draw_circle(pos,6,Color(0.97,0.71,0.34))
@@ -96,7 +96,7 @@ func _draw() -> void:
 	draw_string(font,Vector2(12,size.y-9),"M  Close  |  Scroll to zoom  |  Click to mark" if expanded else "M  Expand map",HORIZONTAL_ALIGNMENT_LEFT,-1,12,ink)
 	if expanded:
 		draw_string(font,Vector2(24,65),"Current district",HORIZONTAL_ALIGNMENT_LEFT,-1,18,ink)
-		draw_string(font,Vector2(24,86),"32 m playable street",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
+		draw_string(font,Vector2(24,86),"40 x 36 m Harbor block",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,65),"MAP LEGEND",HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
 		draw_string(font,Vector2(size.x-210,88),"Cyan  /  Player or vehicle",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,109),"Grey  /  Closed buildings",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
