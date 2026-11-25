@@ -6,7 +6,7 @@ def acquire(out):
     meta=json.loads(get("https://api.polyhaven.com/files/dirt_floor",2*1024*1024))
     maps={}; hashes={}
     for kind in ("diff","nor_gl","rough"):
-        variants=meta[kind]["1k"]
+        variants=meta[{"diff":"Diffuse","nor_gl":"nor_gl","rough":"Rough"}[kind]]["1k"]
         record=variants.get("jpg") or variants.get("png")
         if not record or not 0<record["size"]<=16*1024*1024:
             raise ValueError("Missing or excessive soil map: "+kind)

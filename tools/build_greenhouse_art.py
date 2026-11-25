@@ -4,7 +4,6 @@ import math
 import random
 import json
 import os
-import sys
 
 from pathlib import Path
 from mathutils import Vector
@@ -180,8 +179,6 @@ area("Rim",(.0,.65,.8),190,.5,(1,.94,.78),(0,0,.1))
 bpy.ops.object.camera_add(location=(.40,-1.05,.27));cam=bpy.context.object
 aim(cam,(0,0,.075));cam.data.lens=55;scene.camera=cam
 # Native preview mesh cache: evaluated Blender geometry, no frame images.
-import sys
-sys.path.insert(0,str(Path(__file__).resolve().parent))
 from runtime_mesh_export import export_runtime
 export_runtime(scene, OUT / "runtime", soil_maps)
 if os.environ.get("CODECITY_RUNTIME_ONLY") == "1":

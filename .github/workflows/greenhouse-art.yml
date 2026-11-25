@@ -1,7 +1,7 @@
 name: Greenhouse art candidate
 on:
   pull_request:
-    paths: ['tools/build_greenhouse_art.py', 'tools/fetch_greenhouse_sources.py', 'tools/polyhaven.py', '.github/workflows/greenhouse-art.yml']
+    paths: ['tools/build_greenhouse_art.py', 'tools/greenhouse_soil.py', 'tools/runtime_mesh_export.py', 'tools/fetch_greenhouse_sources.py', 'tools/polyhaven.py', '.github/workflows/greenhouse-art.yml']
   workflow_dispatch:
 permissions:
   contents: read
