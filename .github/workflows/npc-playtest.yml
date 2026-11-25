@@ -87,6 +87,10 @@ jobs:
           echo "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  $RUNNER_TEMP/godot.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
           chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+      - name: Python curriculum unit checks
+        run: |
+          python -m pip install pytest==9.0.2
+          python -m pytest -q tests/test_academy.py
       - name: Actual six-actor Python runtime regression
         env:
           CODECITY_NPC_SCRIPT: ${{ github.workspace }}/ai/worker.py
@@ -121,18 +125,18 @@ jobs:
           path: build/evidence/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Stage integrated university demo for Windows candidate QA
+      - name: Stage integrated game for Windows candidate QA
         run: |
           set -euo pipefail
-          mkdir -p build/demo-package
-          cp -a build/previous/distribution build/demo-package/distribution
-          cp ai/{academy,worker,npc_brain}.py build/demo-package/distribution/
-          cp THIRD_PARTY_NOTICES.md build/demo-package/distribution/
+          mkdir -p build/integrated-package
+          cp -a build/previous/distribution build/integrated-package/distribution
+          cp ai/{academy,worker,npc_brain}.py build/integrated-package/distribution/
+          cp THIRD_PARTY_NOTICES.md build/integrated-package/distribution/
           cp verification/candidate_export_presets.cfg build/npc-game/export_presets.cfg
-          mv build/npc-game build/demo-package/game
-          cat > build/demo-package/distribution/README.txt <<'EOF'
-          CodeCity integrated university demo candidate, not a production release.
-          Keep EXE, PCK, python directory, academy.py, worker.py and npc_brain.py together.
+          mv build/npc-game build/integrated-package/game
+          cat > build/integrated-package/distribution/README.txt <<'EOF'
+          CODECITY | Living World and Academy
+          Launch CodeCity.exe. Keep the EXE, PCK, python directory and all Python modules together.
           Academy: approach the lighting cabinet, E, select an exercise, write and run Python.
           Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
           WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
@@ -140,18 +144,18 @@ jobs:
           Mixed Godot/GDScript and Python; restricted teaching interpreter, not full Python.
           No final art approval, durable save, interior or hardware performance guarantee.
           EOF
-          tar --exclude=.godot --exclude='*.import' -czf build/demo-package/tested-project.tar.gz -C build/demo-package game distribution
+          tar --exclude=.godot --exclude='*.import' -czf build/integrated-package/tested-project.tar.gz -C build/integrated-package game distribution
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: tested-integrated-demo-project
-          path: build/demo-package/tested-project.tar.gz
+          name: tested-integrated-game-project
+          path: build/integrated-package/tested-project.tar.gz
           if-no-files-found: error
           retention-days: 7
   windows-export:
     needs: verify
     uses: ./.github/workflows/candidate-windows-export.yml
     with:
-      project_artifact: tested-integrated-demo-project
-      suite: demo
-      exe: CodeCity_Academy_Demo.exe
-      output_artifact: CodeCity-Windows-Integrated-Demo-Candidate
+      project_artifact: tested-integrated-game-project
+      suite: integrated
+      exe: CodeCity.exe
+      output_artifact: CodeCity-Windows

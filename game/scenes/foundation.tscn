@@ -27,12 +27,12 @@ custom_minimum_size = Vector2(540, 0)
 theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CanvasLayer/Center/VBox"]
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 56
 text = "CODECITY"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CanvasLayer/Center/VBox"]
-text = "Profile and mode selection"
+text = "HARBOR BOULEVARD  /  CHOOSE YOUR WORLD"
 horizontal_alignment = 1
 
 [node name="ProfileName" type="LineEdit" parent="CanvasLayer/Center/VBox"]
@@ -57,12 +57,12 @@ custom_minimum_size = Vector2(0, 44)
 text = "Select profile"
 
 [node name="Status" type="Label" parent="CanvasLayer/Center/VBox"]
-text = "Development build. No playable world is installed."
+text = "Choose a profile, mode and character."
 horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="Note" type="Label" parent="CanvasLayer/Center/VBox"]
-text = "Selections are temporary until save and world systems are connected."
+text = "Progress is stored locally for each profile."
 theme_override_colors/font_color = Color(0.61, 0.66, 0.71, 1)
 horizontal_alignment = 1
 autowrap_mode = 2

@@ -57,11 +57,11 @@ jobs:
             }
           } finally { $archive.Dispose() }
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        if: inputs.suite == 'academy' || inputs.suite == 'demo'
+        if: inputs.suite == 'academy' || inputs.suite == 'integrated'
         with:
           python-version: '3.14.10'
       - name: Bundle standalone Python runtime and verify it
-        if: inputs.suite == 'academy' || inputs.suite == 'demo'
+        if: inputs.suite == 'academy' || inputs.suite == 'integrated'
         run: |
           $ErrorActionPreference = 'Stop'
           # Copy the pinned CPython interpreter, standard library and native
@@ -90,22 +90,22 @@ jobs:
           if (!$godot) { throw "Missing editor console" }
           & $godot.FullName --headless --path build/game --editor --import 2>&1 | Tee-Object build/windows-logs/import.log
           if ($LASTEXITCODE -ne 0) { throw "Windows import failed" }
-          if ($env:CANDIDATE_SUITE -notin @("street","vehicle","academy","demo")) { throw "Unknown verification suite" }
-          if ($env:CANDIDATE_EXE -notin @("CodeCity_Street_Test.exe","CodeCity_Driving_Test.exe","CodeCity_Academy_Demo.exe")) { throw "Unknown candidate executable name" }
+          if ($env:CANDIDATE_SUITE -notin @("street","vehicle","academy","integrated")) { throw "Unknown verification suite" }
+          if ($env:CANDIDATE_EXE -notin @("CodeCity_Street_Test.exe","CodeCity_Driving_Test.exe","CodeCity_Academy_Demo.exe","CodeCity.exe")) { throw "Unknown candidate executable name" }
           & $godot.FullName --headless --path build/game --script res://_qa/street_playtest.gd -- --motion 2>&1 | Tee-Object build/windows-logs/physics.log
           if ($LASTEXITCODE -ne 0) { throw "Windows candidate physics failed" }
           if (!(Select-String -Path build/windows-logs/physics.log -SimpleMatch CODECITY_STREET_PLAYTEST_OK)) { throw "Physics marker absent" }
-          if ($env:CANDIDATE_SUITE -in @("vehicle","academy","demo")) {
+          if ($env:CANDIDATE_SUITE -in @("vehicle","academy","integrated")) {
             & $godot.FullName --headless --path build/game --script res://_qa/vehicle_playtest.gd 2>&1 | Tee-Object build/windows-logs/vehicle.log
             if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/vehicle.log -SimpleMatch CODECITY_VEHICLE_PLAYTEST_OK)) { throw "Native Windows vehicle check failed" }
           }
-          if ($env:CANDIDATE_SUITE -in @("academy","demo")) {
+          if ($env:CANDIDATE_SUITE -in @("academy","integrated")) {
             $env:CODECITY_ACADEMY_SCRIPT=(Resolve-Path build/distribution/academy.py).Path
             $env:CODECITY_PYTHON=(Resolve-Path build/distribution/python/python.exe).Path
             & $godot.FullName --headless --path build/game --script res://_qa/academy_playtest.gd 2>&1 | Tee-Object build/windows-logs/academy.log
             if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/academy.log -SimpleMatch CODECITY_ACADEMY_PLAYTEST_OK)) { throw "Native Windows Python lesson failed" }
           }
-          if ($env:CANDIDATE_SUITE -eq "demo") {
+          if ($env:CANDIDATE_SUITE -eq "integrated") {
             $env:CODECITY_NPC_SCRIPT=(Resolve-Path build/distribution/worker.py).Path
             & $godot.FullName --headless --path build/game --script res://_qa/npc_playtest.gd 2>&1 | Tee-Object build/windows-logs/npc.log
             if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/npc.log -SimpleMatch CODECITY_NPC_PLAYTEST_OK)) { throw "Native Windows NPC and story check failed" }
@@ -119,36 +119,36 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $exe = (Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
           $log = Join-Path (Resolve-Path build/windows-logs).Path "exported-boot.log"
-          $smoke = if ($env:CANDIDATE_SUITE -in @("vehicle","academy","demo")) { "--vehicle-smoke" } else { "--smoke" }
-          $marker = if ($env:CANDIDATE_SUITE -in @("vehicle","academy","demo")) { "CODECITY_EXPORTED_VEHICLE_OK" } else { "CODECITY_FOUNDATION_SMOKE_OK" }
+          $smoke = if ($env:CANDIDATE_SUITE -in @("vehicle","academy","integrated")) { "--vehicle-smoke" } else { "--smoke" }
+          $marker = if ($env:CANDIDATE_SUITE -in @("vehicle","academy","integrated")) { "CODECITY_EXPORTED_VEHICLE_OK" } else { "CODECITY_FOUNDATION_SMOKE_OK" }
           $p = Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--quit-after","360","--",$smoke) -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
           if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Exported game boot timeout" }
           if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch $marker)) { throw "Exported game failed" }
           if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Exported game errors" }
       - name: Standalone bundled Python mission smoke
-        if: inputs.suite == 'academy' || inputs.suite == 'demo'
+        if: inputs.suite == 'academy' || inputs.suite == 'integrated'
         run: |
           $ErrorActionPreference = 'Stop'
           Remove-Item Env:CODECITY_ACADEMY_SCRIPT -ErrorAction SilentlyContinue
           Remove-Item Env:CODECITY_PYTHON -ErrorAction SilentlyContinue
-          $exe=(Resolve-Path build/distribution/CodeCity_Academy_Demo.exe).Path
+          $exe=(Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
           $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-academy.log"
           $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--academy-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
           if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Packaged Academy timeout" }
           if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_ACADEMY_OK)) { throw "Packaged Python lesson failed" }
           if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged Academy errors" }
       - name: Standalone integrated crowd and story availability smoke
-        if: inputs.suite == 'demo'
+        if: inputs.suite == 'integrated'
         run: |
           $ErrorActionPreference = 'Stop'
           Remove-Item Env:CODECITY_NPC_SCRIPT -ErrorAction SilentlyContinue
           Remove-Item Env:CODECITY_PYTHON -ErrorAction SilentlyContinue
-          $exe=(Resolve-Path build/distribution/CodeCity_Academy_Demo.exe).Path
-          $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-demo.log"
-          $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--demo-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
+          $exe=(Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
+          $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-integrated.log"
+          $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--integrated-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
           if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Packaged crowd timeout" }
-          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_DEMO_OK)) { throw "Packaged crowd or story failed" }
-          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged demo errors" }
+          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_INTEGRATED_OK)) { throw "Packaged crowd or story failed" }
+          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged integrated game errors" }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.output_artifact }}

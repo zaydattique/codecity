@@ -31,6 +31,7 @@ class Interpreter:
         self.output=[]
         self.commands=[]
         self.lamps=[False,False]
+        self.concepts=set()
 
     def tick(self):
         self.steps+=1
@@ -41,11 +42,23 @@ class Interpreter:
         if type(v) is int and abs(v)<=MAX_INT: return v
         if type(v) is bool: return v
         if type(v) is str and len(v)<=128: return v
+        if type(v) is list and len(v)<=8 and all(type(x) in (int,bool,str) for x in v):
+            return [self.value(x) for x in v]
         raise LessonError("Use small integers, booleans or short strings.")
 
     def expr(self,n):
         self.tick()
         if isinstance(n,ast.Constant): return self.value(n.value)
+        if isinstance(n,ast.List):
+            if len(n.elts)>8:raise LessonError("Use at most eight list items.")
+            self.concepts.add("list")
+            return self.value([self.expr(x) for x in n.elts])
+        if isinstance(n,ast.Subscript):
+            seq,index=self.expr(n.value),self.expr(n.slice)
+            if type(seq) is not list or type(index) is not int or not -len(seq)<=index<len(seq):
+                raise LessonError("Use a valid integer list index.")
+            self.concepts.add("index")
+            return seq[index]
         if isinstance(n,ast.Name):
             if n.id not in self.env: raise LessonError("Unknown variable: "+n.id)
             return self.env[n.id]
@@ -55,6 +68,7 @@ class Interpreter:
             if type(v) is int and isinstance(n.op,(ast.UAdd,ast.USub)):
                 return self.value(-v if isinstance(n.op,ast.USub) else v)
         if isinstance(n,ast.BinOp):
+            self.concepts.add("arithmetic")
             a,b=self.expr(n.left),self.expr(n.right)
             if isinstance(n.op,ast.Add) and type(a) is str and type(b) is str:
                 return self.value(a+b)
@@ -76,6 +90,7 @@ class Interpreter:
                 if isinstance(op,ast.Gt):return a>b
                 if isinstance(op,ast.GtE):return a>=b
         if isinstance(n,ast.BoolOp):
+            self.concepts.add("boolean")
             if isinstance(n.op,ast.And):
                 for item in n.values:
                     v=self.expr(item)
@@ -100,8 +115,18 @@ class Interpreter:
             self.tick()
             if isinstance(n,ast.Assign) and len(n.targets)==1:
                 self.assign(n.targets[0],self.expr(n.value))
+                self.concepts.add("assignment")
             elif isinstance(n,ast.If):
+                self.concepts.add("if")
                 self.block(n.body if self.expr(n.test) else n.orelse)
+            elif isinstance(n,ast.While) and not n.orelse:
+                iterations=0
+                while self.expr(n.test):
+                    self.tick()
+                    iterations+=1
+                    if iterations>32:raise LessonError("Use at most 32 while iterations.")
+                    self.concepts.add("while")
+                    self.block(n.body)
             elif isinstance(n,ast.For) and not n.orelse:
                 c=n.iter
                 if not isinstance(c,ast.Call) or not isinstance(c.func,ast.Name) or c.func.id!="range" or c.keywords or not 1<=len(c.args)<=3:
@@ -112,6 +137,7 @@ class Interpreter:
                 seq=range(*args)
                 if len(seq)>32:raise LessonError("Use at most 32 loop iterations.")
                 for value in seq:
+                    self.concepts.add("for")
                     self.tick()
                     self.assign(n.target,value)
                     self.block(n.body)
@@ -125,6 +151,7 @@ class Interpreter:
                     if len("\n".join(self.output+[line]))>MAX_OUTPUT:
                         raise LessonError("Output limit reached.")
                     self.output.append(line)
+                    self.concepts.add("print")
                 elif c.func.id=="set_lamp" and len(args)==2:
                     index,on=args
                     if type(index) is not int or index not in (0,1) or type(on) is not bool:
@@ -144,9 +171,9 @@ class Interpreter:
         nodes=list(ast.walk(tree))
         if len(nodes)>MAX_NODES:raise LessonError("Program is too large.")
         # Fail closed even for unreachable statements. No attributes, imports,
-        # functions, comprehensions, indexing, arbitrary calls or while loops.
+        # functions, comprehensions, arbitrary calls or unbounded loops.
         allowed=(ast.Module,ast.Assign,ast.Name,ast.Store,ast.Load,ast.Constant,
-                 ast.If,ast.For,ast.Expr,ast.Call,ast.BinOp,ast.UnaryOp,ast.Compare,
+                 ast.If,ast.For,ast.While,ast.List,ast.Subscript,ast.Expr,ast.Call,ast.BinOp,ast.UnaryOp,ast.Compare,
                  ast.BoolOp,ast.Add,ast.Sub,ast.Mult,ast.FloorDiv,ast.Mod,ast.UAdd,
                  ast.USub,ast.Not,ast.Eq,ast.NotEq,ast.Lt,ast.LtE,ast.Gt,ast.GtE,
                  ast.And,ast.Or)
@@ -155,9 +182,10 @@ class Interpreter:
             if isinstance(n,ast.Call) and (not isinstance(n.func,ast.Name) or n.func.id not in ("print","set_lamp","range") or n.keywords):
                 raise LessonError("Only print(), range() and set_lamp() are available.")
         try:self.block(tree.body)
-        except (ArithmeticError,RecursionError) as e:raise LessonError(str(e)[:120]) from None
+        except (ArithmeticError,ValueError,RecursionError) as e:raise LessonError(str(e)[:120]) from None
         return {"ok":True,"output":"\n".join(self.output),"commands":self.commands,
-                "completed":all(self.lamps) and bool(self.output),"steps":self.steps}
+                "completed":all(self.lamps) and bool(self.output),"steps":self.steps,
+                "concepts":sorted(self.concepts)}
 
 
 def handle(request):
@@ -165,7 +193,7 @@ def handle(request):
         raise LessonError("Invalid lesson request.")
     try:result=Interpreter().run(request["source"])
     except (LessonError,UnicodeError) as exc:
-        result={"ok":False,"output":str(exc)[:240],"commands":[],"completed":False,"steps":0}
+        result={"ok":False,"output":str(exc)[:240],"commands":[],"completed":False,"steps":0,"concepts":[]}
     return {"id":request["id"],"version":1,**result}
 
 

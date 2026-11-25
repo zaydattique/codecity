@@ -21,3 +21,5 @@ P08 Windows candidate export/boot and actual physics passed on GitHub windows-20
 P09 functional QA: four suspension contacts, 1.964m along heading and 12.56km/h after 65 physics ticks on Linux and Windows hosted runners. These are driving regression observations, not FPS or final vehicle tuning metrics. Software-rendered 1280x720 screenshots reviewed; target hardware FPS, percentile frame times and memory still unmeasured.
 
 Six NPC source candidates total 252,446 triangles before LOD; this is geometry count only, not a GPU benchmark. Actual engine crowd performance, memory and animation update cost remain unmeasured. Keep crowd to six in this slice.
+
+Integrated run 45669907874 passed automated Linux/Windows headless physics and actual software-rendered street evidence. These are functional checks, not frame-time measurements. New seven-assignment chapter adds bounded list/while evaluation and UI only; new hardware, frame-time, memory and manual listening evidence unavailable. No performance target claim.

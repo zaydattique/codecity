@@ -1,7 +1,7 @@
 extends RefCounted
 ## Authoritative in-memory profile selection and separate mode progression.
 ## Only a world loader that has successfully spawned the selected character may activate a session.
-## No disk persistence or player-facing menu is claimed yet.
+## Versioned local profile persistence; gameplay position is not saved.
 
 const MODES: Array[String] = ["living_world", "academy"]
 const CHARACTERS: Array[String] = ["adrian", "maya"]
@@ -67,3 +67,67 @@ func active_selection() -> Dictionary:
 
 func deactivate() -> void:
 	_active.clear()
+
+func find_profile(display_name: String) -> String:
+	for id: String in _profiles:
+		if _profiles[id]["name"]==display_name.strip_edges():return id
+	return ""
+
+func next_profile_id() -> String:
+	for i: int in range(1,17):
+		var id:="local_%d"%i
+		if not _profiles.has(id):return id
+	return ""
+
+func save_profiles(path: String="user://profiles.json") -> bool:
+	var payload:=JSON.stringify({"version":1,"profiles":_profiles})
+	if payload.to_utf8_buffer().size()>1048576:return false
+	var temporary:=path+".tmp"
+	var f:=FileAccess.open(temporary,FileAccess.WRITE)
+	if f==null:return false
+	f.store_string(payload)
+	f.flush()
+	var error:=f.get_error()
+	f.close()
+	if error!=OK:return false
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary),ProjectSettings.globalize_path(path))==OK
+
+func load_profiles(path: String="user://profiles.json") -> bool:
+	if not _active.is_empty() or not FileAccess.file_exists(path):return false
+	var f:=FileAccess.open(path,FileAccess.READ)
+	if f==null or f.get_length()>1048576:return false
+	var data: Variant=JSON.parse_string(f.get_as_text())
+	f.close()
+	if not data is Dictionary or data.get("version")!=1 or not data.get("profiles") is Dictionary or data["profiles"].size()>16:return false
+	var prior:=_profiles
+	_profiles={}
+	var valid:=true
+	var pattern:=RegEx.new()
+	if pattern.compile("^[a-z0-9_]{1,64}$")!=OK:
+		_profiles=prior
+		return false
+	for id: String in data["profiles"]:
+		var item: Variant=data["profiles"][id]
+		if not item is Dictionary or not item.get("name") is String or not create_profile(id,item["name"]) or not CHARACTERS.has(item.get("character")) or not item.get("progress") is Dictionary:
+			valid=false
+			break
+		_profiles[id]["character"]=item["character"]
+		for mode: String in MODES:
+			var done: Variant=item["progress"].get(mode)
+			if not done is Array or done.size()>512:
+				valid=false
+				break
+			var seen: Dictionary={}
+			for mission: Variant in done:
+				if not mission is String or pattern.search(mission)==null or seen.has(mission):
+					valid=false
+					break
+				seen[mission]=true
+			if not valid:break
+			_profiles[id]["progress"][mode]=done.duplicate()
+		if not valid:break
+	if not valid:
+		_profiles=prior
+		return false
+	_draft.clear()
+	return true

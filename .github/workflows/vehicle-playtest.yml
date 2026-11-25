@@ -166,9 +166,9 @@ jobs:
           cp ai/academy.py build/vehicle-package/distribution/
           cp build/evidence/coupe-report.json build/vehicle-package/distribution/
           cat > build/vehicle-package/distribution/README.txt <<'EOF'
-          CodeCity Academy Demo - development candidate, not a released game.
+          CODECITY | Living World and Academy
           Two protagonists, one street and a functional coupe candidate.
-          Launch CodeCity_Academy_Demo.exe with the PCK, academy.py and python directory together.
+          Launch CodeCity.exe with the PCK, academy.py and python directory together.
           Select a profile and character. Academy: approach the lighting cabinet, E, select an exercise, write Python and run it. Living World: drive the coupe.
           WASD and mouse move; Shift sprint, Alt walk, C crouch, Space jump.
           Approach the parked coupe and press F. W/S drive/reverse, A/D steer,
@@ -194,5 +194,5 @@ jobs:
     with:
       project_artifact: tested-vehicle-project-candidate
       suite: academy
-      exe: CodeCity_Academy_Demo.exe
-      output_artifact: ${{ github.event_name == 'pull_request' && 'CodeCity-Windows-Academy-Practice-Candidate' || 'CodeCity-Windows-Academy-Demo' }}
+      exe: CodeCity.exe
+      output_artifact: ${{ github.event_name == 'pull_request' && 'CodeCity-Windows-Academy-Practice' || 'CodeCity-Windows-Academy' }}

@@ -58,8 +58,39 @@ func _verify() -> void:
 		_fail("conditions exercise and physical south lamp")
 		return
 	var practice_profile: Dictionary=menu._sessions.snapshot(menu.active_snapshot()["profile_id"])
-	if not practice_profile["progress"]["academy"].is_empty():
-		_fail("practice completed the main mission")
+	if practice_profile["progress"]["academy"]!=["north_circuit","south_circuit"] or not practice_profile["progress"]["living_world"].is_empty():
+		_fail("independent assignment progression")
+		return
+	# Output reaches the actual in-world dispatch display, not a fake answer.
+	station._lesson_picker.item_selected.emit(3)
+	station._code.text="print('Harbor ready')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(3) or station._display.text!="Harbor ready" or station._lights[0].visible or station._lights[1].visible:
+		_fail("physical dispatch display")
+		return
+	# Matching lamp states without the taught concept do not pass.
+	station._lesson_picker.item_selected.emit(4)
+	station._code.text="set_lamp(0, True)\nset_lamp(1, True)\nprint('Done')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or station._practice_done.has(4):
+		_fail("while concept bypass")
+		return
+	station._code.text="lamp = 0\nwhile lamp < 2:\n    set_lamp(lamp, True)\n    lamp = lamp + 1\nprint('Inspected')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(4) or not station.lamps_online():
+		_fail("bounded while assignment")
+		return
+	station._lesson_picker.item_selected.emit(5)
+	station._code.text="schedule = [0, 1]\nset_lamp(schedule[0], True)\nset_lamp(schedule[1], True)\nprint('Scheduled')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(5) or not station.lamps_online():
+		_fail("list and index assignment")
+		return
+	station._lesson_picker.item_selected.emit(6)
+	station._code.text="available = 80\nrequired = 30 * 2\nif available >= required and True:\n    set_lamp(0, True)\n    set_lamp(1, True)\nprint('Backup online')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(6) or not station.lamps_online():
+		_fail("backup arithmetic and logic assignment")
 		return
 	station._lesson_picker.item_selected.emit(0)
 	station._code.text="count = 2\nfor lamp in range(count):\n    set_lamp(lamp, True)\nprint('Restored', count)"
@@ -72,9 +103,16 @@ func _verify() -> void:
 		return
 	var active: Dictionary=menu.active_snapshot()
 	var progress: Dictionary=menu._sessions.snapshot(active["profile_id"])["progress"]
-	if progress["academy"]!=["street_lighting"] or not progress["living_world"].is_empty():
+	if progress["academy"]!=["north_circuit","south_circuit","dispatch_notice","circuit_inspection","maintenance_schedule","backup_power","street_lighting"] or not progress["living_world"].is_empty():
 		_fail("Academy mission progression")
 		return
+	# Explicit temporary-file round trip verifies persistence even in headless QA.
+	var save_path: String="user://qa_profiles_"+Crypto.new().generate_random_bytes(8).hex_encode()+".json"
+	var restored=preload("res://core/session_state.gd").new()
+	if not menu._sessions.save_profiles(save_path) or not restored.load_profiles(save_path) or restored.snapshot(active["profile_id"])!=menu._sessions.snapshot(active["profile_id"]):
+		_fail("profile persistence round trip")
+		return
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
 	if "--capture" in OS.get_cmdline_user_args():
 		await RenderingServer.frame_post_draw
 		if root.get_texture().get_image().save_png("res://_qa/academy_editor.png")!=OK:
