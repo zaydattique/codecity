@@ -6,3 +6,5 @@ AGENTS.md sole directive; CLAUDE.md entrypoint; README status; ROADMAP gates; AR
 `greenhouse.py` native desktop candidate; `tools/runtime_mesh_export.py` evaluated Blender mesh export; `.github/workflows/greenhouse-windows.yml` native packaging and smoke tests.
 
 `tools/greenhouse_soil.py` verifies and records CC0 material downloads; `tools/build_teacher.py` authors teacher gesture on frozen licensed rig. Windows workflow includes actual native runtime capture before package.
+
+`codecity/curriculum.py` defines fourteen exhibit concepts and the greenhouse guidance. `greenhouse.py` contains the native BloomLogic shell and scene orchestration. `tools/build_narration.py` generates local voice WAVs. Windows workflow packages the renamed application from source, not a renamed binary.

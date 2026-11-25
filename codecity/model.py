@@ -1,11 +1,7 @@
 """Deterministic classroom model, not a botanical prediction."""
 from dataclasses import dataclass, replace
 
-DEFAULT_CODE = """if moisture >= 40 and light >= 6:
-    irrigate(False)
-else:
-    irrigate(True)
-"""
+DEFAULT_CODE = "if moisture < 40:\n    irrigate(True)\nelse:\n    irrigate(False)"
 
 @dataclass(frozen=True)
 class Plant:
@@ -31,14 +27,18 @@ def advance(state, watering):
     if state.day >= 60:
         return state
     moisture = min(100,state.moisture + (25 if watering else 0))
-    good = 35 <= moisture <= 80 and 6 <= state.light <= 14 and 15 <= state.temperature <= 30
+    # Broad illustrative classroom range, not a species-specific prediction.
+    # Seeds germinate using stored energy; later leaves require light.
+    good_water = 30 <= moisture <= 85
+    good_temp = 12 <= state.temperature <= 34
+    enough_light = state.growth < .18 or 4 <= state.light <= 16
     health = state.health
     growth = state.growth
     if health > 0:
-        if good:
-            health = min(1.0,health + 0.08)
-            growth = min(1.0,growth + 0.065 * health)
+        if good_water and good_temp and enough_light:
+            health = min(1.0, health + .08)
+            growth = min(1.0, growth + .065 * health)
         else:
-            health = max(0.0,health - 0.12)
+            health = max(0.0, health - .08)
     return replace(state,day=state.day+1,moisture=max(0,moisture-8),
                    growth=growth,health=health)

@@ -1,4 +1,4 @@
-name: Greenhouse Windows preview
+name: BloomLogic Windows
 on:
   pull_request:
   workflow_dispatch:
@@ -6,68 +6,39 @@ permissions:
   contents: read
   actions: read
 jobs:
-  geometry:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Install pinned Blender LTS
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP"
-          file=blender-4.5.17-linux-x64.tar.xz
-          downloaded=false
-          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
-            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
-              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
-              downloaded=true
-              break
-            fi
-            rm -f "$file" blender-checksums
-          done
-          test "$downloaded" = true
-          tar -xJf "$file"
-          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: npc-sana-candidate
-          run-id: 45666586177
-          github-token: ${{ github.token }}
-          path: build/teacher
-      - name: Export evaluated geometry
-        env:
-          CODECITY_RUNTIME_ONLY: '1'
-        run: blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_greenhouse_art.py
-      - name: Author teacher gesture
-        run: blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_teacher.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: greenhouse-native-geometry
-          path: build/greenhouse-art/runtime/
-          if-no-files-found: error
   runtime-render:
-    needs: geometry
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
-          python-version: "3.13"
+          python-version: '3.13'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: greenhouse-native-geometry
+          run-id: 45699850632
+          github-token: ${{ github.token }}
           path: runtime
       - run: python -m pip install -r requirements.txt
+      - run: sudo apt-get update -qq && sudo apt-get install -y espeak-ng
+      - run: python -m tools.build_narration
+      - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test
       - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" python greenhouse.py --capture
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
-          name: greenhouse-runtime-review
+          name: BloomLogic-Visual-Review
           path: build/runtime-review
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BloomLogic-Runtime-Assets
+          path: runtime
           if-no-files-found: error
   windows:
-    needs: [geometry, runtime-render]
+    needs: runtime-render
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -77,19 +48,28 @@ jobs:
           python-version: '3.13'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: greenhouse-native-geometry
+          name: BloomLogic-Runtime-Assets
           path: runtime
       - run: python -m pip install -r requirements.txt pyinstaller==6.16.0
       - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test
-      - run: pyinstaller --noconfirm --onedir --windowed --name CodeCity --collect-all panda3d --collect-all direct --collect-all gltf --add-data "runtime;runtime" greenhouse.py
+      - run: pyinstaller --noconfirm --onedir --windowed --name BloomLogic --collect-all panda3d --collect-all direct --collect-all gltf --add-data "runtime;runtime" greenhouse.py
       - shell: pwsh
         run: |
-          Copy-Item THIRD_PARTY_NOTICES.md dist/CodeCity/
-          $p = Start-Process -FilePath ".\dist\CodeCity\CodeCity.exe" -ArgumentList "--self-test" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Packaged asset and logic test failed: $($p.ExitCode)" }
+          Copy-Item THIRD_PARTY_NOTICES.md dist/BloomLogic/
+          Copy-Item OPEN_GREENHOUSE.md dist/BloomLogic/README.txt
+          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--self-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Packaged smoke test failed: $($p.ExitCode)" }
+          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--gui-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Packaged GUI test failed: $($p.ExitCode)" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: BloomLogic-Windows-Visual-Review
+          path: build/runtime-review
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: CodeCity-Windows-Integration-Preview
-          path: dist/CodeCity/
+          name: BloomLogic-Windows
+          path: dist/BloomLogic/
           if-no-files-found: error

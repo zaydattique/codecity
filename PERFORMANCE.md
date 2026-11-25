@@ -6,3 +6,5 @@ Integration candidate caches 41 discrete mesh samples and pools eight droplets. 
 Initial package smoke passed; no interactive performance metrics. New teacher increases mesh/texture budget; software-render capture is not representative hardware profiling.
 
 Actual 1280x720 software renderer capture succeeded on hosted Ubuntu run 45699394455, not a target GPU benchmark. No FPS claims.
+
+New studio layout and packaged GUI capture pending. No hardware FPS claims.

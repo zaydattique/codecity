@@ -10,3 +10,5 @@ Initial Windows asset/logic package passed run 45698179555, artifact 15061487464
 First texture build failed because Poly Haven metadata uses Diffuse/Rough keys, not filename suffixes. Corrected the schema mapping, retaining strict integrity checks. Rerun pending.
 
 Run 45699394455 generated verified soil maps and a skinned teacher with 159 animation channels; actual native capture passed. Inspection found cropped head, low contrast roots and incomplete workbench; corrected camera viewport and framing, bench supports/floor, root visibility, button styling and paused irrigation label. Additional rule error assertion in capture. New build pending; no final approval.
+
+Owner reported the old renamed package still opened CodeCity and failed to grow at 15 hours light. Actual source and executable branding revised, growth model broad range corrected and regression added. New native catalogue, four learning stages, six-case challenge, settings, audio and diagnostics. Pinned geometry from successful run 45699850632. GUI and Windows verification pending.
