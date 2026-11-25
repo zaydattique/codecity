@@ -4,3 +4,5 @@ Historical source audit and license notices retained in parent commit 5f121ef4b2
 Asset-level CC0 pages inspected: https://polyhaven.com/a/potted_plant_01 , https://polyhaven.com/a/planter_pot_clay , https://polyhaven.com/a/dirt_floor , https://polyhaven.com/a/mud_forest . Powered by Poly Haven. Source files still pending verified acquisition; retain exact hashes, author metadata and license evidence. No external code copied for botanical geometry.
 
 Windows integration candidate uses Panda3D BSD and PyInstaller GPL with bootloader exception (https://pyinstaller.org/en/stable/license.html). Packaging must preserve dependency notices; final distribution audit pending. No new third-party art included.
+
+Poly Haven dirt_floor CC0 https://polyhaven.com/a/dirt_floor (Powered by Poly Haven); build records per-file digest. MPFB CC0 historical Sana rig reused under asset license, original new gesture. panda3d-gltf 1.3.0 BSD candidate (https://github.com/Moguri/panda3d-gltf). Package copies this notice and provenance files; final license audit pending.

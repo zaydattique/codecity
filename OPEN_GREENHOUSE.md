@@ -14,3 +14,6 @@ Blender Python generates tapered curved roots and stem geometry, leaf meshes wit
 [Python core verification](https://github.com/zaydattique/codecity/actions/runs/45693570588). Native interactive desktop integration, realistic animated teacher, wetting/wilting visuals and Windows package are not verified or available as an artifact at this revision. No browser simulation or executable download is claimed.
 
 This temporary review link file can be removed after the owner confirms viewing.
+
+## Runnable Windows version
+[Download CodeCity Windows integration preview](https://github.com/zaydattique/codecity/actions/runs/45698179555/artifacts/15061487464). Extract all files and double-click CodeCity.exe. Asset loading and Python logic tests passed; full GUI and art review still pending. This is the earlier package, not the new texture/teacher revision.

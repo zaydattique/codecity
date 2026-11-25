@@ -4,6 +4,8 @@ import math
 import random
 import json
 import os
+import sys
+
 from pathlib import Path
 from mathutils import Vector
 
@@ -19,6 +21,7 @@ scene.render.resolution_x=960
 scene.render.resolution_y=720
 scene.render.resolution_percentage=100
 scene.render.fps=24
+scene.view_settings.exposure=-1.1
 scene.frame_end=120
 scene.world=bpy.data.worlds.new("Studio daylight")
 scene.world.use_nodes=True
@@ -40,6 +43,25 @@ r.color_ramp.elements[1].position=.85;r.color_ramp.elements[1].color=(.21,.10,.0
 soil.node_tree.links.new(n.outputs["Fac"],r.inputs[0]);soil.node_tree.links.new(r.outputs[0],p.inputs["Base Color"])
 b=soil.node_tree.nodes.new("ShaderNodeBump");b.inputs["Strength"].default_value=.65;b.inputs["Distance"].default_value=.006
 soil.node_tree.links.new(n.outputs["Fac"],b.inputs["Height"]);soil.node_tree.links.new(b.outputs[0],p.inputs["Normal"])
+# Verified CC0 diffuse and normal textures are shared with the native runtime.
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from greenhouse_soil import acquire
+soil_maps=acquire(OUT / "soil-source")
+for key in ("diff","nor_gl","rough"):
+    image=bpy.data.images.load(str(soil_maps[key]),check_existing=True)
+    node=soil.node_tree.nodes.new("ShaderNodeTexImage");node.image=image
+    if key=="diff":
+        soil.node_tree.links.new(node.outputs["Color"],p.inputs["Base Color"])
+    elif key=="rough":
+        image.colorspace_settings.name="Non-Color"
+        soil.node_tree.links.new(node.outputs["Color"],p.inputs["Roughness"])
+    else:
+        image.colorspace_settings.name="Non-Color"
+        normal=soil.node_tree.nodes.new("ShaderNodeNormalMap")
+        soil.node_tree.links.new(node.outputs["Color"],normal.inputs["Color"])
+        soil.node_tree.links.new(normal.outputs["Normal"],p.inputs["Normal"])
+    image.pack()
 rootmat=material("Root | pale epidermis",(.62,.44,.23),.58)
 stemmat=material("Stem | epidermis",(.11,.26,.035),.52)
 leafmat=material("Leaf | healthy tissue",(.095,.34,.045),.38)
@@ -78,7 +100,13 @@ def curve(name,points,radius,mat,start=None,end=None):
     return o
 # Meter-scale rhizobox: front is intentionally open in the visualization, not fake transparent soil.
 cube("Workbench",(0,.05,-.265),(1.6,.8,.055),bench,.012)
-cube("Rhizobox | substrate",(0,.085,-.095),(.48,.16,.30),soil,.001)
+substrate=cube("Rhizobox | substrate",(0,.085,-.095),(.48,.16,.30),soil,.001)
+# Planar texture projection on each face, consistent with runtime EGG UVs.
+for poly in substrate.data.polygons:
+    for i in poly.loop_indices:
+        co=substrate.matrix_world@substrate.data.vertices[substrate.data.loops[i].vertex_index].co
+        n=poly.normal
+        substrate.data.uv_layers.active.data[i].uv=((co.y if abs(n.x)>.5 else co.x)*3.2,(co.y if abs(n.z)>.5 else co.z)*3.2)
 for x in (-.252,.252):
     cube("Rhizobox side rail",(x,0,-.095),(.022,.19,.32),frame)
 cube("Rhizobox foot",(0,0,-.248),(.53,.22,.022),frame)
@@ -130,7 +158,7 @@ def leaf(name,origin,direction,length,width,start,end):
         o.hide_render=val;o.keyframe_insert("hide_render",frame=f)
     return o
 leaf("Cotyledon left",shoot[2],(-1,-.15,.28),.043,.014,58,80)
-leaf("Cotyledon right",shoot[2],(1,.15,.28),.10,.029,52,75)
+leaf("Cotyledon right",shoot[2],(1,.15,.28),.043,.014,58,80)
 leaf("True leaf left",shoot[3],(-.85,.45,.23),.065,.022,72,106)
 leaf("True leaf right",shoot[4],(.85,-.35,.33),.065,.022,82,116)
 # Nozzle and falling droplets: illustrative animation, not fluid dynamics.
@@ -155,7 +183,7 @@ aim(cam,(0,0,.075));cam.data.lens=55;scene.camera=cam
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from runtime_mesh_export import export_runtime
-export_runtime(scene, OUT / "runtime")
+export_runtime(scene, OUT / "runtime", soil_maps)
 if os.environ.get("CODECITY_RUNTIME_ONLY") == "1":
     print("CODECITY_RUNTIME_GEOMETRY_OK")
     raise SystemExit(0)

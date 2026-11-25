@@ -4,3 +4,5 @@ AGENTS.md sole directive; CLAUDE.md entrypoint; README status; ROADMAP gates; AR
 `tools/polyhaven.py` bounded historical source helper; `tools/fetch_greenhouse_sources.py` downloads two CC0 prop candidates; `tools/build_greenhouse_art.py` Blender editable source, four actual review render targets and static GLB; `.github/workflows/greenhouse-art.yml` separate source/render jobs.
 
 `greenhouse.py` native desktop candidate; `tools/runtime_mesh_export.py` evaluated Blender mesh export; `.github/workflows/greenhouse-windows.yml` native packaging and smoke tests.
+
+`tools/greenhouse_soil.py` verifies and records CC0 material downloads; `tools/build_teacher.py` authors teacher gesture on frozen licensed rig. Windows workflow includes actual native runtime capture before package.

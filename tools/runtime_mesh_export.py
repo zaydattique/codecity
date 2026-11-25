@@ -1,17 +1,21 @@
 """Export evaluated Blender geometry as native Panda3D EGG meshes.
 Candidate runtime derivative. No still images or video.
 """
-import math
-import random
+import shutil
 
-def export_runtime(scene, out):
+def export_runtime(scene, out, soil_maps):
     import bpy
     out.mkdir(parents=True, exist_ok=False)
+    for kind,path in soil_maps.items():
+        shutil.copy2(path,out/("soil-"+path.name))
+    shutil.copy2(next(iter(soil_maps.values())).parent/"provenance.json",out/"soil-provenance.json")
     moving=("Bean-like seed","Primary root","Lateral root","Fine root","Hypocotyl","Cotyledon","True leaf")
     def write(path, objects):
         dg=bpy.context.evaluated_depsgraph_get()
         with path.open("w",encoding="utf-8") as f:
             f.write("<CoordinateSystem> { Z-up }\n")
+            if any(o.name.startswith("Rhizobox | substrate") for o in objects):
+                f.write('<Texture> soil { "soil-'+soil_maps["diff"].name+'" <Scalar> envtype { modulate } <Scalar> wrap { repeat } }\n')
             for index,obj in enumerate(objects):
                 if obj.type not in ("MESH","CURVE") or obj.hide_render: continue
                 if obj.type=="CURVE" and obj.data.bevel_factor_end<.0001: continue
@@ -23,18 +27,28 @@ def export_runtime(scene, out):
                     mat=obj.data.materials[0] if obj.data.materials else None
                     p=mat.node_tree.nodes.get("Principled BSDF") if mat and mat.use_nodes else None
                     c=tuple(p.inputs["Base Color"].default_value) if p else (.5,.5,.5,1)
-                    # EGG vertex colors are display-space; procedural node graphs are not exported.
                     color=tuple(max(0,min(1,v))**(1/2.2) for v in c[:3])
-                    pool="v"+str(index)
+                    is_soil=obj.name.startswith("Rhizobox | substrate")
+                    pool="soil_surface" if is_soil else "v"+str(index)
                     f.write("<Group> "+pool+" {\n<VertexPool> "+pool+" {\n")
                     inv=ev.matrix_world.to_3x3().inverted_safe().transposed()
-                    for j,v in enumerate(mesh.vertices):
-                        co=ev.matrix_world@v.co
-                        n=(inv@v.normal).normalized()
-                        f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} }}\n")
+                    if is_soil:
+                        for j,loop in enumerate(mesh.loops):
+                            co=ev.matrix_world@mesh.vertices[loop.vertex_index].co
+                            n=(inv@mesh.polygons[next(p.index for p in mesh.polygons if j in p.loop_indices)].normal).normalized()
+                            u=(co.y if abs(n.x)>.5 else co.x)*3.2
+                            v=(co.y if abs(n.z)>.5 else co.z)*3.2
+                            f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} <UV> {{ {u:.6f} {v:.6f} }} }}\n")
+                    else:
+                        for j,v in enumerate(mesh.vertices):
+                            co=ev.matrix_world@v.co;n=(inv@v.normal).normalized()
+                            f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} }}\n")
                     f.write("}\n")
                     for t in mesh.loop_triangles:
-                        f.write("<Polygon> { <RGBA> { "+" ".join(f"{v:.5f}" for v in (*color,1))+" } <BFace> { 1 } <VertexRef> { "+" ".join(str(i) for i in t.vertices)+" <Ref> { "+pool+" } } }\n")
+                        rgba=(1,1,1,1) if is_soil else (*color,1)
+                        tex="<TRef> { soil } " if is_soil else ""
+                        indices=t.loops if is_soil else t.vertices
+                        f.write("<Polygon> { "+tex+"<RGBA> { "+" ".join(f"{v:.5f}" for v in rgba)+" } <BFace> { 1 } <VertexRef> { "+" ".join(str(i) for i in indices)+" <Ref> { "+pool+" } } }\n")
                     f.write("}\n")
                 finally: ev.to_mesh_clear()
     scene.frame_set(1)

@@ -10,13 +10,20 @@ def assets():
     return Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))/"runtime"
 
 def self_test():
-    from panda3d.core import Loader, Filename, LoaderOptions
+    from panda3d.core import Loader, Filename, LoaderOptions, NodePath
+    import gltf
+    from direct.actor.Actor import Actor
     root=assets()
     loader=Loader.getGlobalPtr()
     for name in ["bench.egg","drop.egg"]+[f"plant-{f:03}.egg" for f in list(range(1,121,3))+[120]]:
         assert (root/name).is_file(), name
         node=loader.loadSync(Filename.fromOsSpecific(str(root/name)),LoaderOptions())
         assert node is not None, name
+    teacher=Actor(NodePath(gltf.load_model(str(root/"teacher.glb"))))
+    assert "explain" in teacher.getAnimNames(),teacher.getAnimNames()
+    assert teacher.getNumFrames("explain")>30
+    teacher.cleanup()
+    assert list(root.glob("soil-diff.*"))
     assert evaluate(DEFAULT,Plant(moisture=20))
     assert not evaluate(DEFAULT,Plant(moisture=60))
     assert advance(Plant(moisture=20),True).growth>0
@@ -29,6 +36,9 @@ def run():
     from direct.gui.DirectGui import DirectFrame, DirectLabel, DirectButton, DirectEntry, DirectSlider
     from direct.task import Task
     app=ShowBase()
+    import gltf
+    from panda3d.core import NodePath, ClockObject
+    from direct.actor.Actor import Actor
     app.disableMouse()
     app.setBackgroundColor(.13,.19,.16,1)
     app.camLens.setFov(42)
@@ -44,6 +54,19 @@ def run():
         n.reparentTo(app.render)
         return n
     bench=model("bench.egg")
+    soil=bench.find("**/soil_surface")
+    assert not soil.isEmpty(),"Missing soil surface"
+    teacher=Actor(NodePath(gltf.load_model(str(root/"teacher.glb"))))
+    teacher.reparentTo(app.render);teacher.setPos(-.60,.40,-.98);teacher.setH(0)
+    teacher.pose("explain",0)
+    camera_target=[0]
+    def macro():
+        camera_target[0]=0
+        teacher.hide()
+    def overview():
+        camera_target[0]=1
+        teacher.show();teacher.play("explain")
+    macro()
     frames=list(range(1,121,3))+[120]
     plants=[model(f"plant-{f:03}.egg") for f in frames]
     for p in plants:p.hide()
@@ -92,10 +115,20 @@ def run():
     def button(text,x,func):
         DirectButton(parent=panel,text=text,scale=.048,pos=(x,0,-1.65),command=func,frameColor=(.22,.43,.29,1),text_fg=(1,1,1,1),pad=(.5,.35))
     button("Run",-.99,start);button("Pause",-.62,pause);button("Reset",-.24,reset)
-    label("Simplified model / integration preview",-1.17,-1.91,.035)
+    label("Simplified botanical model",-1.17,-1.91,.035)
+    DirectButton(parent=app.a2dTopLeft,text="Plant close-up",scale=.045,pos=(.37,0,-.09),command=macro)
+    DirectButton(parent=app.a2dTopLeft,text="Dua: explanation",scale=.045,pos=(1.03,0,-.09),command=overview)
+    guide=DirectLabel(parent=app.a2dBottomLeft,text="If a condition is True, its indented branch runs. Otherwise, else runs.",pos=(.06,0,.18),scale=.036,text_align=TextNode.ALeft,text_fg=(1,1,1,1),frameColor=(.08,.13,.10,1),text_wordwrap=45)
     def update(task):
         nonlocal state,elapsed,water,playing,shown,visual
-        dt=min(.10,app.clock.getDt()) if hasattr(app,"clock") else min(.10,globalClock.getDt())
+        dt=min(.10,ClockObject.getGlobalClock().getDt())
+        from panda3d.core import Vec3
+        pos=Vec3(.0,-2.75,.65) if camera_target[0] else Vec3(.20,-.94,.22)
+        target=Vec3(.10,0,.0) if camera_target[0] else Vec3(.22,0,.07)
+        app.camera.setPos(app.camera.getPos()+(pos-app.camera.getPos())*min(1,dt*4))
+        app.camera.lookAt(target)
+        wet=state.moisture/100
+        soil.setColorScale(1-.40*wet,1-.45*wet,1-.48*wet,1)
         if playing:
             elapsed+=dt
             if elapsed>=1.1:
@@ -113,10 +146,26 @@ def run():
                 phase=(elapsed*2.8+i/len(drops))%1
                 p.setPos((i%3-1)*.004,.035,.36-(.36-.058)*phase);p.show()
             else:p.hide()
+        guide["text"]=("Dua: if the condition is True, execute its action. Otherwise, use else.\nTry changing the moisture threshold, then run." if camera_target[0] else "Observe water and plant growth. Run your rule to change the outcome.")
         info["text"]=f"Day {state.day:02}   Soil {state.moisture}%   Water {'ON' if water else 'OFF'}"
         return Task.cont
     app.taskMgr.add(update,"simulation")
     app.accept("escape",pause)
+    if "--capture" in sys.argv:
+        from panda3d.core import Filename
+        out=Path("build/runtime-review");out.mkdir(parents=True,exist_ok=True)
+        def capture(name):
+            for _ in range(12): app.graphicsEngine.renderFrame()
+            assert app.win.saveScreenshot(Filename.fromOsSpecific(str(out/name)))
+        app.taskMgr.step();capture("seed.png")
+        settings["Moisture"]["value"]=20;start()
+        for _ in range(30):
+            water=evaluate(source,state);state=advance(state,water)
+        visual=state.growth;playing=False;app.taskMgr.step();capture("grown.png")
+        overview();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5))
+        app.camera.setPos(0,-2.75,.65);app.camera.lookAt(.10,0,0);capture("teacher.png")
+        assert state.growth>.2
+        app.destroy();return
     app.run()
 
 if __name__=="__main__":
