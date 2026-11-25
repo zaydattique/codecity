@@ -29,10 +29,33 @@ func _verify() -> void:
 		return
 	var start: Vector3=actor.position
 	Input.action_press("move_forward")
-	await ticks(90)
+	await ticks(45)
+	var skeleton: Skeleton3D
+	var bone := -1
+	var pose := Quaternion.IDENTITY
+	if require_motion:
+		var rigs := actor.find_children("*","Skeleton3D",true,false)
+		if rigs.size()!=1:
+			_fail("expected actual skinned rig")
+			return
+		skeleton=rigs[0] as Skeleton3D
+		bone=skeleton.find_bone("thigh_l")
+		if bone<0:
+			_fail("thigh bone missing")
+			return
+		pose=skeleton.get_bone_pose_rotation(bone)
+	await ticks(45)
+	if require_motion and absf(pose.dot(skeleton.get_bone_pose_rotation(bone)))>0.99999:
+		_fail("locomotion did not change actual bone pose")
+		return
 	if require_motion and actor.motion_clip()!="jog":
 		_fail("licensed locomotion clip not playing")
 		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/jogging.png")!=OK:
+			_fail("jog capture failed")
+			return
 	Input.action_release("move_forward")
 	await ticks(12)
 	if actor.position.z>start.z-3.0 or not Layout.street_contains(actor.position):
@@ -56,6 +79,29 @@ func _verify() -> void:
 	if actor.position.x < -5.78 or actor.position.x > -5.4:
 		_fail("building wall collision")
 		return
+	# Aim camera toward the real closed exterior and check the obstruction.
+	actor.yaw=-PI/2.0
+	await ticks(20)
+	if actor.camera_position().x < -5.99:
+		_fail("camera crossed building collision")
+		return
+	actor.yaw=0.0
+	Input.action_press("crouch")
+	await ticks(20)
+	if require_motion and actor.motion_clip()!="crouch_idle":
+		_fail("crouch animation")
+		return
+	Input.action_release("crouch")
+	await ticks(15)
+	Input.action_press("move_forward")
+	Input.action_press("sprint")
+	await ticks(40)
+	if require_motion and actor.motion_clip()!="sprint":
+		_fail("sprint animation")
+		return
+	Input.action_release("move_forward")
+	Input.action_release("sprint")
+	await ticks(25)
 	world._toggle_map()
 	var paused_pos: Vector3=actor.position
 	Input.action_press("move_forward")
@@ -68,6 +114,12 @@ func _verify() -> void:
 	world._set_pause(true)
 	if actor.controls_enabled or not paused:
 		_fail("pause ownership")
+		return
+	var clock := root.get_node("WorldClock")
+	var tick: int=clock.tick
+	await create_timer(0.12,true).timeout
+	if clock.tick!=tick:
+		_fail("world clock advanced during pause")
 		return
 	world._set_pause(false)
 	if not actor.controls_enabled or paused:
