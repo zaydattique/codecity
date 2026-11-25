@@ -46,3 +46,19 @@ def test_fictional_danger_response_and_memory():
     prior=b.states["nora"].affinity
     b.batch([observation("nora",1100,event=event)])
     assert b.states["nora"].affinity==prior
+
+
+def test_twelve_city_routines_are_independent_and_bounded():
+    from ai.npc_brain import CITY_IDS
+    brain=Brain()
+    observations=[observation(i) for i in IDS+CITY_IDS]
+    for o in observations[6:]:
+        o["position"]=[0,80]
+        o["player_distance"]=1200
+    intents=brain.batch(observations)
+    assert len(intents)==12 and len({x["id"] for x in intents})==12
+    assert all(x["destination"].startswith("park_") for x in intents[6:])
+    assert len({x["destination"] for x in intents[6:]})>=3
+    bad=observation("jules",1100)
+    bad["position"]=[601,0]
+    with pytest.raises(ValueError):brain.batch([bad])
