@@ -72,3 +72,5 @@ Linux and Windows candidate physics and nine licensed motion clips passed, actua
 ## P09 driveable street candidate
 
 Goal: one licensed neutralized coupe with real wheels/cockpit and physical driving in existing 32m slice. First build/review derivative, then integrate vehicle body, suspension, entry/exit ownership and collision, map and pause. Files: tools/prepare_coupe.py, isolated coupe-ready workflow, forthcoming focused runtime/test changes. Risks: logo texture references, wheel orientation, seating, short street and wheel stability. No original marks/vehicle binary committed or final approval until actual renders, handling and manual QA pass.
+
+P09 vehicle runtime candidate implemented with four measured wheels, basic raycast physics, real door/headlight action and safe range/LOS/speed/capsule entry/exit, map/pause ownership; dedicated actual-model regression written. Remaining art build, integration, real driving tests, rendering and seated/IK, controller/manual/hardware gates. No vehicle in prior Windows export.

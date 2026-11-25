@@ -45,3 +45,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `tools/stage_street_candidate.py` stages a fresh candidate project from the exact verified art ZIPs and licensed motion GLB; `tests/test_street_candidate_stage.py` checks exact members and digest rejection. Local packaging helper, no approved binary committed.
 
 `tools/prepare_coupe.py` neutralizes known source marks, reuses static optimizer, preserves real coupe hierarchy and writes review derivative with four wheel centers/radii; `.github/workflows/coupe-ready.yml` standalone Blender candidate generation. No production car approval.
+
+`game/core/street_vehicle.gd` actual candidate raycast vehicle, wheel sockets, chase camera, door and lights. `game/scenes/harbor_playtest.gd` coordinates ownership/entry/exit; player methods transfer collision and controls. `verification/vehicle_playtest.gd` deterministic real asset driving regression.

@@ -52,7 +52,7 @@ func configure(model: PackedScene, height: float) -> bool:
 	_shape.position.y = height_m * 0.5
 	add_child(_shape)
 	collision_layer = 2
-	collision_mask = 1
+	collision_mask = 5
 	floor_snap_length = 0.22
 	floor_max_angle = deg_to_rad(48)
 	_camera = Camera3D.new()
@@ -174,7 +174,7 @@ func _set_crouch(wanted: bool) -> void:
 		full.height=height_m
 		query.shape=full
 		query.transform=Transform3D(Basis.IDENTITY,global_position+Vector3.UP*(height_m*0.5+0.025))
-		query.collision_mask=1
+		query.collision_mask=5
 		query.exclude=[get_rid()]
 		if not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty():
 			return
@@ -193,13 +193,13 @@ func _update_camera(delta: float) -> void:
 		_camera.look_at(focus-Basis(Vector3.UP,yaw)*Vector3(0,sin(pitch),cos(pitch)))
 		return
 	_visual.visible=true
-	var ray := PhysicsRayQueryParameters3D.create(focus,ideal,1,[get_rid()])
+	var ray := PhysicsRayQueryParameters3D.create(focus,ideal,5,[get_rid()])
 	var hit := get_world_3d().direct_space_state.intersect_ray(ray)
 	if not hit.is_empty():
 		ideal=focus+offset.normalized()*maxf(0.15,focus.distance_to(hit.position)-0.20)
 	var smoothed := _camera.global_position.lerp(ideal,Orbit.follow_weight(14.0,delta))
 	# Check the smoothed point too; interpolation may otherwise cut through a wall.
-	ray=PhysicsRayQueryParameters3D.create(focus,smoothed,1,[get_rid()])
+	ray=PhysicsRayQueryParameters3D.create(focus,smoothed,5,[get_rid()])
 	hit=get_world_3d().direct_space_state.intersect_ray(ray)
 	if not hit.is_empty():
 		smoothed=focus+(smoothed-focus).normalized()*maxf(0.15,focus.distance_to(hit.position)-0.20)
@@ -215,3 +215,31 @@ func stop_controls() -> void:
 
 func camera_position() -> Vector3:
 	return _camera.global_position
+
+## Candidate entry/exit changes authoritative control and collision ownership.
+## Seated mesh and hand IK are not installed, so the on-foot actor is hidden
+## while driving. Do not claim a completed entry/seated animation.
+func board_vehicle() -> void:
+	stop_controls()
+	collision_layer=0
+	collision_mask=0
+	_shape.disabled=true
+	_visual.hide()
+	_camera.current=false
+
+func leave_vehicle(where: Vector3) -> void:
+	global_position=where
+	velocity=Vector3.ZERO
+	_crouched=false
+	_capsule.height=height_m
+	_shape.position.y=height_m*0.5
+	_shape.disabled=false
+	collision_layer=2
+	collision_mask=5
+	first_person=false
+	_visual.show()
+	_camera.current=true
+	controls_enabled=true
+	_ever_grounded=false
+	_was_grounded=false
+	_update_camera(1.0)
