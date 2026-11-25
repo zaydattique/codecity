@@ -48,3 +48,5 @@ Revised optimization run 45601941130: street 69,111 tris (110k budget pass), cou
 Frozen runtime candidate GLBs passed Godot skin/height/material check in run 45603090341; Adrian 1.81m, Maya 1.69m, 53 bones each, street 347 mesh nodes. Optimized street GLB SHA256 cbd75043c055ea6b15275670c2dd540410559a5b47c585ab4f411a3eca3529f9, 69,111 tris. Rendering success marker present, workflow failed missing hosted ALSA audio; explicit visual-only dummy audio rerun pending. Source and runtime derivatives are candidates, not gameplay assets.
 
 Motion candidate source Quaternius UAL1 Standard (CC0) pinned OpenCity copy; selected Idle, Walk, Jog_Fwd, Sprint, Jump. Only rotation channels, no source mannequin. Motion retarget and deformation review pending; no approved motion asset yet.
+
+Actual source inventory confirms nine locomotion/crouch/jump source clips, using exact names from run 45621192855. Retarget names and jump state logic updated; no motion approval until real engine playback.

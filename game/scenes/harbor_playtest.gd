@@ -117,7 +117,7 @@ func _make_hud() -> void:
 	_hud.add_child(_map)
 	_status=Label.new()
 	_status.position=Vector2(20,252)
-	_status.text="Street physics test | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch collision · V camera\nM map · Esc pause\n%s"%[("Adrian Cole" if _character=="adrian" else "Maya Bennett"),("Licensed motion retarget test" if player.motion_installed else "Motion clips not installed.")]
+	_status.text="Street physics test | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause\n%s"%[("Adrian Cole" if _character=="adrian" else "Maya Bennett"),("Licensed motion retarget test" if player.motion_installed else "Motion clips not installed.")]
 	_hud.add_child(_status)
 	_pause_panel=PanelContainer.new()
 	_pause_panel.position=Vector2(470,240)

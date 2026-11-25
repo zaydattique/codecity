@@ -20,6 +20,7 @@ var _camera: Camera3D
 var _crouched := false
 var _animation: AnimationPlayer
 var motion_installed := false
+var _was_grounded := true
 
 func configure(model: PackedScene, height: float) -> bool:
 	if model == null or height < 1.5 or height > 2.0 or is_inside_tree():
@@ -33,12 +34,12 @@ func configure(model: PackedScene, height: float) -> bool:
 	if animation_nodes.size()==1:
 		_animation=animation_nodes[0] as AnimationPlayer
 		motion_installed=true
-		for clip: String in ["idle","walk","jog","sprint","jump"]:
+		for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_start","jump_loop","jump_land"]:
 			if not _animation.has_animation(clip):
 				motion_installed=false
 				break
 		if motion_installed:
-			for clip: String in ["idle","walk","jog","sprint"]:
+			for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_loop"]:
 				_animation.get_animation(clip).loop_mode=Animation.LOOP_LINEAR
 	_capsule = CapsuleShape3D.new()
 	_capsule.radius = RADIUS
@@ -110,16 +111,30 @@ func _update_motion() -> void:
 	if not motion_installed:
 		return
 	var speed := Vector2(velocity.x,velocity.z).length()
+	var grounded := is_on_floor()
+	var current := _animation.current_animation
 	var target := "idle"
-	if not is_on_floor():
-		target="jump"
+	if not grounded:
+		if _was_grounded:
+			target="jump_start"
+		elif current=="jump_start" and _animation.is_playing():
+			target="jump_start"
+		else:
+			target="jump_loop"
+	elif not _was_grounded:
+		target="jump_land"
+	elif current=="jump_land" and _animation.is_playing():
+		target="jump_land"
+	elif _crouched:
+		target="crouch_walk" if speed>0.18 else "crouch_idle"
 	elif speed>4.6:
 		target="sprint"
 	elif speed>2.6:
 		target="jog"
 	elif speed>0.18:
 		target="walk"
-	if _animation.current_animation!=target:
+	_was_grounded=grounded
+	if current!=target:
 		_animation.play(target,0.15)
 
 func motion_clip() -> String:
