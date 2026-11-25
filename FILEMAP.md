@@ -75,3 +75,7 @@ Harbor utilities chapter extends existing ai/academy.py, academy_station.gd, ses
 Harbor automation extends existing ai/academy.py, academy_station.gd, tests/test_academy.py and verification/academy_playtest.gd with reserve sensor/pump, bounded dictionary and function support, visible reserve and gauge, and ten-assignment persistence checks. Existing integrated workflow captures Academy terminal and equipment evidence.
 
 Harbor access phase modifies existing harbor_layout.gd, harbor_playtest.gd, street_map.gd and street_playtest.gd, plus art/characters.json, existing character pipeline and NPC art workflow, Python npc_brain.py and its tests. No parallel map or controller. Integrated QA captures rear-court evidence and runs NPC/profile unit checks.
+
+New game/core/city_layout.gd and city_stream.gd are the authoritative city parcel and streaming layers; existing Harbor scene, map, NPC director/bridge/actor, settings, foundation and verification fixtures consume them. Existing art/characters.json and Blender workflows extend the cast. No duplicate world or character implementation.
+
+Commerce/combat branch adds game/core/harbor_shop.gd for real furnished room and checkout; extends existing session_state, foundation, harbor, player, NPC director/actor, Python brain, map and project input. Existing tools/retarget_motion.py can append combat clips to exact nine-motion derivatives; integrated QA stages all 14 rigs and tests physical purchases and damage/fade. No duplicate player or crowd controllers.

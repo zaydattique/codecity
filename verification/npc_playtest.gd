@@ -17,6 +17,7 @@ func _verify() -> void:
 		return
 	var packed := load("res://scenes/foundation.tscn") as PackedScene
 	var menu := packed.instantiate()
+	menu._enable_city=false
 	root.add_child(menu)
 	menu._name.text="Living World QA"
 	menu._mode.select(0)
@@ -122,7 +123,7 @@ func _verify() -> void:
 		return
 	var active: Dictionary=menu.active_snapshot()
 	var progress: Dictionary=menu._sessions.snapshot(active["profile_id"])["progress"]
-	if progress["living_world"]!=["a_new_beginning"] or not progress["academy"].is_empty():
+	if progress["living_world"]!=["a_new_beginning"] or not progress["academy"].is_empty() or world.cash!=650 or menu._sessions.cash_balance()!=650:
 		_fail("story profile progression separation")
 		return
 	if "--capture" in OS.get_cmdline_user_args():
@@ -155,8 +156,124 @@ func _verify() -> void:
 		if actor.action!="idle" or actor.expires!=-1:
 			_fail("fallback continued to claim Python decisions")
 			return
-	print("CODECITY_NPC_PLAYTEST_OK six rigs persistent Python independent movement greeting pause idle fallback")
 	world.queue_free()
+	await process_frame
+	if not Crowd.installed(true):
+		_fail("twelve distinct city rig outputs missing")
+		return
+	var city:=Harbor.new()
+	if not city.prepare("maya",false,true,true):
+		_fail("city crowd preparation")
+		return
+	root.add_child(city)
+	var city_crowd: Node3D=city.crowd
+	if city_crowd==null or city_crowd.actors.size()!=12 or not await _wait_batch(city_crowd,0):
+		_fail("twelve actual city actors and first Python batch")
+		return
+	var city_positions: Dictionary={}
+	for id: String in Crowd.CITY_IDS:city_positions[id]=city_crowd.actors[id].global_position
+	await create_timer(2.0).timeout
+	var moved_city:=0
+	for id: String in Crowd.CITY_IDS:
+		var resident: CharacterBody3D=city_crowd.actors[id]
+		if resident.global_position.distance_to(city_positions[id])>0.25:moved_city+=1
+		if not resident.is_on_floor() or (id!="rhea" and resident.global_position.z<60):
+			_fail("actual park actor floor or route")
+			return
+	if moved_city<4 or city_crowd.failed:
+		_fail("six additional independent city residents")
+		return
+	var rhea: CharacterBody3D=city_crowd.actors["iris"]
+	city.player.global_position=rhea.global_position+Vector3(1,0,0)
+	city_crowd.perceive("greet",rhea.global_position,2.5)
+	if not await _wait_batch(city_crowd,city_crowd.accepted_batches) or rhea.action!="acknowledge" or city._subtitle_queue.is_empty() and not city._subtitle.text.contains("Iris"):
+		_fail("actual contextual subtitle")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		var camera:=Camera3D.new()
+		city.add_child(camera)
+		camera.global_position=rhea.global_position+Vector3(6,4,9)
+		camera.look_at(rhea.global_position+Vector3.UP*0.9)
+		camera.current=true
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_park_npcs.png")!=OK:
+			_fail("park actor capture")
+			return
+	# Physical shop access and actual transaction with the installed shopkeeper.
+	if not is_instance_valid(city.shop) or not city.player.combat_installed:
+		_fail("actual market or licensed protagonist combat motions missing")
+		return
+	city.player.global_position=city.shop.entrance+Vector3.UP*0.04
+	for i: int in range(15):await physics_frame
+	if not city._try_shop() or not city.shop.player_inside:
+		_fail("market entrance")
+		return
+	city.player.global_position=city.shop.COUNTER+Vector3.UP*0.04
+	for i: int in range(15):await physics_frame
+	if not city.player.take_damage(25):
+		_fail("player health damage")
+		return
+	await create_timer(1.5).timeout
+	if not city._try_shop() or not city.shop.opened:
+		_fail("actual seller checkout")
+		return
+	city._buy(2)
+	if city.cash!=465 or city.player.health!=100:
+		_fail("health item actual cash debit and heal")
+		return
+	city._buy(0)
+	if city.cash!=465:
+		_fail("full health purchase should not charge")
+		return
+	city.shop.close_trade()
+	if "--capture" in OS.get_cmdline_user_args():
+		city.player._camera.current=true
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/market_interior.png")!=OK:
+			_fail("market interior capture")
+			return
+	city.player.global_position=city.shop.interior_entry+Vector3.UP*0.04
+	for i: int in range(10):await physics_frame
+	if not city._try_shop() or city.shop.player_inside:
+		_fail("market exit")
+		return
+	# Use actual licensed punch timing, physical range and NPC HP.
+	var victim: CharacterBody3D=city_crowd.actors["jules"]
+	if not victim.combat_installed:
+		_fail("actual NPC combat motion missing")
+		return
+	city.player.global_position=victim.global_position+Vector3(1.1,0,0)
+	city.player._visual.rotation.y=-PI/2
+	city.player.velocity=Vector3.ZERO
+	for i: int in range(12):await physics_frame
+	if not city.player.start_punch():
+		_fail("player punch animation start")
+		return
+	await create_timer(1.2).timeout
+	if victim.health!=20:
+		_fail("actual hit HP: %d"%victim.health)
+		return
+	var deadline:=Time.get_ticks_msec()+4000
+	while city.player._combat_lock>0 and Time.get_ticks_msec()<deadline:await physics_frame
+	city.player.global_position=victim.global_position+Vector3(1.1,0,0)
+	city.player._visual.rotation.y=-PI/2
+	for i: int in range(12):await physics_frame
+	if not city.player.start_punch():
+		_fail("second punch animation")
+		return
+	await create_timer(1.4).timeout
+	if not victim.dead or victim.health!=0 or victim.collision_layer!=0:
+		_fail("actual death state and collision ownership")
+		return
+	var fade_deadline:=Time.get_ticks_msec()+10000
+	while victim._art.visible and Time.get_ticks_msec()<fade_deadline:await physics_frame
+	if victim._art.visible:
+		_fail("body fade did not complete")
+		return
+	print("CODECITY_COMMERCE_COMBAT_OK physical store purchase and melee damage fade")
+	print("CODECITY_CITY_NPC_OK twelve distinct rigs")
+	print("CODECITY_NPC_PLAYTEST_OK core and city rigs persistent Python movement dialogue pause fallback")
+	city.queue_free()
 	quit(0)
 
 func _fail(message: String) -> void:

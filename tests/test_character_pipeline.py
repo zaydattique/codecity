@@ -62,3 +62,13 @@ def test_additional_civilian_candidates_are_distinct_adults():
     assert len({str(p['candidate']) for p in profiles})==len(ids)
     for p in profiles:
         assert abs(sum(p['candidate']['race'].values())-1)<1e-6
+
+
+def test_thirty_distinct_adult_art_presets():
+    import json
+    from tools.build_character import ROOT
+    data=json.loads((ROOT/'art/characters.json').read_text())
+    assert len(data['npcs'])==30
+    assert len({p['id'] for p in data['npcs']})==30
+    assert len({json.dumps(p['candidate'],sort_keys=True) for p in data['npcs']})==30
+    assert all(p['age']>=18 and .5<=p['candidate']['age']<=.65 for p in data['npcs'])

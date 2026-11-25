@@ -3,6 +3,9 @@ extends VBoxContainer
 signal resume_requested
 signal leave_requested
 var _settings: VBoxContainer
+var _binding_buttons: Dictionary={}
+var _binding_note: Label
+var _listening:=""
 
 func _ready() -> void:
 	add_theme_constant_override("separation",10)
@@ -28,14 +31,43 @@ func _ready() -> void:
 	_slider("Master volume",0,1,0.05,_prefs.master_volume,func(v): _prefs.master_volume=v)
 	_check("Show gameplay hints",_prefs.show_hints,func(v): _prefs.show_hints=v)
 	_check("Fullscreen",_prefs.fullscreen,func(v): _prefs.fullscreen=v)
+	_check("Subtitles",_prefs.subtitles,func(v):_prefs.subtitles=v)
 	_check("Rotate minimap",_prefs.rotate_minimap,func(v): _prefs.rotate_minimap=v)
 	_check("VSync",_prefs.vsync,func(v): _prefs.vsync=v)
 	_select("Frame limit",["30 FPS","60 FPS","120 FPS","Unlimited"],_prefs.FPS_LIMITS.find(_prefs.fps_limit),func(i):_prefs.fps_limit=_prefs.FPS_LIMITS[i])
 	_select("Window resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],_prefs.resolution_index,func(i):_prefs.resolution_index=i)
 	var instructions := Label.new()
-	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights | H horn\nWORLD   E interact | M map | Esc pause | Tab cursor / click minimap"
+	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights | H horn\nCOMBAT   Left mouse punch (Living World)\nWORLD   E interact | M map | Esc pause | Tab cursor / click minimap"
 	instructions.add_theme_font_size_override("font_size",15)
 	_settings.add_child(instructions)
+	_binding_note=Label.new()
+	_binding_note.text="KEY BINDINGS | Select a key to change it"
+	_settings.add_child(_binding_note)
+	var names:=["Move forward","Move backward","Move left","Move right","Sprint","Walk slowly","Jump / vehicle brake","Crouch","Interact","Camera view","Enter / exit vehicle","Headlights","Horn","Full map","Free cursor"]
+	for i: int in range(_prefs.REMAP_ACTIONS.size()):
+		var action: String=_prefs.REMAP_ACTIONS[i]
+		var row:=HBoxContainer.new()
+		var caption:=Label.new()
+		caption.text=names[i]
+		caption.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		row.add_child(caption)
+		var key:=Button.new()
+		key.custom_minimum_size=Vector2(155,32)
+		key.text=_prefs.binding_label(action)
+		key.pressed.connect(func():
+			_listening=action
+			_binding_note.text="Press a new key, or Esc to cancel.")
+		row.add_child(key)
+		_binding_buttons[action]=key
+		_settings.add_child(row)
+	var defaults:=Button.new()
+	defaults.text="Restore default keys"
+	defaults.pressed.connect(func():
+		_listening=""
+		_prefs.reset_bindings()
+		_refresh_binding_labels()
+		_binding_note.text="Default keys restored.")
+	_settings.add_child(defaults)
 	_settings.hide()
 	_button("Return to profiles",func(): leave_requested.emit())
 
@@ -82,3 +114,24 @@ func _select(caption: String,choices: Array,index: int,callback: Callable) -> vo
 	choice.item_selected.connect(func(i: int):callback.call(i);_prefs.apply();_prefs.save())
 	row.add_child(choice)
 	_settings.add_child(row)
+
+func _refresh_binding_labels() -> void:
+	for action: String in _binding_buttons:
+		_binding_buttons[action].text=_prefs.binding_label(action)
+
+func _input(event: InputEvent) -> void:
+	if _listening.is_empty() or not is_visible_in_tree() or not is_instance_valid(_settings) or not _settings.is_visible_in_tree():
+		_listening=""
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		get_viewport().set_input_as_handled()
+		if event.physical_keycode==KEY_ESCAPE:
+			_binding_note.text="Key change cancelled."
+			_listening=""
+			return
+		if not _prefs.rebind(_listening,event.physical_keycode):
+			_binding_note.text="Key already used or invalid. Choose another."
+			return
+		_listening=""
+		_refresh_binding_labels()
+		_binding_note.text="Key binding saved."

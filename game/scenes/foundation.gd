@@ -8,6 +8,7 @@ var _world: Node3D
 var _launch: Button
 var _sessions = Sessions.new()
 var _persistent := false
+var _enable_city := true
 @onready var _menu: VBoxContainer = $CanvasLayer/Center/VBox
 @onready var _name: LineEdit = _menu.get_node("ProfileName")
 @onready var _mode: OptionButton = _menu.get_node("Mode")
@@ -98,7 +99,7 @@ func _open_street() -> void:
 		return
 	if draft.get("mode")=="academy" and AcademyBridge.paths().is_empty():return
 	var world = Harbor.new()
-	if not world.prepare(draft.get("character",""),draft.get("mode")=="academy"):
+	if not world.prepare(draft.get("character",""),draft.get("mode")=="academy",true,_enable_city):
 		world.free()
 		_status.text="Harbor Boulevard could not load."
 		return
@@ -108,13 +109,18 @@ func _open_street() -> void:
 		_status.text="Character spawn failed."
 		return
 	_world=world
+	world.restore_cash(_sessions.cash_balance())
+	world.cash_changed.connect(func(value: int):
+		if _sessions.set_cash_balance(value):_save_profiles())
 	world.leave_requested.connect(_close_street)
 	if is_instance_valid(world.station):
 		world.station.restore_progress(_sessions.snapshot(draft["profile_id"])["progress"]["academy"])
 		world.station.exercise_completed.connect(func(id: String):
 			if _sessions.complete_mission(id,"academy"):_save_profiles())
 	world.story_completed.connect(func():
-		if _sessions.complete_mission("a_new_beginning","living_world"):_save_profiles())
+		if _sessions.complete_mission("a_new_beginning","living_world"):
+			world.reward_cash(150)
+			_save_profiles())
 	_save_profiles()
 	$CanvasLayer.hide()
 
@@ -193,7 +199,7 @@ func _integrated_smoke() -> void:
 	_character.select(0)
 	_on_apply_pressed()
 	_open_street()
-	if not is_instance_valid(_world) or not is_instance_valid(_world.crowd) or _world.crowd.actors.size()!=6 or _world.vehicle==null or not is_instance_valid(_world._story_label):
+	if not is_instance_valid(_world) or not _world.city_enabled or not is_instance_valid(_world.city_stream) or not is_instance_valid(_world.crowd) or _world.crowd.actors.size()!=12 or _world.vehicle==null or not is_instance_valid(_world._story_label):
 		push_error("Packaged crowd, car or story unavailable")
 		get_tree().quit(1)
 		return

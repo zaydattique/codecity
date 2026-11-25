@@ -22,7 +22,7 @@ func create_profile(id: String, display_name: String) -> bool:
 		if name.unicode_at(i) < 32 or name.unicode_at(i) == 127:
 			return false
 	_profiles[id] = {"name": name, "character": "adrian",
-		"progress": {"living_world": [], "academy": []}}
+		"progress": {"living_world": [], "academy": []}, "cash": {"living_world": 500, "academy": 500}}
 	return true
 
 ## A menu choice is not a spawned gameplay session and does not change progression.
@@ -112,6 +112,17 @@ func load_profiles(path: String="user://profiles.json") -> bool:
 			valid=false
 			break
 		_profiles[id]["character"]=item["character"]
+		var wallet: Variant=item.get("cash",{"living_world":500,"academy":500})
+		if not wallet is Dictionary:
+			valid=false
+			break
+		for mode: String in MODES:
+			var amount: Variant=wallet.get(mode)
+			if not (amount is int or amount is float) or amount!=int(amount) or amount<0 or amount>10000000:
+				valid=false
+				break
+			_profiles[id]["cash"][mode]=int(amount)
+		if not valid:break
 		for mode: String in MODES:
 			var done: Variant=item["progress"].get(mode)
 			if not done is Array or done.size()>512:
@@ -130,4 +141,13 @@ func load_profiles(path: String="user://profiles.json") -> bool:
 		_profiles=prior
 		return false
 	_draft.clear()
+	return true
+
+func cash_balance() -> int:
+	if _active.is_empty():return 0
+	return int(_profiles[_active["profile_id"]]["cash"][_active["mode"]])
+
+func set_cash_balance(value: int) -> bool:
+	if _active.is_empty() or value<0 or value>10000000:return false
+	_profiles[_active["profile_id"]]["cash"][_active["mode"]]=value
 	return true

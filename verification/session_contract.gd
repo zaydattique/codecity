@@ -31,7 +31,13 @@ func _verify() -> void:
 	if not state.activate("local_1", "academy", "maya", actor) or not state.complete_mission("control_room", "academy"):
 		_fail("academy mode")
 		return
+	if state.cash_balance()!=500:
+		_fail("independent mode cash")
+		return
 	var snap: Dictionary = state.snapshot("local_1")
+	if snap["cash"]["living_world"]!=650 or snap["cash"]["academy"]!=500:
+		_fail("wallet isolation")
+		return
 	if snap["progress"]["living_world"] != ["new_beginning"] or snap["progress"]["academy"] != ["control_room"] or not state.snapshot("local_2")["progress"]["academy"].is_empty():
 		_fail("progress isolation")
 		return

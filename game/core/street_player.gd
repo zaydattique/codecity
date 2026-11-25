@@ -8,6 +8,14 @@ const SPRINT := 6.0
 const CROUCH := 1.2
 const RADIUS := 0.29
 const STEP := 0.20
+signal health_changed(value: int)
+signal strike
+var health := 100
+var dead := false
+var combat_installed := false
+var _combat_lock:=0.0
+var _strike_delay:=-1.0
+var _next_cross:=false
 var height_m := 1.81
 var yaw := 0.0
 var pitch := -0.18
@@ -42,6 +50,9 @@ func configure(model: PackedScene, height: float) -> bool:
 	if animation_nodes.size()==1:
 		_animation=animation_nodes[0] as AnimationPlayer
 		print("MOTION_IMPORT clips=",_animation.get_animation_list())
+		combat_installed=true
+		for clip: String in ["punch_jab","punch_cross","hit_chest","death"]:
+			if not _animation.has_animation(clip):combat_installed=false
 		motion_installed=true
 		for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_start","jump_air","jump_land"]:
 			if not _animation.has_animation(clip):
@@ -99,8 +110,20 @@ func look_delta(relative: Vector2) -> void:
 	_manual_camera_until=Time.get_ticks_msec()+1100
 
 func _physics_process(delta: float) -> void:
-	if _camera == null or not controls_enabled:
+	if _camera == null:return
+	if _combat_lock>0:
+		_combat_lock=maxf(0,_combat_lock-delta)
+		if _strike_delay>=0:
+			_strike_delay-=delta
+			if _strike_delay<=0:
+				_strike_delay=-1
+				strike.emit()
+		velocity=Vector3(0,minf(velocity.y,0.0),0)
+		if not is_on_floor():velocity.y-=9.81*delta
+		move_and_slide()
+		_update_camera(delta)
 		return
+	if dead or not controls_enabled:return
 	var input := Input.get_vector("move_left","move_right","move_forward","move_back")
 	# Freeze the reference during a held directional input so automatic follow
 	# cannot cause endless circular walking. Mouse input can reset this basis.
@@ -244,7 +267,7 @@ func stop_controls() -> void:
 	controls_enabled=false
 	velocity=Vector3.ZERO
 	_last_input=Vector2.ZERO
-	if motion_installed:
+	if motion_installed and _combat_lock<=0 and not dead:
 		_animation.play("idle",0.15)
 
 func camera_position() -> Vector3:
@@ -276,4 +299,43 @@ func leave_vehicle(where: Vector3) -> void:
 	controls_enabled=true
 	_ever_grounded=false
 	_was_grounded=false
+	_update_camera(1.0)
+
+func heal(amount: int) -> bool:
+	if dead or amount<=0 or health>=100:return false
+	health=mini(100,health+amount)
+	health_changed.emit(health)
+	return true
+
+func start_punch() -> bool:
+	if not combat_installed or not controls_enabled or dead or _combat_lock>0 or not is_on_floor() or _crouched or first_person:return false
+	var clip: String="punch_cross" if _next_cross else "punch_jab"
+	_next_cross=not _next_cross
+	_combat_lock=clampf(_animation.get_animation(clip).length,0.35,2.0)
+	_strike_delay=_combat_lock*0.40
+	_animation.play(clip,0.07)
+	return true
+
+func take_damage(amount: int) -> bool:
+	if dead or amount<=0:return false
+	health=maxi(0,health-amount)
+	health_changed.emit(health)
+	_strike_delay=-1
+	dead=health==0
+	if combat_installed:
+		var clip: String="death" if dead else "hit_chest"
+		_combat_lock=clampf(_animation.get_animation(clip).length,0.30,6.0)
+		_animation.play(clip,0.08)
+	if dead:controls_enabled=false
+	return true
+
+func respawn(where: Vector3) -> void:
+	global_position=where
+	velocity=Vector3.ZERO
+	health=100
+	dead=false
+	_combat_lock=0.0
+	_strike_delay=-1.0
+	health_changed.emit(health)
+	if motion_installed:_animation.play("idle")
 	_update_camera(1.0)

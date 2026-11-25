@@ -1,6 +1,8 @@
 extends Control
 ## Both the minimap and expanded map draw the same installed world footprint.
 const Layout = preload("res://core/harbor_layout.gd")
+const City = preload("res://core/city_layout.gd")
+var city_enabled:=false
 signal expand_requested
 var rotate_with_actor := true
 var actor: Node3D
@@ -10,6 +12,7 @@ var pan := Vector2.ZERO
 var waypoint := Vector2.INF
 var academy := false
 var story_target := Vector2.INF
+var shop_target := Vector2.INF
 var aerial: Texture2D
 
 func _ready() -> void:
@@ -25,8 +28,12 @@ func toggle_full() -> void:
 	pan=Vector2.ZERO
 	queue_redraw()
 
+func _extent() -> float:
+	return City.EXTENT if city_enabled else Layout.MAP_EXTENT
+
 func _scale_factor() -> float:
-	return minf((size.x-48.0)/Layout.MAP_EXTENT,(size.y-72.0)/Layout.MAP_EXTENT)*zoom if expanded else 9.0
+	var extent:=_extent()
+	return minf((size.x-48.0)/extent,(size.y-72.0)/extent)*zoom if expanded else (2.4 if city_enabled else 9.0)
 
 func _screen(p: Vector2) -> Vector2:
 	var center := Vector2.ZERO if expanded or not is_instance_valid(actor) else Layout.map_position(actor.global_position)
@@ -52,18 +59,19 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP:
-			zoom=clampf(zoom*1.15,1.0,3.0)
+			zoom=clampf(zoom*1.15,1.0,12.0 if city_enabled else 3.0)
 		elif event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
-			zoom=clampf(zoom/1.15,1.0,3.0)
+			zoom=clampf(zoom/1.15,1.0,12.0 if city_enabled else 3.0)
 		elif event.button_index==MOUSE_BUTTON_LEFT:
 			var p: Vector2=(event.position-size*0.5-Vector2(0,8)-pan)/_scale_factor()
-			if Layout.walkable(p):
+			if (City.walkable(p) if city_enabled else Layout.walkable(p)):
 				waypoint=p
 		elif event.button_index==MOUSE_BUTTON_RIGHT:
 			waypoint=Vector2.INF
 		accept_event()
 	elif event is InputEventMouseMotion and event.button_mask&MOUSE_BUTTON_MASK_MIDDLE:
-		pan=(pan+event.relative).clamp(-size,size)
+		var limit:=size*zoom
+		pan=(pan+event.relative).clamp(-limit,limit)
 		accept_event()
 
 func _draw() -> void:
@@ -75,7 +83,7 @@ func _draw() -> void:
 	draw_set_transform(pivot-pivot.rotated(angle),angle,Vector2.ONE)
 	# All shapes use the real playable extent; no invented city districts.
 	if aerial!=null:
-		draw_texture_rect(aerial,_map_rect(Rect2(-Layout.MAP_EXTENT*0.5,-Layout.MAP_EXTENT*0.5,Layout.MAP_EXTENT,Layout.MAP_EXTENT)),false,Color(0.74,0.82,0.86))
+		draw_texture_rect(aerial,_map_rect(Rect2(-_extent()*0.5,-_extent()*0.5,_extent(),_extent())),false,Color.WHITE if city_enabled else Color(0.74,0.82,0.86))
 	draw_rect(_map_rect(Layout.BLOCK),Color(0.24,0.30,0.33,0.22 if aerial!=null else 1.0))
 	draw_rect(_map_rect(Layout.ROAD),Color(0.10,0.14,0.18,0.26 if aerial!=null else 1.0))
 	for x: float in [-3.4,3.4]:
@@ -92,6 +100,10 @@ func _draw() -> void:
 		var pos := _screen(Vector2(-5.25,5))
 		draw_circle(pos,6,Color(0.97,0.71,0.34))
 		if expanded:draw_string(font,pos+Vector2(13,4),"Harbor utilities",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
+	if shop_target.is_finite():
+		var shop_point:=_screen(shop_target)
+		draw_circle(shop_point,6,Color(0.57,0.88,0.66))
+		if expanded:draw_string(font,shop_point+Vector2(12,4),"Harbor Market",HORIZONTAL_ALIGNMENT_LEFT,-1,15,ink)
 	if story_target.is_finite():
 		var target := _screen(story_target)
 		draw_circle(target,8,Color(0.97,0.71,0.34),false,2.5)
@@ -112,13 +124,13 @@ func _draw() -> void:
 		draw_string(font,point+Vector2(-5,5),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(0.52,0.91,0.98))
 	# Opaque header and footer keep the viewport legible when panned/zoomed.
 	draw_rect(Rect2(0,0,size.x,34),Color(0.045,0.075,0.095))
-	draw_string(font,Vector2(12,23),"HARBOR BOULEVARD",HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
+	draw_string(font,Vector2(12,23),(City.district(City.cell_at(Layout.map_position(actor.global_position))).to_upper() if city_enabled and is_instance_valid(actor) else "HARBOR BOULEVARD"),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
 	if expanded:draw_string(font,Vector2(size.x-24,23),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(0.52,0.91,0.98))
 	draw_rect(Rect2(0,size.y-28,size.x,28),Color(0.045,0.075,0.095))
 	draw_string(font,Vector2(12,size.y-9),"M  Close  |  Scroll to zoom  |  Click to mark" if expanded else "M / Click  Expand map",HORIZONTAL_ALIGNMENT_LEFT,-1,12,ink)
 	if expanded:
 		draw_string(font,Vector2(24,65),"Current district",HORIZONTAL_ALIGNMENT_LEFT,-1,18,ink)
-		draw_string(font,Vector2(24,86),"40 x 36 m Harbor block",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
+		draw_string(font,Vector2(24,86),("1,200 x 1,200 m city" if city_enabled else "40 x 36 m Harbor block"),HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,65),"MAP LEGEND",HORIZONTAL_ALIGNMENT_LEFT,-1,14,ink)
 		draw_string(font,Vector2(size.x-210,88),"Cyan  /  Player or vehicle",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
 		draw_string(font,Vector2(size.x-210,109),"Grey  /  Closed buildings",HORIZONTAL_ALIGNMENT_LEFT,-1,13,ink)
