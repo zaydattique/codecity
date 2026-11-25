@@ -121,3 +121,15 @@ func _halt() -> void:
 	if is_instance_valid(bridge) and bridge.pid>0:bridge._stop()
 	# Explicitly stop on failure; not a substitute GDScript AI policy.
 	print("CODECITY_NPC_WORKER_UNAVAILABLE idle fallback")
+
+func nearest_visible(origin: Vector3,radius: float) -> Node3D:
+	var result: Node3D
+	var nearest:=radius
+	for actor: Node3D in actors.values():
+		var distance:=actor.global_position.distance_to(origin)
+		if distance>nearest:continue
+		var query:=PhysicsRayQueryParameters3D.create(origin+Vector3.UP*0.8,actor.global_position+Vector3.UP*0.8,1)
+		if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():continue
+		nearest=distance
+		result=actor
+	return result
