@@ -37,7 +37,7 @@ func _ready() -> void:
 	_select("Frame limit",["30 FPS","60 FPS","120 FPS","Unlimited"],_prefs.FPS_LIMITS.find(_prefs.fps_limit),func(i):_prefs.fps_limit=_prefs.FPS_LIMITS[i])
 	_select("Window resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],_prefs.resolution_index,func(i):_prefs.resolution_index=i)
 	var instructions := Label.new()
-	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights | H horn\nWORLD   E interact | M map | Esc pause | Tab cursor / click minimap"
+	instructions.text="ON FOOT   WASD move | Mouse look | Shift sprint\nAlt walk | Space jump | C crouch | V camera\nDRIVING   F enter/exit | WASD drive | Space brake | L lights | H horn\nCOMBAT   Left mouse punch (Living World)\nWORLD   E interact | M map | Esc pause | Tab cursor / click minimap"
 	instructions.add_theme_font_size_override("font_size",15)
 	_settings.add_child(instructions)
 	_binding_note=Label.new()
