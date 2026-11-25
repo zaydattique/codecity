@@ -254,14 +254,13 @@ func try_toggle_vehicle() -> bool:
 
 func _safe_exit() -> Vector3:
 	var space := get_world_3d().direct_space_state
-	for side: float in [1.0,-1.0]:
-		var guess: Vector3=vehicle.exit_point(side)
+	for guess: Vector3 in vehicle.exit_candidates():
 		var ray := PhysicsRayQueryParameters3D.create(guess+Vector3.UP,guess-Vector3.UP*1.8,1,[vehicle.get_rid(),player.get_rid()])
 		var floor_hit := space.intersect_ray(ray)
 		if floor_hit.is_empty() or floor_hit.normal.y<0.7:
 			continue
 		var feet: Vector3=floor_hit.position+Vector3.UP*0.035
-		if not Layout.street_contains(feet):
+		if not Layout.street_contains(feet) or not vehicle.clear_of_door(feet):
 			continue
 		var capsule := CapsuleShape3D.new()
 		capsule.radius=0.29

@@ -102,7 +102,7 @@ func _verify() -> void:
 		_fail("safe exit and control restoration")
 		return
 	await ticks(25)
-	if not world.player.is_on_floor() or world.player.collision_layer!=2:
+	if not world.player.is_on_floor() or world.player.collision_layer!=2 or not car.clear_of_door(world.player.global_position):
 		_fail("exit floor or collision")
 		return
 	if "--capture" in OS.get_cmdline_user_args():

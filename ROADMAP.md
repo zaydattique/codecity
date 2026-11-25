@@ -76,3 +76,5 @@ Goal: one licensed neutralized coupe with real wheels/cockpit and physical drivi
 P09 vehicle runtime candidate implemented with four measured wheels, basic raycast physics, real door/headlight action and safe range/LOS/speed/capsule entry/exit, map/pause ownership; dedicated actual-model regression written. Remaining art build, integration, real driving tests, rendering and seated/IK, controller/manual/hardware gates. No vehicle in prior Windows export.
 
 P09 first actual neutralized car art and physics candidate passed in 45629610589/45629868579. Source material rework for verified emission/glass defects and HUD ownership correction committed, rerender and physics retest pending. Candidate Windows export still pending, no seated driver or final vehicle approval.
+
+Revised vehicle v002 actual driving and material render tests passed 45630744693; fixed observed exit leg/door overlap with geometry-derived swept clearance. Latest full candidate regression and Windows export required before delivery. No final vehicle art or seating/handling approval.

@@ -14,6 +14,7 @@ var _door: Node3D
 var _door_basis: Basis
 var _door_tween: Tween
 var _door_angle := 0.0
+var _door_sweep := AABB()
 var _camera: Camera3D
 var _headlights: Array[SpotLight3D] = []
 var _driver_side := -1.0
@@ -75,6 +76,15 @@ func _ready() -> void:
 	if is_zero_approx(_driver_side):
 		push_error("Driver side invalid")
 		return
+	# Derive a conservative swept envelope from the actual closed door meshes.
+	var closed := _local_bounds(_door)
+	var pivot := to_local(_door.global_position)
+	_door_sweep=closed
+	for sample: int in range(11):
+		var angle := deg_to_rad(50.0)*-_driver_side*float(sample)/10.0
+		var rotation := Basis(Vector3.UP,angle)
+		for corner: int in range(8):
+			_door_sweep=_door_sweep.expand(pivot+rotation*(closed.get_endpoint(corner)-pivot))
 	for i: int in range(4):
 		var wheel := VehicleWheel3D.new()
 		wheel.name="Suspension_"+WHEEL_KEYS[i]
@@ -173,6 +183,22 @@ func entry_point() -> Vector3:
 
 func exit_point(side: float) -> Vector3:
 	return to_global(Vector3(_driver_side*side*1.75,0.55,0.05))
+
+## Exit behind the driver's actual swept door envelope. If blocked, do not
+## teleport to the opposite door or overlap world geometry.
+func exit_candidates() -> Array[Vector3]:
+	var candidates: Array[Vector3]=[]
+	for offset: float in [0.62,0.88,1.1]:
+		for lateral: float in [1.75,2.05]:
+			candidates.append(to_global(Vector3(_driver_side*lateral,0.55,_door_sweep.position.z-offset)))
+	return candidates
+
+func clear_of_door(where: Vector3) -> bool:
+	var p := to_local(where)
+	var margin := 0.38
+	var inside_x := p.x>=_door_sweep.position.x-margin and p.x<=_door_sweep.end.x+margin
+	var inside_z := p.z>=_door_sweep.position.z-margin and p.z<=_door_sweep.end.z+margin
+	return not (inside_x and inside_z)
 
 func set_occupied(value: bool) -> void:
 	occupied=value
