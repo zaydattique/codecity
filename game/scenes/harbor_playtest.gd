@@ -135,9 +135,9 @@ func _ready() -> void:
 				var sky_material:=node.environment.sky.sky_material as ProceduralSkyMaterial
 				sky_material.sky_top_color=Color(0.13,0.22,0.39)
 				sky_material.sky_horizon_color=Color(0.68,0.46,0.39)
-	if _enable_npcs and Crowd.installed():
+	if _enable_npcs and Crowd.installed(city_enabled):
 		var director := Crowd.new()
-		if director.prepare(player,vehicle):
+		if director.prepare(player,vehicle,city_enabled):
 			crowd=director
 			add_child(crowd)
 			# Exclude moving NPC geometry from the static aerial map.
