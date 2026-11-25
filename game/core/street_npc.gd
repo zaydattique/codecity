@@ -1,5 +1,7 @@
 extends CharacterBody3D
 ## Executes validated Python intents; no autonomous decision fallback.
+signal spoke(line: String)
+var use_crossing := true
 var npc_id := ""
 var _art: Node3D
 var _anim: AnimationPlayer
@@ -67,7 +69,7 @@ func apply_intent(intent: Dictionary, point: Vector3, subject: Node3D) -> void:
 	if action in ["acknowledge","complain","inspect"]:
 		_reaction_seconds=1.3
 		_reaction.text={"acknowledge":"Hey.","complain":"Watch out!","inspect":"I'll check it."}[action]
-		_reaction.show()
+		spoke.emit(_reaction.text)
 
 func halt() -> void:
 	expires=-1
@@ -90,10 +92,10 @@ func _physics_process(delta: float) -> void:
 		var target := goal
 		# Use the crossing corridor for opposite sidewalk destinations, not
 		# diagonal shortcuts through the parked car or facade.
-		if absf(goal.x)>3.4 and absf(global_position.x)>3.4 and signf(goal.x)!=signf(global_position.x):
+		if use_crossing and absf(goal.x)>3.4 and absf(global_position.x)>3.4 and signf(goal.x)!=signf(global_position.x):
 			if absf(global_position.z)>0.45:target=Vector3(global_position.x,0,0)
 			else:target=Vector3(goal.x,0,0)
-		elif absf(global_position.x)<=3.4 and absf(goal.x)>3.4:
+		elif use_crossing and absf(global_position.x)<=3.4 and absf(goal.x)>3.4:
 			target=Vector3(goal.x,0,0)
 		var offset := target-global_position
 		offset.y=0
