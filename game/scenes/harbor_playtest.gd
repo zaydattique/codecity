@@ -3,6 +3,10 @@ extends Node3D
 ## Explicit candidate playtest; no finished animations, interiors or missions claimed.
 signal leave_requested
 const Layout = preload("res://core/harbor_layout.gd")
+const City = preload("res://core/city_layout.gd")
+const CityStream = preload("res://core/city_stream.gd")
+var city_enabled := false
+var city_stream: Node3D
 const Player = preload("res://core/street_player.gd")
 const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
@@ -56,7 +60,8 @@ static func installed() -> bool:
 			return false
 	return true
 
-func prepare(character: String, education: bool=false, enable_npcs: bool=true) -> bool:
+func prepare(character: String, education: bool=false, enable_npcs: bool=true, enable_city: bool=false) -> bool:
+	city_enabled=enable_city
 	academy_mode=education
 	_enable_npcs=enable_npcs
 	if is_inside_tree() or character not in ["adrian","maya"] or not installed():
@@ -97,6 +102,15 @@ func _ready() -> void:
 	process_mode=Node.PROCESS_MODE_ALWAYS
 	player.process_mode=Node.PROCESS_MODE_PAUSABLE
 	_relayout_art()
+	if city_enabled:
+		var stream:=CityStream.new()
+		if not stream.configure(get_node("HarborArt"),_court_material,player):
+			stream.free()
+			city_enabled=false
+			push_error("City requires the reviewed facade and paving assets.")
+		else:
+			city_stream=stream
+			add_child(stream)
 	_make_collision()
 	_make_light()
 	_make_hud()
@@ -213,11 +227,12 @@ func _make_collision() -> void:
 		var h: float=Layout.HEIGHTS[i]
 		_box("ClosedExterior%d"%i,Vector3(r.get_center().x,0.15+h*0.5,r.get_center().y),Vector3(r.size.x,h,r.size.y))
 	# Existing road closures remain visible; the perimeter is a visible rail fence.
-	_make_block_fence()
-	_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
-	_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
-	_make_road_closure(-16.0)
-	_make_road_closure(16.0)
+	if not city_enabled:
+		_make_block_fence()
+		_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
+		_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
+		_make_road_closure(-16.0)
+		_make_road_closure(16.0)
 	# Furniture collisions derived from actual imported source meshes.
 	for node: Node in get_node("HarborArt").find_children("*","MeshInstance3D",true,false):
 		var m := node as MeshInstance3D
@@ -265,6 +280,10 @@ func _make_light() -> void:
 	env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color=Color(0.75,0.81,0.9)
 	env.environment.ambient_light_energy=0.65
+	if city_enabled:
+		env.environment.fog_enabled=true
+		env.environment.fog_light_color=Color(0.73,0.80,0.86)
+		env.environment.fog_density=0.011
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-52,-32,0)
@@ -279,13 +298,16 @@ func _make_hud() -> void:
 	_map=Map.new()
 	_map.actor=player
 	_map.academy=academy_mode
+	_map.city_enabled=city_enabled
 	_map.rotate_with_actor=_prefs.rotate_minimap
 	_map.expand_requested.connect(func():
 		if not _paused and not _editor_open:_toggle_map())
 	_map.position=Vector2(20,480)
 	_map.size=Vector2(224,220)
 	_map.clip_contents=true
-	if DisplayServer.get_name()!="headless":
+	if city_enabled:
+		_map.aerial=ImageTexture.create_from_image(City.map_image())
+	elif DisplayServer.get_name()!="headless":
 		_make_overhead_map()
 	_hud.add_child(_map)
 	_status=Label.new()
@@ -398,6 +420,7 @@ func _process(_delta: float) -> void:
 	if not _ready_world:return
 	_update_story()
 	if _paused:return
+	if is_instance_valid(city_stream):city_stream.set_focus(vehicle if _driving else player)
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
 		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
@@ -416,9 +439,14 @@ func _update_actor_hud() -> void:
 		return
 	var name := "Adrian Cole" if _character=="adrian" else "Maya Bennett"
 	if _driving:
-		_status.text="Harbor Boulevard | %s\nVehicle controls\nM map · Esc pause"%name
+		_status.text="%s | %s\nVehicle controls\nM map · Esc pause"%[_district_name(),name]
 	else:
-		_status.text="Harbor Boulevard | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%name
+		_status.text="%s | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%[_district_name(),name]
+
+func _district_name() -> String:
+	if not city_enabled:return "Harbor Boulevard"
+	var actor: Node3D=vehicle if _driving else player
+	return City.district(City.cell_at(Vector2(actor.global_position.x,actor.global_position.z)))
 
 func _sync_controls() -> void:
 	_update_actor_hud()
@@ -465,7 +493,8 @@ func _safe_exit() -> Vector3:
 		if floor_hit.is_empty() or floor_hit.normal.y<0.7:
 			continue
 		var feet: Vector3=floor_hit.position+Vector3.UP*0.035
-		if not Layout.street_contains(feet) or not vehicle.clear_of_door(feet):
+		var walkable: bool=City.walkable(Vector2(feet.x,feet.z)) if city_enabled else Layout.street_contains(feet)
+		if not walkable or not vehicle.clear_of_door(feet):
 			continue
 		var capsule := CapsuleShape3D.new()
 		capsule.radius=0.29
