@@ -37,12 +37,12 @@ func configure(model: PackedScene, height: float) -> bool:
 		_animation=animation_nodes[0] as AnimationPlayer
 		print("MOTION_IMPORT clips=",_animation.get_animation_list())
 		motion_installed=true
-		for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_start","jump_loop","jump_land"]:
+		for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_start","jump_air","jump_land"]:
 			if not _animation.has_animation(clip):
 				motion_installed=false
 				break
 		if motion_installed:
-			for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_loop"]:
+			for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_air"]:
 				_animation.get_animation(clip).loop_mode=Animation.LOOP_LINEAR
 	_capsule = CapsuleShape3D.new()
 	_capsule.radius = RADIUS
@@ -129,7 +129,7 @@ func _update_motion() -> void:
 		elif current=="jump_start" and _animation.is_playing():
 			target="jump_start"
 		else:
-			target="jump_loop"
+			target="jump_air"
 	elif not _was_grounded:
 		target="jump_land"
 	elif current=="jump_land" and _animation.is_playing():

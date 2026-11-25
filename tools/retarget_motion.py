@@ -16,7 +16,7 @@ from tools.freeze_character_morphs import decode, accessor
 
 PIN = "ba9514cdd88ecc2d40ecad503a644449fc98e665"
 BLOB = "473e59080288428d0b6da826ba19324d07b191f0"
-CLIPS = {"Idle_Loop":"idle", "Walk_Loop":"walk", "Jog_Fwd_Loop":"jog", "Sprint_Loop":"sprint", "Crouch_Idle_Loop":"crouch_idle", "Crouch_Fwd_Loop":"crouch_walk", "Jump_Start":"jump_start", "Jump_Loop":"jump_loop", "Jump_Land":"jump_land"}
+CLIPS = {"Idle_Loop":"idle", "Walk_Loop":"walk", "Jog_Fwd_Loop":"jog", "Sprint_Loop":"sprint", "Crouch_Idle_Loop":"crouch_idle", "Crouch_Fwd_Loop":"crouch_walk", "Jump_Start":"jump_start", "Jump_Loop":"jump_air", "Jump_Land":"jump_land"}
 CORE = ("pelvis","spine_01","spine_02","spine_03","neck_01","head",
         "clavicle_l","upperarm_l","lowerarm_l","hand_l",
         "clavicle_r","upperarm_r","lowerarm_r","hand_r",
