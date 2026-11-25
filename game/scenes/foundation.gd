@@ -109,13 +109,18 @@ func _open_street() -> void:
 		_status.text="Character spawn failed."
 		return
 	_world=world
+	world.restore_cash(_sessions.cash_balance())
+	world.cash_changed.connect(func(value: int):
+		if _sessions.set_cash_balance(value):_save_profiles())
 	world.leave_requested.connect(_close_street)
 	if is_instance_valid(world.station):
 		world.station.restore_progress(_sessions.snapshot(draft["profile_id"])["progress"]["academy"])
 		world.station.exercise_completed.connect(func(id: String):
 			if _sessions.complete_mission(id,"academy"):_save_profiles())
 	world.story_completed.connect(func():
-		if _sessions.complete_mission("a_new_beginning","living_world"):_save_profiles())
+		if _sessions.complete_mission("a_new_beginning","living_world"):
+			world.reward_cash(150)
+			_save_profiles())
 	_save_profiles()
 	$CanvasLayer.hide()
 
