@@ -63,3 +63,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `ai/npc_brain.py` six-profile bounded deterministic NPC decision engine; `tests/test_npc_brain.py` behavior and batch tests; existing worker now supports npc_batch. No visible actors integrated. Full/minimap now optionally uses one actual overhead render texture plus live coordinates; headless retains vector geometry.
 
 `art/characters.json` now includes six non-playable adult candidate presets, separate from two protagonists; existing character builder accepts these six IDs. `.github/workflows/npc-cast.yml` builds/retargets six separate rigs, not clones.
+
+`game/core/npc_bridge.gd`, `npc_director.gd`, `street_npc.gd` implement persistent IPC, bounded six-agent decision orchestration and actual rig locomotion. Existing `ai/worker.py` adds mailbox mode, preserving stdin protocol; new persistent-process test. No fake actors.

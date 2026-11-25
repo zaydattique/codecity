@@ -54,3 +54,26 @@ def test_npc_worker_process_roundtrip():
     result=subprocess.run([sys.executable,str(ROOT/'ai/worker.py')],input=json.dumps(request).encode()+b"\n",capture_output=True,timeout=5,check=True)
     response=json.loads(result.stdout)
     assert response["op"]=="npc_intents" and response["intents"][0]["action"]=="acknowledge"
+
+
+def test_persistent_mailbox_memory(tmp_path):
+    import time
+    p=subprocess.Popen([sys.executable,"-I","-S",str(ROOT/"ai/worker.py"),"--mailbox",str(tmp_path)])
+    def send(tick):
+        req={"version":1,"id":str(tick),"op":"npc_batch","observations":[{"id":"nora","position":[-4.5,0],"minute":600,"tick":tick,"reached":False,"player_distance":1,"event":{"id":1,"kind":"greet","distance":1}}]}
+        temp=tmp_path/"request.tmp"
+        temp.write_text(json.dumps(req))
+        temp.replace(tmp_path/"request.json")
+        reply=tmp_path/"response.json"
+        until=time.monotonic()+5
+        while not reply.exists() and time.monotonic()<until:time.sleep(.025)
+        result=json.loads(reply.read_text())
+        reply.unlink()
+        return result
+    try:
+        assert send(1000)["intents"][0]["action"]=="acknowledge"
+        assert send(1100)["intents"][0]["action"]=="walk"
+        (tmp_path/"stop").touch()
+        assert p.wait(timeout=5)==0
+    finally:
+        if p.poll() is None:p.kill();p.wait(timeout=5)

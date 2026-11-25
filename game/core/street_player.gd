@@ -58,7 +58,7 @@ func configure(model: PackedScene, height: float) -> bool:
 	_shape.position.y = height_m * 0.5
 	add_child(_shape)
 	collision_layer = 2
-	collision_mask = 5
+	collision_mask = 13
 	floor_snap_length = 0.22
 	floor_max_angle = deg_to_rad(48)
 	_camera = Camera3D.new()
@@ -201,7 +201,7 @@ func _set_crouch(wanted: bool) -> void:
 		full.height=height_m
 		query.shape=full
 		query.transform=Transform3D(Basis.IDENTITY,global_position+Vector3.UP*(height_m*0.5+0.025))
-		query.collision_mask=5
+		query.collision_mask=13
 		query.exclude=[get_rid()]
 		if not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty():
 			return
@@ -263,7 +263,7 @@ func leave_vehicle(where: Vector3) -> void:
 	_shape.position.y=height_m*0.5
 	_shape.disabled=false
 	collision_layer=2
-	collision_mask=5
+	collision_mask=13
 	first_person=false
 	_visual.show()
 	_camera.current=true

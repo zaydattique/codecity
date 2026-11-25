@@ -8,6 +8,9 @@ const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
 const Interaction = preload("res://core/world_interaction.gd")
 const Academy = preload("res://core/academy_station.gd")
+const Crowd = preload("res://core/npc_director.gd")
+var crowd: Node3D
+var _enable_npcs := true
 const PauseSettings = preload("res://core/pause_settings.gd")
 const Style = preload("res://core/ui_style.gd")
 var _cursor_unlocked := false
@@ -35,8 +38,9 @@ static func installed() -> bool:
 			return false
 	return true
 
-func prepare(character: String, education: bool=false) -> bool:
+func prepare(character: String, education: bool=false, enable_npcs: bool=true) -> bool:
 	academy_mode=education
+	_enable_npcs=enable_npcs
 	if is_inside_tree() or character not in ["adrian","maya"] or not installed():
 		return false
 	var street := load(Assets+"street.glb") as PackedScene
@@ -82,12 +86,20 @@ func _ready() -> void:
 		station.position=Vector3(-5.25,0.15,5.0)
 		add_child(station)
 		station.setup(_hud)
-		station.completed.connect(func(): academy_completed.emit())
+		station.completed.connect(func():
+			academy_completed.emit()
+			if is_instance_valid(crowd):crowd.perceive("lamp_restored",station.global_position,8.0))
 		station.editor_changed.connect(_academy_editor)
 		# Dusk lighting makes the real restored fixtures visibly affect the street.
 		for node: Node in get_children():
 			if node is DirectionalLight3D:node.light_energy=0.22
 			if node is WorldEnvironment:node.environment.ambient_light_energy=0.23
+	if _enable_npcs and Crowd.installed():
+		var director := Crowd.new()
+		if director.prepare(player,vehicle):
+			crowd=director
+			add_child(crowd)
+		else:director.free()
 	_ready_world=true
 	if DisplayServer.get_name()!="headless":
 		Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
@@ -205,6 +217,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and not _cursor_unlocked and Interaction.within_range(player,station,2.5):
 		station.open_editor()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("interact") and is_instance_valid(crowd) and not _driving and not _paused and not _map.expanded and not _cursor_unlocked:
+		crowd.perceive("greet",player.global_position,2.5)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("vehicle_horn") and is_instance_valid(crowd) and _driving and not _paused and not _map.expanded:
+		crowd.perceive("horn",vehicle.global_position,8.0)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("pause_game"):
@@ -325,7 +345,7 @@ func _safe_exit() -> Vector3:
 		var shape := PhysicsShapeQueryParameters3D.new()
 		shape.shape=capsule
 		shape.transform=Transform3D(Basis.IDENTITY,feet+Vector3.UP*capsule.height*0.5)
-		shape.collision_mask=5
+		shape.collision_mask=13
 		shape.exclude=[player.get_rid()]
 		if space.intersect_shape(shape,1).is_empty():
 			return feet

@@ -28,7 +28,7 @@ func configure(model: PackedScene) -> bool:
 	add_child(_art)
 	mass=1250.0
 	collision_layer=4
-	collision_mask=3
+	collision_mask=11
 	linear_damp=0.12
 	angular_damp=0.45
 	can_sleep=false

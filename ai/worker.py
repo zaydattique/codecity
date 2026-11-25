@@ -2,10 +2,13 @@
 import json
 import re
 import sys
+import time
+from pathlib import Path
 
 try:
     from .npc_brain import Brain
 except ImportError:
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
     from npc_brain import Brain
 
 BRAIN=Brain()
@@ -73,5 +76,36 @@ def main() -> int:
         print(json.dumps(handle(line), separators=(",", ":")), flush=True)
 
 
+def mailbox(folder: Path) -> int:
+    """Trusted local single-request mailbox. No shell, network or student code."""
+    if not folder.is_dir():
+        return 2
+    request=folder/"request.json"
+    response=folder/"response.json"
+    temp=folder/"response.tmp"
+    deadline=time.monotonic()+600
+    while time.monotonic()<deadline:
+        if (folder/"stop").exists():
+            return 0
+        if request.is_file() and not response.exists():
+            try:
+                with request.open("rb") as stream:
+                    frame=stream.read(MAX_FRAME+1)
+                request.unlink()
+                result=handle(frame)
+                data=json.dumps(result,separators=(",",":"),allow_nan=False).encode("utf-8")
+                if len(data)>MAX_FRAME:return 2
+                temp.write_bytes(data)
+                temp.replace(response)
+                deadline=time.monotonic()+600
+            except (OSError,ValueError):return 2
+        time.sleep(.025)
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv)==3 and sys.argv[1]=="--mailbox":
+        raise SystemExit(mailbox(Path(sys.argv[2])))
+    if len(sys.argv)!=1:
+        raise SystemExit(2)
     raise SystemExit(main())
