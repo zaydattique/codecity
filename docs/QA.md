@@ -32,3 +32,5 @@ P08 verified runs 45622041590 and 45622243827: native Linux/Windows movement reg
 Vehicle candidate package requires exact reviewed derivative digest, successful real Linux physics/render, native Windows street and vehicle suites, and standalone exported world/rig/car spawn and wheel contact check. Candidate-only approval does not authorize final visuals, seating or handling.
 
 Actual door sweep clearance now derived from imported closed door mesh bounds and 0..50 degree hinge transform, conservative sampled envelope plus 0.38m margin. Exit candidates behind the door checked against actual ground and capsule obstacles; reject if none. Regression requires exit player outside this swept volume; full entry animation/hand IK and door collision remain pending.
+
+P09 latest run 45631491513: Linux headless/render, native Windows street and vehicle regressions, standalone EXE installed world, character and wheel-contact smoke passed. Artifact 15031685807. Motion/physics candidate not equivalent to interactive target hardware, complete animations or full game acceptance.

@@ -91,3 +91,7 @@ With matching Windows export templates installed and a fresh output folder, use 
 ## First standalone Windows candidate
 
 [Download Windows Street Test (latest verified candidate)](https://github.com/zaydattique/codecity/actions/runs/45622243827/artifacts/15023914487). Extract and keep EXE/PCK together. Create local temporary profile, choose Living World, select Adrian or Maya and open street physics test. Nine licensed clips, real collision, minimap/full map and pause. No installed development tools required. Hosted native Windows physics and standalone boot passed; manual user playtest, GPU metrics, art approval, vehicle, NPCs, missions, save and Academy execution are not complete. Artifacts expire; local staging instructions above preserve reproducibility. See exact run logs; do not describe as finished game.
+
+## First driving-enabled Windows candidate
+
+[Download Driving Test v2](https://github.com/zaydattique/codecity/actions/runs/45631491513/artifacts/15031685807). Extract, keep EXE and PCK together, choose Living World and either character; approach the parked coupe, press F, W/S drive/reverse, A/D steer, Space brake, L headlights, stop before F exit. Latest actual Linux/Windows street and vehicle tests plus standalone exported car/actor/suspension smoke passed. Candidate includes exact reviewed CC-BY derivative, not a final car or game. No seated driver mesh, final IK, NPCs, interior, missions, save or Academy execution. Hosted artifacts expire; retain candidate files outside git.

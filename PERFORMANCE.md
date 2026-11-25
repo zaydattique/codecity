@@ -17,3 +17,5 @@ Hosted CPU smoke and pilot rendering are functional checks only. Do not report G
 Revised targets preserve 720p30/1080p60 as goals; add isolated Academy execution resource limits, zero game-thread wait, mode-specific load and terminal latency. Later 25–40 nearby NPCs only after six pass and hardware profiling. Hosted Windows/Linux boot and tests are functional evidence, not hardware benchmarks.
 
 P08 Windows candidate export/boot and actual physics passed on GitHub windows-2025; rendered tests Ubuntu 24.04 software OpenGL (llvmpipe, Dummy audio for visual-only tests). This verifies functional execution, not gaming FPS. No real target GPU hardware measurements, frame percentiles, RAM/VRAM or load-time benchmark recorded. Keep 720p30 and 1080p60 as targets only.
+
+P09 functional QA: four suspension contacts, 1.964m along heading and 12.56km/h after 65 physics ticks on Linux and Windows hosted runners. These are driving regression observations, not FPS or final vehicle tuning metrics. Software-rendered 1280x720 screenshots reviewed; target hardware FPS, percentile frame times and memory still unmeasured.
