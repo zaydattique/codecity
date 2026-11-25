@@ -7,7 +7,7 @@ const Style = preload("res://core/ui_style.gd")
 var _world: Node3D
 var _launch: Button
 var _sessions = Sessions.new()
-var _profile_counter: int = 0
+var _persistent := false
 @onready var _menu: VBoxContainer = $CanvasLayer/Center/VBox
 @onready var _name: LineEdit = _menu.get_node("ProfileName")
 @onready var _mode: OptionButton = _menu.get_node("Mode")
@@ -16,6 +16,8 @@ var _profile_counter: int = 0
 
 
 func _ready() -> void:
+	_persistent=DisplayServer.get_name()!="headless" and not OS.get_cmdline_user_args().any(func(arg: String):return arg.ends_with("-smoke") or arg=="--smoke")
+	if _persistent:_sessions.load_profiles()
 	_menu.theme=Style.theme()
 	_menu.get_node("Title").add_theme_color_override("font_color",Color(0.54,0.87,0.91))
 	_mode.add_item("Living World", 0)
@@ -67,21 +69,20 @@ func _on_apply_pressed() -> void:
 	if display_name.is_empty():
 		_status.text = "Enter a profile name."
 		return
-	var current := _sessions.draft_selection()
-	var id: String = current.get("profile_id", "")
-	if id.is_empty() or _sessions.snapshot(id).get("name", "") != display_name:
-		_profile_counter += 1
-		id = "local_%d" % _profile_counter
-		if not _sessions.create_profile(id, display_name):
-			_status.text = "Profile name or session limit is invalid."
+	var id: String=_sessions.find_profile(display_name)
+	if id.is_empty():
+		id=_sessions.next_profile_id()
+		if not _sessions.create_profile(id,display_name):
+			_status.text="Profile name or session limit is invalid."
 			return
 	if not _sessions.select_draft(id, Sessions.MODES[_mode.selected], Sessions.CHARACTERS[_character.selected]):
 		_status.text = "Invalid selection."
 		return
 	_launch.disabled=not Harbor.installed() or (_mode.selected==1 and AcademyBridge.paths().is_empty())
+	_save_profiles()
 	_status.text = "Selected: %s / %s." % [_mode.get_item_text(_mode.selected), _character.get_item_text(_character.selected)]
 	if _mode.selected==1:
-		_status.text += " Python lighting mission ready." if not _launch.disabled else " Python mission runtime unavailable."
+		_status.text += " Harbor utilities assignments ready." if not _launch.disabled else " Python mission runtime unavailable."
 	elif not Harbor.installed():
 		_status.text += " World not installed."
 	else:
@@ -97,7 +98,7 @@ func _open_street() -> void:
 	var world = Harbor.new()
 	if not world.prepare(draft.get("character",""),draft.get("mode")=="academy"):
 		world.free()
-		_status.text="Street candidate could not load."
+		_status.text="Harbor Boulevard could not load."
 		return
 	add_child(world)
 	if not _sessions.activate(draft["profile_id"],draft["mode"],draft["character"],world.player):
@@ -106,11 +107,21 @@ func _open_street() -> void:
 		return
 	_world=world
 	world.leave_requested.connect(_close_street)
-	world.academy_completed.connect(func(): _sessions.complete_mission("street_lighting","academy"))
-	world.story_completed.connect(func(): _sessions.complete_mission("a_new_beginning","living_world"))
+	if is_instance_valid(world.station):
+		world.station.restore_progress(_sessions.snapshot(draft["profile_id"])["progress"]["academy"])
+		world.station.exercise_completed.connect(func(id: String):
+			if _sessions.complete_mission(id,"academy"):_save_profiles())
+	world.story_completed.connect(func():
+		if _sessions.complete_mission("a_new_beginning","living_world"):_save_profiles())
+	_save_profiles()
 	$CanvasLayer.hide()
 
+func _save_profiles() -> void:
+	if _persistent and not _sessions.save_profiles():
+		_status.text="Could not save local profiles."
+
 func _close_street() -> void:
+	_save_profiles()
 	if is_instance_valid(_world):
 		_world.queue_free()
 	_world=null
@@ -175,7 +186,7 @@ func _academy_smoke() -> void:
 
 # Standalone packaged crowd and story readiness, not a manual playthrough.
 func _demo_smoke() -> void:
-	_name.text="Demo export verification"
+	_name.text="Integrated export verification"
 	_mode.select(0)
 	_character.select(0)
 	_on_apply_pressed()
