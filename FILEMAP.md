@@ -41,3 +41,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `tools/retarget_motion.py` extracts pinned licensed UAL rotations, transforms rest bases and writes five clips into separate MPFB runtime GLBs without changing skin/geometry. `tests/test_retarget_motion.py` quaternion and alias tests. Street CI now builds and requires real clip playback before screenshot; no primitive animation substitutes.
 
 `verification/candidate_export_presets.cfg`: isolated Windows x86_64 street candidate preset. Street workflow now stages tested source/project only after Linux motion/physics/render gates and runs Windows candidate export + standalone boot. No production binary committed.
+
+`tools/stage_street_candidate.py` stages a fresh candidate project from the exact verified art ZIPs and licensed motion GLB; `tests/test_street_candidate_stage.py` checks exact members and digest rejection. Local packaging helper, no approved binary committed.

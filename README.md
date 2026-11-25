@@ -75,3 +75,15 @@ Latest Phase A checkpoint: both adult rigs generated, street 69,111 triangles an
 Phase A actual Godot visual review passed (45603398478), both frozen adult rigs and street. Candidate-only street controller/menu integration now implemented, CI pending. No playable final animation, car or Academy mission yet. Candidate asset package staged only in verification project; normal source checkout still boots profile selection without assets. No fake start.
 
 Candidate Windows export is configured behind successful street motion and physics QA. If run completes, the CodeCity-Windows-Street-Test artifact contains EXE, PCK and license notices, not a finished game. The export gate checks native Windows physics and standalone headless boot; no interactive hardware or performance claim until separately tested.
+
+### Local candidate street staging (offline after downloads)
+
+Download the exact [character archive](https://github.com/zaydattique/codecity/actions/runs/45603398478/artifacts/15016622099), [street archive](https://github.com/zaydattique/codecity/actions/runs/45601941130/artifacts/15015299272) and [CC0 UAL1 motion GLB](https://raw.githubusercontent.com/webgl-games/opencity/ba9514cdd88ecc2d40ecad503a644449fc98e665/assets/characters/UAL1_Standard.glb). Keep copies outside git; hosted artifacts expire. With pinned Python/Godot and downloaded files:
+
+```powershell
+python -m tools.stage_street_candidate --characters phaseA_verified_engine.zip --street phaseA_optimized_v2.zip --motion UAL1_Standard.glb --out build/local-street
+godot --headless --path build/local-street/game --editor --import
+godot --headless --path build/local-street/game --script res://_qa/street_playtest.gd -- --motion
+godot --path build/local-street/game
+```
+With matching Windows export templates installed and a fresh output folder, use `godot --headless --path build/local-street/game --export-release "Windows Candidate" <absolute-output-path>/CodeCity_Street_Test.exe`. Include PCK, engine license/COPYRIGHT and third-party notices. Local physical-input and performance verification are still required. These are development candidate builds only.
