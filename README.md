@@ -110,3 +110,6 @@ Source now connects the six previously generated candidate NPC rigs and persiste
 
 ## CodeCity v0.3.0 integration
 Verified Linux and native Windows run 45669907874 produced the integrated game candidate with three Python exercises, six NPCs, car and story. [Windows candidate](https://github.com/zaydattique/codecity/actions/runs/45669907874/artifacts/15048643033). Merged at a259af9fd1c8d44f039a1b9a0032d4bf151730de. Public v0.3.0 packaging workflow configured with CodeCity branding. New Harbor utilities chapter (seven assignments, profile persistence and updated terminal) is on a separate review branch pending verification. No full curriculum, final art or performance claim.
+
+## Current verified game build
+[CodeCity Windows](https://github.com/zaydattique/codecity/actions/runs/45672930556/artifacts/15051665168) is the seven-assignment build from successful native Linux/Windows run 45672930556, merged at e1eb090b. Extract together and launch CodeCity.exe. The next automation chapter adds three water/power assignments, bounded dictionaries and functions, physical reserve and gauge; its tests are pending. No final art, performance or complete curriculum claim.
