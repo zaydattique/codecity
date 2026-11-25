@@ -21,3 +21,5 @@ Pilot candidate: prop.painted_wooden_bench.v001; Kirill Sannikov; CC0-1.0; https
 Run 45585769664 artifact 15009260029. Actual studio render inspected; coherent wood grain, wear and shading. Candidate for indoor furniture only. 630 tris; dimensions 1.16494, 0.49654, 0.88929 m. GLB SHA-256 d4fb79f8662d62fc8c720dd82c1c0ee874688e04963761fdd8439c93b441ad39; preview SHA-256 bafbd5f3094195f518a9c62eb9143424638ad2a42911e6a58a898695889df2bc. Godot import/collision/interaction not verified, no binary committed.
 
 Adrian/Maya candidates use MPFB 2.0.18 and official CC0 system pack (base, targets, rig, skin, clothing, hair, eyes, brows, lashes, teeth and tongue); record actual pack/output hashes from report. Generic source clothes and hair are not approved final character designs. No motion or LOD assets yet.
+
+Godot imported exact bench GLB successfully in run 45587661323, job 139113299318. Albedo texture present, 630 triangles, 1.164944 x 0.889291 x 0.496543 m (Godot Y-up). Visual and import candidate gates pass; gameplay collision/seating and final integration remain pending.

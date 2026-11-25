@@ -30,3 +30,5 @@ Public main source transfer and free render-pilot scripts are now committed. The
 ## Current gates after hosted pilot
 
 Linux pinned engine smoke and Python target tests passed; real Blender bench export/render passed and preview reviewed. Phase 01 still requires Windows interactive and upstream candidate isolation. Phase 02 character candidate job is a controlled art feasibility test, not a completed vertical slice. Two playable characters: Adrian and Maya, other principal characters remain story NPCs. First detailed street remains Harbor Boulevard; no full city generation before vertical slice gate. Character selection, profile UI, shared real minimap/full map, waypoints and location graph are acceptance criteria after actual characters and street exist. No decorative/fake controls or location previews.
+
+Bench candidate visual and structural Godot import gates now pass. Windows headless suite exposed a platform-specific test fixture defect; corrected and queued for verification. Interactive Windows, upstream isolation and gameplay remain open.

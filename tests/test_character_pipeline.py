@@ -22,5 +22,5 @@ def test_extract(tmp_path):
 def test_reject_archive_path(tmp_path,name):
     archive=tmp_path/'pack.zip'
     with zipfile.ZipFile(archive,'w') as z:
-        z.writestr(name,'fixture')
+        z.writestr(zipfile.ZipInfo(name),'fixture')
     with pytest.raises(ValueError): extract_pack(archive,tmp_path/'out')

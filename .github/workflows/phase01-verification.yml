@@ -5,6 +5,10 @@ on:
     paths:
       - '.github/workflows/phase01-verification.yml'
       - 'verification/**'
+      - 'tests/**'
+      - 'game/**'
+      - 'ai/**'
+      - 'tools/**'
   workflow_dispatch:
 permissions:
   contents: read
