@@ -164,6 +164,8 @@ def main():
     scene.render.image_settings.file_format='PNG'
     for name,focus,offset,scale in [
         ('front',center,(0,-4,0.1),height*1.25),
+        ('side',center,(4,0,0.1),height*1.25),
+        ('rear',center,(0,4,0.1),height*1.25),
         ('three_quarter',center,(2,-4,0.1),height*1.25),
         ('face',Vector((center.x,center.y,hi.z-0.13)),(0,-4,0.03),0.48)]:
         cam.location=focus+Vector(offset)
@@ -171,7 +173,7 @@ def main():
         cam.data.ortho_scale=scale
         scene.render.filepath=str(base/f'{name}.png')
         bpy.ops.render.render(write_still=True)
-    names=[f'{args.id}.blend',f'{args.id}.glb','front.png','three_quarter.png','face.png']
+    names=[f'{args.id}.blend',f'{args.id}.glb','front.png','side.png','rear.png','three_quarter.png','face.png']
     report={'status':'candidate_only','profile':args.id,'triangles':triangles,'bones':len(rigs[0].data.bones),'height_m':height,'mpfb_commit':PIN,'pack_url':PACK,'pack_sha256':hashlib.file_digest(args.pack.open('rb'),'sha256').hexdigest(),'source_license':'CC0-1.0','output_hashes':{n:hashlib.sha256((base/n).read_bytes()).hexdigest() for n in names},'limitations':['generic CC0 outfit and hair; not final design','no motion clips or LODs','no Godot deformation or gameplay approval']}
     (base/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print('CODECITY_CHARACTER_CANDIDATE_OK')
