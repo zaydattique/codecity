@@ -52,3 +52,13 @@ def test_npc_distinct_authored_profiles():
     assert len({p['candidate']['clothes'] for p in profiles})==6
     assert len({p['candidate']['hair'] for p in profiles})==6
     assert all(p['age']>=18 and .5<=p['candidate']['age']<=.65 for p in profiles)
+
+
+def test_additional_civilian_candidates_are_distinct_adults():
+    ids=('jules','rhea','vincent','farah','theo','iris')
+    profiles=[load_profile(i) for i in ids]
+    assert all(p['age']>=18 and .5<=p['candidate']['age']<=.65 for p in profiles)
+    assert len({p['height_m'] for p in profiles})==len(ids)
+    assert len({str(p['candidate']) for p in profiles})==len(ids)
+    for p in profiles:
+        assert abs(sum(p['candidate']['race'].values())-1)<1e-6
