@@ -87,6 +87,16 @@ jobs:
               shutil.copy2(glb,f"build/npc-game/candidate_assets/npc_{id}.glb")
               shutil.copy2(folder/"report.json",f"build/evidence/{id}.json")
           PY
+      - name: Append exact licensed combat motion to all installed rigs
+        run: |
+          set -euo pipefail
+          mkdir -p build/combat-motion
+          curl -fL --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 --max-filesize 8000000 https://raw.githubusercontent.com/webgl-games/opencity/ba9514cdd88ecc2d40ecad503a644449fc98e665/assets/characters/UAL1_Standard.glb -o build/combat-motion/UAL1_Standard.glb
+          for id in adrian maya npc_nora npc_omar npc_elena npc_marcus npc_sana npc_liam npc_jules npc_rhea npc_vincent npc_farah npc_theo npc_iris; do
+            python -m tools.retarget_motion --append-combat build/combat-motion/UAL1_Standard.glb "build/npc-game/candidate_assets/$id.glb" "build/combat-motion/$id.glb"
+            mv "build/combat-motion/$id.glb" "build/npc-game/candidate_assets/$id.glb"
+          done
+          cp build/combat-motion/*.motion.json build/evidence/
       - name: Install pinned Godot
         run: |
           set -euo pipefail
@@ -97,7 +107,7 @@ jobs:
       - name: Python curriculum unit checks
         run: |
           python -m pip install pytest==9.0.2
-          python -m pytest -q tests/test_academy.py tests/test_npc_brain.py tests/test_character_pipeline.py
+          python -m pytest -q tests/test_academy.py tests/test_npc_brain.py tests/test_character_pipeline.py tests/test_retarget_motion.py
       - name: Actual six-actor Python runtime regression
         env:
           CODECITY_NPC_SCRIPT: ${{ github.workspace }}/ai/worker.py
@@ -106,7 +116,7 @@ jobs:
           set -euo pipefail
           godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           timeout 240 "$godot" --headless --path build/npc-game --editor --import 2>&1 | tee build/evidence/import.log
-          timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/npc_playtest.gd 2>&1 | tee build/evidence/npc.log
+          timeout 180 "$godot" --headless --path build/npc-game --script res://_qa/npc_playtest.gd 2>&1 | tee build/evidence/npc.log
           grep -q CODECITY_NPC_PLAYTEST_OK build/evidence/npc.log
           timeout 180 "$godot" --headless --path build/npc-game --script res://_qa/street_playtest.gd -- --motion 2>&1 | tee build/evidence/street.log
           grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street.log
@@ -155,6 +165,8 @@ jobs:
           Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
           WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
           Twelve distinct NPC rigs run an offline Python decision worker in the streamed city.
+          Harbor Market: interact at the actual entrance and counter; consume health items using cash.
+          Living World: left mouse to punch using retargeted licensed motion. No firearms installed.
           Mixed Godot/GDScript and Python; restricted teaching interpreter, not full Python.
           Local profile assignment progress is saved; world position is not. No final art, interior or hardware performance guarantee.
           EOF
