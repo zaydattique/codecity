@@ -33,5 +33,5 @@ def test_reject_archive_path(tmp_path,name):
         assert data.count(b'a/b')==2
         archive.write_bytes(data.replace(b'a/b',b'a\\b'))
     with zipfile.ZipFile(archive) as z:
-        assert z.namelist()==[name]
+        assert [e.orig_filename for e in z.infolist()]==[name]
     with pytest.raises(ValueError): extract_pack(archive,tmp_path/'out')

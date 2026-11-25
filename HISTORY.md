@@ -31,3 +31,5 @@ Run 45587661323: bench GLB SHA-256 matched, Godot import and mesh check passed w
 Run 45587743633 failed again at the Blender distribution endpoint with HTTP 403 before character generation. Added Blender's documented official mirror service as a bounded fallback, keeping SHA-256 verification mandatory. No unverified executable is used. No character render yet.
 
 Run 45587839075 confirmed ZipInfo construction also normalizes malformed member names on Windows. Reworked the fixture to replace same-length raw ZIP header names after archive creation and assert the exact stored member name. Validator remains strict. Bench import passed again. Latest test rerun pending.
+
+Inspected Python's ZipInfo implementation: original name is stored before platform-specific normalization. Use orig_filename in production validator and raw ZIP test; reject NUL explicitly as well. This fixes the underlying platform inconsistency instead of merely adapting the fixture. Local Linux raw-name probe confirmed original filename preservation; hosted full suite pending.

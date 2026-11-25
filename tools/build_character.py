@@ -22,9 +22,9 @@ def extract_pack(pack, destination):
             raise ValueError("Asset archive exceeds limits")
         names = set()
         for e in entries:
-            name = e.filename
+            name = e.orig_filename
             p = PurePosixPath(name)
-            if not name or p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or str(p) == '.' or stat.S_ISLNK(e.external_attr >> 16):
+            if not name or '\x00' in name or p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or str(p) == '.' or stat.S_ISLNK(e.external_attr >> 16):
                 raise ValueError("Unsafe archive path")
             key = str(p).casefold()
             if key in names:
