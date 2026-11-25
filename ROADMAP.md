@@ -68,3 +68,7 @@ P08 first physical street test passed actual engine headless and software render
 ## P08 technical candidate milestone verified
 
 Linux and Windows candidate physics and nine licensed motion clips passed, actual thigh rotation changes, camera collision proxy, crouch/sprint, jump, map control, actual paused clock and two character spawns. Standalone Windows export/boot passed twice (45622041590, 45622243827). Candidate artifact 15023914487 is the later verified export. No city expansion. Remaining P08: artist review of stride, feet, wall clipping, slopes/stairs, input/controller, animation transitions, vehicle sockets/enter/exit. First complete vertical slice still requires real licensed cleared driveable car, six Python NPCs, one functional interior, story and actual Academy sandbox mission, persistence, audio/settings and hardware QA. Candidate gameplay is not production-ready.
+
+## P09 driveable street candidate
+
+Goal: one licensed neutralized coupe with real wheels/cockpit and physical driving in existing 32m slice. First build/review derivative, then integrate vehicle body, suspension, entry/exit ownership and collision, map and pause. Files: tools/prepare_coupe.py, isolated coupe-ready workflow, forthcoming focused runtime/test changes. Risks: logo texture references, wheel orientation, seating, short street and wheel stability. No original marks/vehicle binary committed or final approval until actual renders, handling and manual QA pass.
