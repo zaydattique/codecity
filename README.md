@@ -119,3 +119,6 @@ Verified Linux and native Windows run 45669907874 produced the integrated game c
 
 ## City-scale development branch
 The current verified main package remains [CodeCity Windows](https://github.com/zaydattique/codecity/actions/runs/45674994813/artifacts/15051078444), ten Python assignments and original Harbor street. New city branch implements a 1,200 x 1,200m square candidate, 50 parameterized facade configurations, park and ten tower parcels, 12 actual NPC rig targets, rotating/clickable minimap, controls and subtitles. New 18 art presets bring planned cast to 30. City traversal/render/Windows verification is pending; do not mistake this source branch for a verified package. Guns, grenades, melee/death assets, 50 drivable cars and furnished shops are not complete.
+
+## Latest verified build and active gameplay work
+[CodeCity Windows](https://github.com/zaydattique/codecity/actions/runs/45685273398/artifacts/15056732343) is the verified Harbor access build with curb, alleys, rear courts and rotating map, merged at 5f121ef4. City PR #5 remains pending. Separate commerce/combat source adds Harbor Market, Rhea seller, starting cash and health, licensed melee/death animation pipeline and body fade; not verified yet. No firearms, grenades, 50 vehicles or final city art claimed.
