@@ -28,6 +28,7 @@ func _ready() -> void:
 	_slider("Master volume",0,1,0.05,_prefs.master_volume,func(v): _prefs.master_volume=v)
 	_check("Show gameplay hints",_prefs.show_hints,func(v): _prefs.show_hints=v)
 	_check("Fullscreen",_prefs.fullscreen,func(v): _prefs.fullscreen=v)
+	_check("Subtitles",_prefs.subtitles,func(v):_prefs.subtitles=v)
 	_check("Rotate minimap",_prefs.rotate_minimap,func(v): _prefs.rotate_minimap=v)
 	_check("VSync",_prefs.vsync,func(v): _prefs.vsync=v)
 	_select("Frame limit",["30 FPS","60 FPS","120 FPS","Unlimited"],_prefs.FPS_LIMITS.find(_prefs.fps_limit),func(i):_prefs.fps_limit=_prefs.FPS_LIMITS[i])
