@@ -308,7 +308,7 @@ func _process(_delta: float) -> void:
 	if _paused:return
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
-		_vehicle_hint.text="E  Lighting control" if Interaction.within_range(player,station,2.5) else "Restore street lighting | Walk to the Academy cabinet"
+		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
 		return
 	if vehicle==null or not vehicle.built:return
 	if _driving:
