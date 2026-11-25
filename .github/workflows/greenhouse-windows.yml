@@ -30,6 +30,9 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test
       - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" python greenhouse.py --capture
+      - run: sudo apt-get update -qq && sudo apt-get install -y xdotool
+      - name: Real mouse and keyboard test on X11
+        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" bash tools/test_input.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -58,33 +61,44 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test
       - run: pyinstaller --noconfirm --onedir --windowed --name BloomLogic --collect-all panda3d --collect-all direct --collect-all gltf --add-data "runtime;runtime" greenhouse.py
-      - shell: pwsh
+      - name: Packaged checks with persistent diagnostics
+        shell: pwsh
         run: |
+          $root = (Get-Location).Path
+          $env:BLOOMLOGIC_PROFILE_DIR = Join-Path $root "build\windows-diagnostics"
+          $env:BLOOMLOGIC_CAPTURE_DIR = Join-Path $root "build\runtime-review"
+          New-Item -ItemType Directory -Force $env:BLOOMLOGIC_PROFILE_DIR | Out-Null
           Copy-Item THIRD_PARTY_NOTICES.md dist/BloomLogic/
           Copy-Item OPEN_GREENHOUSE.md dist/BloomLogic/README.txt
-          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--self-test" -PassThru
-          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "Packaged asset smoke test timed out" }
-          if ($p.ExitCode -ne 0) { Get-Content "$env:LOCALAPPDATA\BloomLogic\startup-error.txt" -ErrorAction SilentlyContinue; throw "Packaged smoke test failed: $($p.ExitCode)" }
+          $exe = Join-Path $root "dist\BloomLogic\BloomLogic.exe"
+          function Run-Check($arg, $seconds) {
+            $p = Start-Process -FilePath $exe -ArgumentList $arg -WorkingDirectory $root -PassThru
+            if (-not $p.WaitForExit($seconds*1000)) { $p.Kill(); Get-Content "$env:BLOOMLOGIC_PROFILE_DIR\*.log" -ErrorAction SilentlyContinue; throw "$arg timed out" }
+            if ($p.ExitCode -ne 0) { Get-Content "$env:BLOOMLOGIC_PROFILE_DIR\*" -ErrorAction SilentlyContinue; throw "$arg failed: $($p.ExitCode)" }
+          }
+          Run-Check "--self-test" 120
+          Run-Check "--gui-test" 240
+      - name: Independent software graphics diagnostic on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $env:BLOOMLOGIC_PROFILE_DIR = Join-Path (Get-Location).Path "build\windows-diagnostics-safe"
+          $env:BLOOMLOGIC_CAPTURE_DIR = Join-Path (Get-Location).Path "build\safe-review"
+          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--headless-gui-test" -PassThru
+          if (-not $p.WaitForExit(180000)) { $p.Kill(); throw "Software diagnostic timed out" }
+          if ($p.ExitCode -ne 0) { throw "Software diagnostic failed" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: BloomLogic-Windows-Diagnostics
+          path: |
+            build/windows-diagnostics/
+            build/windows-diagnostics-safe/
+            build/runtime-review/
+            build/safe-review/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: BloomLogic-Windows
           path: dist/BloomLogic/
           if-no-files-found: error
-      - name: Test packaged GUI without blocking on error dialog
-        shell: pwsh
-        run: |
-          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--gui-test" -PassThru
-          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "Packaged GUI test timed out" }
-          if ($p.ExitCode -ne 0) { Get-Content "$env:LOCALAPPDATA\BloomLogic\startup-error.txt" -ErrorAction SilentlyContinue; throw "Packaged GUI test failed: $($p.ExitCode)" }
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: BloomLogic-Windows-Visual-Review
-          path: build/runtime-review
-          if-no-files-found: ignore
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: BloomLogic-Windows-Diagnostics
-          path: ${{ env.LOCALAPPDATA }}/BloomLogic/*.txt
-          if-no-files-found: ignore

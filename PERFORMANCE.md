@@ -10,3 +10,5 @@ Actual 1280x720 software renderer capture succeeded on hosted Ubuntu run 4569939
 New studio layout and packaged GUI capture pending. No hardware FPS claims.
 
 Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x720. No representative GPU frame-time measurements; props increase rendering cost.
+
+Previous Windows GUI gate timed out (45714558040); no hardware metrics. Phase 1 captures startup milestones and Python fault traces, explicitly distinguishes software fallback from native desktop. No visual art changes.

@@ -1,29 +1,23 @@
 """BloomLogic native Python learning studio. Blender assets render in Panda3D."""
-import sys, json, traceback, os, hashlib
+import sys, json, traceback, os, hashlib, time, faulthandler, tempfile
 from pathlib import Path
 from codecity.model import Plant, advance, DEFAULT_CODE
-from codecity.rules import evaluate, compile_rule, RuleError
+from codecity.rules import evaluate, compile_rule, evaluate_compiled, RuleError
+from codecity.session import Experiment, challenge, load_profile, write_profile
 from codecity.curriculum import LESSONS, GUIDE, CODE_STEPS
 
 def assets():
     return Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))/"runtime"
 
 def profile_path():
-    return Path(os.environ.get("LOCALAPPDATA",str(Path.home())))/"BloomLogic"/"progress.json"
+    return Path(os.environ.get("BLOOMLOGIC_PROFILE_DIR",str(Path(os.environ.get("LOCALAPPDATA",str(Path.home())))/"BloomLogic")))/"progress.json"
 
-def read_progress():
-    try:
-        return json.loads(profile_path().read_text()).get("greenhouse_complete") is True
-    except (OSError,ValueError,AttributeError):
-        return False
-
-def save_progress():
-    p=profile_path();p.parent.mkdir(parents=True,exist_ok=True)
-    tmp=p.with_suffix(".tmp");tmp.write_text(json.dumps({"greenhouse_complete":True}));tmp.replace(p)
-
-def challenge(source):
-    # Check actual CPython outputs, including exact threshold.
-    return [(n,evaluate(source,Plant(moisture=n)),n<50) for n in (10,35,49,50,80,100)]
+def milestone(message):
+    p=profile_path().with_name("application.log")
+    p.parent.mkdir(parents=True,exist_ok=True)
+    with p.open("a",encoding="utf-8") as log:
+        log.write(f"{time.monotonic():.3f} {message}\n")
+    print(message,flush=True)
 
 def verify_props():
     for name in ("potted_plant_01","planter_pot_clay"):
@@ -48,21 +42,30 @@ def self_test():
     plant=Plant(moisture=42,light=15,temperature=28)
     for _ in range(60):plant=advance(plant,evaluate(DEFAULT_CODE,plant))
     assert plant.growth==1 and plant.health>.9
-    assert all(actual==expected for _,actual,expected in challenge(DEFAULT_CODE.replace("40","50")))
-    assert not all(actual==expected for _,actual,expected in challenge(DEFAULT_CODE))
+    passed,total,failures=challenge(DEFAULT_CODE.replace("40","50"))
+    assert passed==total==101*17*46 and not failures
+    passed,total,failures=challenge(DEFAULT_CODE)
+    assert passed<total and failures
     verify_props()
     assert len(LESSONS)==14
     return 0
 
 def run():
     from panda3d.core import loadPrcFileData,AmbientLight,DirectionalLight,Vec4,Vec3,TextNode,Filename,NodePath,ClockObject,AntialiasAttrib,WindowProperties,CardMaker
-    loadPrcFileData("", "window-title BloomLogic\nwin-size 1280 720\nframebuffer-multisample 1\nmultisamples 4\nsync-video true\nshow-frame-rate-meter false")
+    safe="--safe-graphics" in sys.argv
+    diagnostic="--headless-gui-test" in sys.argv
+    config="window-title BloomLogic\nwin-size 1280 720\nshow-frame-rate-meter false\nsync-video false\n"
+    config+=("load-display p3tinydisplay\nframebuffer-multisample 0\nmultisamples 0\n" if safe or diagnostic else "load-display pandagl\naux-display p3tinydisplay\nframebuffer-multisample 1\nmultisamples 4\n")
+    if diagnostic:config+="window-type offscreen\naudio-library-name null\n"
+    else:config+="audio-library-name p3openal_audio\n"
+    loadPrcFileData("",config)
+    milestone("before ShowBase; safe="+str(safe)+" headless="+str(diagnostic))
     from direct.showbase.ShowBase import ShowBase
     from direct.gui.DirectGui import DirectFrame,DirectLabel,DirectButton,DirectEntry,DirectSlider
     from direct.actor.Actor import Actor
     from direct.task import Task
     import gltf
-    app=ShowBase();app.disableMouse()
+    app=ShowBase();milestone("ShowBase created");app.disableMouse()
     app.setBackgroundColor(.66,.73,.66,1)
     dr=app.camNode.getDisplayRegion(0)
     dr.setDimensions(.024,.606,.184,.82)
@@ -84,11 +87,13 @@ def run():
     resize(app.win);app.accept("window-event",resize)
     BG=(.956,.949,.913,1);WHITE=(1,.995,.969,1);GREEN=(.12,.29,.22,1)
     INK=(.10,.19,.15,1);MUTED=(.35,.43,.37,1);LINE=(.87,.89,.83,1);GOLD=(.94,.87,.65,1)
-    page=None;screen="loading";stage=0;guide_step=0;code_step=0;prediction=None;complete=read_progress()
+    profile=load_profile(profile_path())
+    experiment=Experiment.restore(profile["experiment"]) if profile["experiment"] is not None else Experiment()
+    page=None;screen="loading";stage=0;guide_step=0;code_step=0;prediction=None;complete=profile["greenhouse_complete"]
     state=Plant();source=DEFAULT_CODE;playing=False;water=False;elapsed=0.;visual=0.;shown=-1;last_input=state.moisture
-    pace=.34;scene_loaded=False;camera_mode="wide";saved_code=DEFAULT_CODE
+    pace=profile["pace"];scene_loaded=False;camera_mode="wide";saved_code=profile["draft"]
     plants=[];drops=[];teacher=None;bench=None;soil=None
-    editor=None;status=None;metrics=None;output=None;settings={};guide_text=None;audio=None;voice=True
+    editor=None;status=None;metrics=None;output=None;settings={};guide_text=None;audio=None;voice=profile["voice"]
     def panel(parent,x,y,w,h,color):
         return DirectFrame(parent=parent,pos=(x,0,-y),frameSize=(0,w,-h,0),frameColor=color)
     def label(parent,text,x,y,size=18,color=INK,wrap=None):
@@ -108,8 +113,18 @@ def run():
         p=assets()/("voice-"+key+".wav")
         if voice and p.is_file():
             audio=app.loader.loadSfx(str(p));audio.play()
+    def persist():
+        try:write_profile(profile_path(),dict(greenhouse_complete=complete,voice=voice,pace=pace,experiment=experiment.snapshot(),draft=saved_code))
+        except OSError:milestone("Unable to save local progress")
+    def preserve_experiment():
+        nonlocal saved_code
+        if screen=="lesson" and stage==2 and editor is not None:
+            saved_code=editor.get()[:2048];experiment.playing=False;persist()
+    def quit_app():
+        preserve_experiment();persist();app.userExit()
     def clear(mode):
         nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text
+        preserve_experiment()
         if editor is not None:editor["focus"]=0
         editor=status=metrics=output=guide_text=None
         stop_audio();playing=False;water=False
@@ -125,7 +140,7 @@ def run():
         label(page,"BloomLogic",30,39,27,GREEN)
         button(page,"Lessons",936,12,92,38,home)
         button(page,"Settings",1038,12,98,38,show_settings)
-        button(page,"Exit",1146,12,102,38,app.userExit)
+        button(page,"Exit",1146,12,102,38,quit_app)
     def home():
         clear("home")
         label(page,"Explore Python through real life",32,108,32)
@@ -135,7 +150,7 @@ def run():
         label(page,"If / Else",50,190,27,WHITE)
         label(page,"Greenhouse controller",50,218,19,WHITE)
         label(page,"Control irrigation, observe seed growth and test both branches.",50,246,16,(.82,.89,.81,1))
-        button(page,"Continue lesson" if complete else "Start lesson",1030,191,193,45,open_lesson,primary=False)
+        button(page,"Resume experiment" if experiment.state.day>0 else "Start lesson",1030,191,193,45,lambda:open_lesson(experiment.state.day>0),primary=False)
         label(page,"Lesson library",32,301,22)
         symbols=(">_","x=","123","+/-","if","for","skip","[ ]","( )","set","key","while","def","Aa")
         for i,(title,exhibit,desc) in enumerate(LESSONS):
@@ -163,32 +178,34 @@ def run():
         for i,(n,v) in enumerate((("Slow",.7),("Normal",.34),("Fast",.16))):
             def speed(v=v):
                 nonlocal pace
-                pace=v;show_settings()
+                pace=v;persist();show_settings()
             button(page,n,40+i*140,218,128,42,speed,pace==v)
         label(page,"Narration",40,325,22)
         def toggle():
             nonlocal voice
-            voice=not voice;show_settings()
+            voice=not voice;persist();show_settings()
         button(page,"Voice on" if voice else "Voice off",40,350,150,42,toggle,voice)
         label(page,"Local progress: "+("Greenhouse completed" if complete else "No lessons completed"),40,448,19)
         button(page,"Return to lessons",40,495,210,44,home,True)
     def load_scene():
         nonlocal bench,soil,teacher,scene_loaded
         if scene_loaded:return
+        milestone("loading scene")
         def model(name):
             n=app.loader.loadModel(Filename.fromOsSpecific(str(assets()/name)))
             if n.isEmpty():raise RuntimeError("Missing asset: "+name)
             n.reparentTo(app.render);return n
-        bench=model("bench.egg");soil=bench.find("**/soil_surface")
+        bench=model("bench.egg");soil=bench.find("**/soil_surface");milestone("bench loaded")
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
         teacher=Actor(NodePath(gltf.load_model(str(assets()/"teacher.glb"))))
-        teacher.reparentTo(app.render)
+        teacher.reparentTo(app.render);milestone("teacher loaded")
         # Table rear edge is y=.45. Teacher stands behind it, not through it.
         teacher.setPos(-.78,.93,-.98);teacher.setH(0);teacher.pose("explain",0)
         for f in list(range(1,121,3))+[120]:
             p=model(f"plant-{f:03}.egg");p.hide();plants.append(p)
         for _ in range(8):
             p=model("drop.egg");p.hide();drops.append(p)
+        milestone("plant samples loaded")
         # A real textured CC0 plant and pot, verified at packaging and placed on floor.
         verify_props()
         for name,pos,scale in (("potted_plant_01",(1.05,1.65,-.98),.88),("potted_plant_01",(-1.48,1.85,-.98),.75),("planter_pot_clay",(.95,.85,-.98),1.1)):
@@ -207,14 +224,14 @@ def run():
             wall_card("greenhouse mullion",x,-.54,.048,2.96,(.28,.39,.33,1),2.76)
         for z in (-.54,.52,1.62,2.4):
             wall_card("horizontal rail",-4,z,8,.042,(.28,.39,.33,1),2.75)
-        scene_loaded=True
-    def open_lesson():
+        scene_loaded=True;milestone("scene ready")
+    def open_lesson(resume=False):
         nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code
         clear("loading");label(page,"Opening the greenhouse...",40,160,30)
         app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
         load_scene()
-        state=Plant();visual=0.;shown=-1;guide_step=0;code_step=0;prediction=None;saved_code=DEFAULT_CODE
-        show_lesson(0)
+        state=Plant();visual=0.;shown=-1;guide_step=0;code_step=0;prediction=None
+        show_lesson(2 if resume else 0)
     def camera(mode):
         nonlocal camera_mode
         camera_mode=mode
@@ -228,12 +245,15 @@ def run():
             app.camera.setPos(.10,-1.10,.20);app.camera.lookAt(0,.015,.07)
     def set_message(message):
         if status is not None:status["text"]=message
-    def preserve_editor():
-        nonlocal saved_code
-        if editor is not None and stage==2:saved_code=editor.get()
     def show_lesson(n):
         nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual
-        preserve_editor();clear("lesson");stage=n
+        clear("lesson");stage=n
+        if n==2:
+            state=experiment.state;source=experiment.source;water=experiment.water;visual=state.growth;elapsed=0
+        elif n==0:
+            state=Plant(moisture=20 if guide_step in (1,2) else 55);visual=state.growth
+        elif n==3:
+            state=Plant();visual=0;water=False
         label(page,"If / Else  |  Greenhouse controller",32,96,24)
         for i,name in enumerate(("Observe","Understand","Experiment","Challenge")):
             button(page,name,630+i*154,73,145,39,lambda i=i:show_lesson(i),n==i)
@@ -298,7 +318,7 @@ def run():
             editor=DirectEntry(parent=page,initialText=saved_code if n==2 else DEFAULT_CODE,scale=17,pos=(823,0,-225),width=23,numLines=6,frameColor=GREEN,text_fg=WHITE,focus=0,command=lambda _:insert_code("\n"))
             if n==2:
                 settings={}
-                for i,(name,lo,hi,val) in enumerate((("Initial moisture",0,100,state.moisture),("Light hours",0,16,state.light),("Temperature C",0,45,state.temperature))):
+                for i,(name,lo,hi,val) in enumerate((("Initial moisture",0,100,experiment.initial.moisture),("Light hours",0,16,experiment.initial.light),("Temperature C",0,45,experiment.initial.temperature))):
                     y=352+i*40;l=label(page,"",814,y+15,15)
                     def change(name=name,l=l):
                         if name in settings:l["text"]=f"{name}: {round(settings[name]['value'])}"
@@ -307,18 +327,22 @@ def run():
                 button(page,"Run",814,485,120,39,start,True)
                 button(page,"Pause / Resume",944,485,152,39,toggle_pause)
                 button(page,"Reset",1106,485,114,39,reset)
-                status=label(page,"Set starting conditions, then Run.",814,552,15,MUTED,27)
+                status=label(page,"Saved experiment paused. Resume or Run again." if state.day and state.day<60 else "Set starting conditions, then Run.",814,552,15,MUTED,27)
                 guide_text["text"]="Change the threshold or sensor values. Water on and water off are code decisions; growth depends on the environment."
                 speak("experiment")
             else:
                 label(page,"Turn water on below 50%, otherwise off.",814,365,17,MUTED,23)
-                button(page,"Check six test cases",814,405,405,44,submit,True)
+                button(page,"Check all sensor combinations",814,405,405,44,submit,True)
                 status=label(page,"Edit the threshold and check your solution.",814,484,16,GREEN,25)
-                guide_text["text"]="The boundary matters: at exactly 50%, the else branch must run. The checker tests both branches, not just one example."
+                guide_text["text"]="The boundary matters: at exactly 50%, the else branch must run. The checker tests every supported moisture, light and temperature combination."
                 speak("challenge")
     def insert_code(value):
         if editor is None:return
         text=editor.get();pos=editor.getCursorPosition()
+        if value=="\n":
+            line=text[:pos].rsplit("\n",1)[-1]
+            indent=len(line)-len(line.lstrip(" "))
+            value+=" "*(indent+(4 if line.rstrip().endswith(":") else 0))
         if len(text)+len(value)>2048:return
         editor.enterText(text[:pos]+value+text[pos:]);editor.setCursorPosition(pos+len(value));editor["focus"]=1
     def initial():
@@ -326,39 +350,41 @@ def run():
     def start():
         nonlocal source,state,playing,water,elapsed,visual,saved_code
         candidate=editor.get()
-        try:compile_rule(candidate)
+        try:experiment.start(candidate,initial())
         except RuleError as e:
-            playing=False;water=False;set_message("Code error: "+str(e)[:85]);return
-        saved_code=source=candidate;state=initial();elapsed=pace;visual=0.;water=False;playing=True
+            set_message("Code error: "+str(e)[:85]);return
+        saved_code=source=experiment.source;state=experiment.state;elapsed=pace;visual=0.;water=False;playing=True;persist()
         editor["focus"]=0;camera("macro");set_message("Running. One day every "+str(pace)+" seconds.")
     def toggle_pause():
         nonlocal playing
         if state.day>=60:set_message("Day 60 reached. Run again to restart.");return
         if state.day==0 and not playing:set_message("Press Run to start your rule.");return
-        playing=not playing;set_message("Running" if playing else "Paused. Resume continues the same plant.")
+        playing=not playing;experiment.playing=playing;persist();set_message("Running" if playing else "Paused. Resume continues the same plant.")
     def reset():
         nonlocal state,playing,water,elapsed,visual
-        state=initial();playing=False;water=False;elapsed=0;visual=0.
+        experiment.reset(initial());state=experiment.state;playing=False;water=False;elapsed=0;visual=0.;persist()
         set_message("Reset to seed. Run to try again.")
     def submit():
         nonlocal complete,state,source,visual,elapsed,playing,water
-        try:result=challenge(editor.get())
-        except RuleError as e:set_message("Code error: "+str(e)[:120]);return
-        passed=sum(a==b for _,a,b in result)
-        source=editor.get();state=Plant(moisture=20 if passed==len(result) else next(n for n,a,b in result if a!=b));visual=0;elapsed=pace;playing=True;water=False
-        camera("macro")
-        if passed==len(result):
-            complete=True
-            try:save_progress()
-            except OSError:set_message("6 / 6 correct. Progress could not be saved.");return
-            set_message("6 / 6 correct. Lesson complete!")
-            guide_text["text"]="Excellent. Your rule works for dry soil, wet soil, and the exact threshold."
+        try:passed,total,failures=challenge(editor.get())
+        except RuleError as e:set_message("Code error: "+str(e)[:85]);return
+        source=editor.get()
+        if failures:
+            n,l,t,a,b=failures[0];state=Plant(moisture=n,light=l,temperature=t)
+            set_message(f"{passed}/{total} correct. Soil {n}%, light {l}h, {t} C: expected {'ON' if b else 'OFF'}, got {'ON' if a else 'OFF'}.")
         else:
-            n,a,b=next(x for x in result if x[1]!=x[2])
-            set_message(f"{passed} / 6 correct. At {n}% expected {'ON' if b else 'OFF'}, got {'ON' if a else 'OFF'}.")
+            state=Plant(moisture=20);complete=True;persist()
+            set_message(f"{total}/{total} correct. Lesson complete!")
+            guide_text["text"]="Your rule works for every supported sensor combination, including the exact boundary."
+        visual=0;elapsed=pace;playing=True;water=False;camera("macro")
     def tick():
         nonlocal state,water,last_input,playing
-        last_input=state.moisture;water=evaluate(source,state);state=advance(state,water)
+        if stage==2:
+            if not experiment.step():playing=False;return
+            state=experiment.state;water=experiment.water;last_input=experiment.last_input;playing=experiment.playing
+            if state.day%5==0 or not playing:persist()
+        else:
+            last_input=state.moisture;water=evaluate(source,state);state=advance(state,water)
         if state.day>=60 or (stage==0 and state.day>=24):
             playing=False
             if stage==2:set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
@@ -385,19 +411,25 @@ def run():
         if metrics is not None:
             metrics["text"]=f"Day {state.day}  |  Soil {state.moisture}%  |  Growth {round(state.growth*100)}%  |  Health {round(state.health*100)}%"
         if stage==2 and state.day:
+            last_input=experiment.last_input
             guide_text["text"]=f"At {last_input}% moisture, the rule selected water {'ON' if water else 'OFF'}. After the simulated day, soil is {state.moisture}%. Growth {round(state.growth*100)}%. Time is compressed."
         set_cam();return Task.cont
     app.taskMgr.add(update,"lesson-state")
     app.accept("escape",home)
     app.accept("tab",lambda:insert_code("    ") if editor is not None and editor["focus"] else None)
+    def clear_editor():
+        if editor is not None and editor["focus"]:editor.enterText("");editor.setCursorPosition(0)
+    # Explicit reset shortcut, not a fake selection implementation.
+    app.accept("control-shift-backspace",clear_editor)
     clear("loading");label(page,"BloomLogic",480,315,44,GREEN);label(page,"Preparing the lesson library",480,355,20,MUTED)
     app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
-    home()
-    if "--capture" in sys.argv or "--gui-test" in sys.argv:
-        out=Path("build/runtime-review");out.mkdir(parents=True,exist_ok=True)
+    home();milestone("home ready")
+    if any(x in sys.argv for x in ("--capture","--gui-test","--headless-gui-test")):
+        out=Path(os.environ.get("BLOOMLOGIC_CAPTURE_DIR","build/runtime-review"));out.mkdir(parents=True,exist_ok=True)
         def capture(name):
             for _ in range(5):app.taskMgr.step();app.graphicsEngine.renderFrame()
             assert app.win.saveScreenshot(Filename.fromOsSpecific(str(out/name)))
+            milestone("captured "+name)
         capture("home.png");open_lesson();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5));capture("guide.png")
         guide_step=1;show_lesson(0);capture("prediction.png")
         guide_step=2;show_lesson(0)
@@ -417,14 +449,25 @@ def run():
         visual=state.growth;capture("dry.png")
         before=state;editor.enterText("import os");start();assert state==before
         show_lesson(3);editor.enterText(DEFAULT_CODE.replace("40","50"))
-        assert all(a==b for _,a,b in challenge(editor.get()))
+        passed,total,failures=challenge(editor.get());assert passed==total and not failures
         submit();assert complete
         capture("challenge.png")
         home();capture("return-home.png")
-        app.destroy();return
+        milestone("GUI assertions passed");app.destroy();milestone("GUI shutdown complete");return
+    if "--input-test" in sys.argv:
+        def watch_input(task):
+            if screen=="lesson" and stage==2 and state.day>=10:
+                assert experiment.source==DEFAULT_CODE.replace("40","50"),repr(experiment.source)
+                milestone("OS input test passed");app.destroy();sys.exit(0)
+            if task.time>45:raise RuntimeError("OS input test timed out")
+            return Task.cont
+        app.taskMgr.add(watch_input,"input-test")
     app.run()
 
 if __name__=="__main__":
+    # Separate automated profiles from actual student progress.
+    if any(x in sys.argv for x in ("--capture","--gui-test","--headless-gui-test","--input-test","--self-test")) and "BLOOMLOGIC_PROFILE_DIR" not in os.environ:
+        os.environ["BLOOMLOGIC_PROFILE_DIR"]=tempfile.mkdtemp(prefix="bloomlogic-test-")
     # Windowed PyInstaller has no console; redirect diagnostics to a local file.
     if sys.stdout is None or sys.stderr is None:
         log=profile_path().with_name("application.log")
@@ -432,15 +475,23 @@ if __name__=="__main__":
         stream=log.open("a",encoding="utf-8",buffering=1)
         if sys.stdout is None:sys.stdout=stream
         if sys.stderr is None:sys.stderr=stream
-    try:
-        if "--self-test" in sys.argv:sys.exit(self_test())
-        run()
-    except Exception:
-        message=traceback.format_exc()
+    diagnostics=profile_path().with_name("traceback.log")
+    diagnostics.parent.mkdir(parents=True,exist_ok=True)
+    with diagnostics.open("a",encoding="utf-8") as trace:
+        faulthandler.enable(file=trace)
+        if any(x in sys.argv for x in ("--gui-test","--headless-gui-test","--capture","--input-test")):
+            faulthandler.dump_traceback_later(45,repeat=True,file=trace)
         try:
-            p=profile_path().with_name("startup-error.txt");p.parent.mkdir(parents=True,exist_ok=True);p.write_text(message)
-        except OSError:pass
-        if sys.platform=="win32" and not any(x in sys.argv for x in ("--self-test","--gui-test","--capture")):
-            import ctypes
-            ctypes.windll.user32.MessageBoxW(None,"BloomLogic could not start. See startup-error.txt in the BloomLogic folder under Local AppData.","BloomLogic",16)
-        raise
+            milestone("entrypoint")
+            if "--self-test" in sys.argv:sys.exit(self_test())
+            run()
+        except Exception:
+            message=traceback.format_exc()
+            try:profile_path().with_name("startup-error.txt").write_text(message,encoding="utf-8")
+            except OSError:pass
+            if sys.platform=="win32" and len(sys.argv)==1:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(None,"BloomLogic could not start. See startup-error.txt in Local AppData/BloomLogic.","BloomLogic",16)
+            raise
+        finally:
+            faulthandler.cancel_dump_traceback_later();faulthandler.disable()

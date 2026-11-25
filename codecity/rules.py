@@ -57,9 +57,13 @@ def compile_rule(source):
     return compile(tree,"<greenhouse>","exec")
 
 def evaluate(source,state:Plant):
-    code=compile_rule(source)
+    return evaluate_compiled(compile_rule(source),state)
+
+def evaluate_compiled(code,state:Plant):
+    """Execute an already validated compiled rule; never accept untrusted bytecode."""
     result=[]
     def irrigate(value):
         result.append(value)
     exec(code,{"__builtins__":{}},{"moisture":state.moisture,"light":state.light,"temperature":state.temperature,"irrigate":irrigate})
+    if len(result)!=1: raise RuleError("Exactly one irrigation action must run.")
     return result[0]

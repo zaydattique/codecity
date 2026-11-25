@@ -1,5 +1,6 @@
 """Deterministic classroom model, not a botanical prediction."""
 from dataclasses import dataclass, replace
+import math
 
 DEFAULT_CODE = "if moisture < 40:\n    irrigate(True)\nelse:\n    irrigate(False)"
 
@@ -17,8 +18,9 @@ class Plant:
             value = getattr(self,name)
             if type(value) is not int or not low <= value <= high:
                 raise ValueError("Invalid " + name)
-        if not 0 <= self.growth <= 1 or not 0 <= self.health <= 1:
-            raise ValueError("Invalid plant state")
+        for value in (self.growth,self.health):
+            if type(value) not in (int,float) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError("Invalid plant state")
 
 def advance(state, watering):
     """One simulated day. Control logic cannot override biology."""
