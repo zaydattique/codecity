@@ -474,16 +474,16 @@ func _process(delta: float) -> void:
 			player.respawn(Layout.SPAWN+Vector3.UP*0.02)
 			_sync_controls()
 	if is_instance_valid(city_stream):city_stream.set_focus(vehicle if _driving else player)
-	if academy_mode:
-		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
-		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
-		return
 	if is_instance_valid(shop) and not _driving and not _paused and not _map.expanded:
 		var hint:=_shop_hint()
 		if not hint.is_empty():
 			_vehicle_hint.text=hint
 			_vehicle_hint.visible=not _shop_open
 			return
+	if academy_mode:
+		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
+		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
+		return
 	if vehicle==null or not vehicle.built:return
 	if _driving:
 		_vehicle_hint.text="%.0f km/h"%vehicle.speed_kmh()
@@ -746,7 +746,7 @@ func _tick_subtitles(delta: float) -> void:
 func _make_vitals() -> void:
 	if academy_mode:return
 	var panel:=PanelContainer.new()
-	panel.position=Vector2(20,398)
+	panel.position=Vector2(20,370)
 	panel.custom_minimum_size=Vector2(224,0)
 	panel.add_theme_stylebox_override("panel",Style.panel(Color(0.035,0.055,0.075,0.92),5,8))
 	var layout:=VBoxContainer.new()
@@ -790,7 +790,7 @@ func reward_cash(value: int) -> void:
 	_update_vitals(player.health)
 
 func _shop_hint() -> String:
-	if not is_instance_valid(shop):return ""
+	if not is_instance_valid(shop) or not is_instance_valid(crowd):return ""
 	var key: String=_prefs.binding_label("interact")
 	if not shop.player_inside and player.global_position.distance_to(shop.entrance)<=1.8:return key+"  Enter Harbor Market"
 	if shop.player_inside:
@@ -799,7 +799,7 @@ func _shop_hint() -> String:
 	return ""
 
 func _try_shop() -> bool:
-	if not is_instance_valid(shop) or _paused or _map.expanded or _cursor_unlocked or _driving or player.dead:return false
+	if not is_instance_valid(shop) or not is_instance_valid(crowd) or _paused or _map.expanded or _cursor_unlocked or _driving or player.dead:return false
 	if not shop.player_inside:
 		if shop.enter(player):
 			_say("Rhea","Welcome to Harbor Market.")
