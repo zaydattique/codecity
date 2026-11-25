@@ -8,3 +8,5 @@ Initial package smoke passed; no interactive performance metrics. New teacher in
 Actual 1280x720 software renderer capture succeeded on hosted Ubuntu run 45699394455, not a target GPU benchmark. No FPS claims.
 
 New studio layout and packaged GUI capture pending. No hardware FPS claims.
+
+Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x720. No representative GPU frame-time measurements; props increase rendering cost.

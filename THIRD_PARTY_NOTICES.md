@@ -8,3 +8,5 @@ Windows integration candidate uses Panda3D BSD and PyInstaller GPL with bootload
 Poly Haven dirt_floor CC0 https://polyhaven.com/a/dirt_floor (Powered by Poly Haven); build records per-file digest. MPFB CC0 historical Sana rig reused under asset license, original new gesture. panda3d-gltf 1.3.0 BSD candidate (https://github.com/Moguri/panda3d-gltf). Package copies this notice and provenance files; final license audit pending.
 
 Build-time narration generator: eSpeak NG (GPL-3.0-or-later), https://github.com/espeak-ng/espeak-ng . Only synthesized WAV output is packaged; no eSpeak executable is bundled. Existing CC0 geometry and Panda3D notices retained.
+
+Integrated CC0 Poly Haven potted_plant_01 and planter_pot_clay, source and exact SHA256 in packaged provenance files. Powered by Poly Haven. No external code or third-party human likeness claimed.

@@ -1,5 +1,5 @@
 """BloomLogic native Python learning studio. Blender assets render in Panda3D."""
-import sys, json, traceback, os
+import sys, json, traceback, os, hashlib
 from pathlib import Path
 from codecity.model import Plant, advance, DEFAULT_CODE
 from codecity.rules import evaluate, compile_rule, RuleError
@@ -25,6 +25,14 @@ def challenge(source):
     # Check actual CPython outputs, including exact threshold.
     return [(n,evaluate(source,Plant(moisture=n)),n<50) for n in (10,35,49,50,80,100)]
 
+def verify_props():
+    for name in ("potted_plant_01","planter_pot_clay"):
+        folder=assets()/"props"/name
+        record=json.loads((folder/"provenance.json").read_text())
+        assert record["license"]=="CC0-1.0"
+        for path,digest in record["sha256"].items():
+            assert hashlib.sha256((folder/"source"/path).read_bytes()).hexdigest()==digest,path
+
 def self_test():
     from panda3d.core import Loader, Filename, LoaderOptions, NodePath
     from direct.actor.Actor import Actor
@@ -42,11 +50,12 @@ def self_test():
     assert plant.growth==1 and plant.health>.9
     assert all(actual==expected for _,actual,expected in challenge(DEFAULT_CODE.replace("40","50")))
     assert not all(actual==expected for _,actual,expected in challenge(DEFAULT_CODE))
+    verify_props()
     assert len(LESSONS)==14
     return 0
 
 def run():
-    from panda3d.core import loadPrcFileData,AmbientLight,DirectionalLight,Vec4,Vec3,TextNode,Filename,NodePath,ClockObject,AntialiasAttrib,WindowProperties
+    from panda3d.core import loadPrcFileData,AmbientLight,DirectionalLight,Vec4,Vec3,TextNode,Filename,NodePath,ClockObject,AntialiasAttrib,WindowProperties,CardMaker
     loadPrcFileData("", "window-title BloomLogic\nwin-size 1280 720\nframebuffer-multisample 1\nmultisamples 4\nsync-video true\nshow-frame-rate-meter false")
     from direct.showbase.ShowBase import ShowBase
     from direct.gui.DirectGui import DirectFrame,DirectLabel,DirectButton,DirectEntry,DirectSlider
@@ -128,12 +137,14 @@ def run():
         label(page,"Control irrigation, observe seed growth and test both branches.",50,246,16,(.82,.89,.81,1))
         button(page,"Continue lesson" if complete else "Start lesson",1030,191,193,45,open_lesson,primary=False)
         label(page,"Lesson library",32,301,22)
+        symbols=(">_","x=","123","+/-","if","for","skip","[ ]","( )","set","key","while","def","Aa")
         for i,(title,exhibit,desc) in enumerate(LESSONS):
             x=30+(i%4)*307;y=319+(i//4)*89
-            panel(page,x,y,294,79,WHITE)
-            panel(page,x,y,5,79,GREEN if i==4 else LINE)
-            label(page,title,x+13,y+23,18)
-            label(page,exhibit,x+13,y+46,15,MUTED)
+            panel(page,x,y,294,79,(.92,.95,.88,1) if i==4 else WHITE)
+            panel(page,x+10,y+12,44,43,GREEN if i==4 else LINE)
+            label(page,symbols[i],x+16,y+40,16,WHITE if i==4 else GREEN)
+            label(page,title,x+65,y+23,17)
+            label(page,exhibit,x+65,y+46,14,MUTED)
             button(page,"Open" if i==4 else "Details",x+212,y+49,70,23,open_lesson if i==4 else lambda i=i:details(i),i==4)
         label(page,"Each lesson has its own real-world exhibit.",32,700,14,MUTED)
     def details(i):
@@ -178,8 +189,24 @@ def run():
             p=model(f"plant-{f:03}.egg");p.hide();plants.append(p)
         for _ in range(8):
             p=model("drop.egg");p.hide();drops.append(p)
-        # Real background environment geometry from the existing floor and bench,
-        # no image pretending to be a 3D scene.
+        # A real textured CC0 plant and pot, verified at packaging and placed on floor.
+        verify_props()
+        for name,pos,scale in (("potted_plant_01",(1.05,1.65,-.98),.88),("potted_plant_01",(-1.48,1.85,-.98),.75),("planter_pot_clay",(.95,.85,-.98),1.1)):
+            folder=assets()/"props"/name
+            record=json.loads((folder/"provenance.json").read_text())
+            prop=NodePath(gltf.load_model(str(folder/"source"/record["entry"])))
+            prop.reparentTo(app.render);prop.setPos(*pos);prop.setScale(scale)
+        # Glazing and mullions at a distance behind the actual exhibits.
+        def wall_card(name,x,z,w,h,col,y=2.8):
+            cm=CardMaker(name);cm.setFrame(0,w,0,h)
+            node=app.render.attachNewNode(cm.generate());node.setPos(x,y,z)
+            node.setColor(*col);node.setLightOff();node.setTwoSided(True);return node
+        wall_card("daylit backdrop",-4,-.98,8,3.4,(.66,.79,.70,1))
+        wall_card("lower wall",-4,-.98,8,.44,(.57,.65,.58,1),2.78)
+        for x in (-3,-1.8,-.6,.6,1.8,3):
+            wall_card("greenhouse mullion",x,-.54,.048,2.96,(.28,.39,.33,1),2.76)
+        for z in (-.54,.52,1.62,2.4):
+            wall_card("horizontal rail",-4,z,8,.042,(.28,.39,.33,1),2.75)
         scene_loaded=True
     def open_lesson():
         nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code
@@ -205,7 +232,7 @@ def run():
         nonlocal saved_code
         if editor is not None and stage==2:saved_code=editor.get()
     def show_lesson(n):
-        nonlocal stage,editor,status,metrics,output,settings,guide_text
+        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual
         preserve_editor();clear("lesson");stage=n
         label(page,"If / Else  |  Greenhouse controller",32,96,24)
         for i,name in enumerate(("Observe","Understand","Experiment","Challenge")):
@@ -214,17 +241,21 @@ def run():
         panel(page,794,132,456,448,WHITE)
         button(page,"Overview",40,542,112,35,lambda:camera("wide"))
         button(page,"Plant close-up",160,542,138,35,lambda:camera("macro"))
-        metrics=label(page,"",330,572,15,WHITE)
+        panel(page,310,542,458,35,GREEN)
+        metrics=label(page,"",320,564,14,WHITE)
         panel(page,30,600,1220,100,WHITE)
         label(page,"Dua",48,626,18,GREEN)
-        guide_text=label(page,"",48,649,17,INK,88)
+        guide_text=label(page,"",48,649,17,INK,66)
         if n==0:
             camera("wide")
             title,body=GUIDE[guide_step]
-            label(page,title,814,172,24,INK,28)
-            label(page,body,814,221,18,MUTED,38)
+            label(page,title,814,172,24,INK,17)
+            label(page,body,814,221,18,MUTED,22)
             guide_text["text"]=body
             speak("guide"+str(guide_step))
+            if guide_step==2:
+                state=Plant(moisture=20);source=DEFAULT_CODE;visual=0;elapsed=pace;playing=True;water=False
+                camera("macro")
             if guide_step==1:
                 def predict(value):
                     nonlocal prediction
@@ -232,7 +263,7 @@ def run():
                     status["text"]="Correct. 20 < 40 is True." if value else "Try again: 20 is below 40."
                 button(page,"Water on",814,350,194,44,lambda:predict(True),True)
                 button(page,"Water off",1020,350,200,44,lambda:predict(False))
-                status=label(page,"Choose a prediction.",814,423,17,GREEN,36)
+                status=label(page,"Choose a prediction.",814,423,17,GREEN,23)
             def next_guide():
                 nonlocal guide_step
                 if guide_step==1 and prediction is not True:
@@ -248,7 +279,7 @@ def run():
                 panel(page,814,190+i*38,415,33,GREEN if i==code_step else LINE)
                 label(page,line,825,213+i*38,19,WHITE if i==code_step else INK)
             guide_text["text"]=CODE_STEPS[code_step][1]
-            label(page,CODE_STEPS[code_step][1],814,380,18,MUTED,37)
+            label(page,CODE_STEPS[code_step][1],814,380,18,MUTED,22)
             speak("code"+str(code_step))
             def next_code():
                 nonlocal code_step
@@ -264,7 +295,7 @@ def run():
             label(page,"Write your own rule" if n==2 else "Control the valve",814,168,23)
             label(page,"Python  |  controller.py",814,193,14,MUTED)
             panel(page,810,201,424,137,GREEN)
-            editor=DirectEntry(parent=page,initialText=saved_code if n==2 else DEFAULT_CODE,scale=18,pos=(823,0,-225),width=30,numLines=6,frameColor=GREEN,text_fg=WHITE,focus=0)
+            editor=DirectEntry(parent=page,initialText=saved_code if n==2 else DEFAULT_CODE,scale=17,pos=(823,0,-225),width=23,numLines=6,frameColor=GREEN,text_fg=WHITE,focus=0,command=lambda _:insert_code("\n"))
             if n==2:
                 settings={}
                 for i,(name,lo,hi,val) in enumerate((("Initial moisture",0,100,state.moisture),("Light hours",0,16,state.light),("Temperature C",0,45,state.temperature))):
@@ -276,22 +307,28 @@ def run():
                 button(page,"Run",814,485,120,39,start,True)
                 button(page,"Pause / Resume",944,485,152,39,toggle_pause)
                 button(page,"Reset",1106,485,114,39,reset)
-                status=label(page,"Set starting conditions, then Run.",814,552,15,MUTED,44)
+                status=label(page,"Set starting conditions, then Run.",814,552,15,MUTED,27)
                 guide_text["text"]="Change the threshold or sensor values. Water on and water off are code decisions; growth depends on the environment."
                 speak("experiment")
             else:
-                label(page,"Turn water on below 50%, otherwise off.",814,365,17,MUTED,37)
+                label(page,"Turn water on below 50%, otherwise off.",814,365,17,MUTED,23)
                 button(page,"Check six test cases",814,405,405,44,submit,True)
-                status=label(page,"Edit the threshold and check your solution.",814,484,16,GREEN,37)
+                status=label(page,"Edit the threshold and check your solution.",814,484,16,GREEN,25)
                 guide_text["text"]="The boundary matters: at exactly 50%, the else branch must run. The checker tests both branches, not just one example."
                 speak("challenge")
+    def insert_code(value):
+        if editor is None:return
+        text=editor.get();pos=editor.getCursorPosition()
+        if len(text)+len(value)>2048:return
+        editor.enterText(text[:pos]+value+text[pos:]);editor.setCursorPosition(pos+len(value));editor["focus"]=1
     def initial():
         return Plant(moisture=round(settings["Initial moisture"]["value"]),light=round(settings["Light hours"]["value"]),temperature=round(settings["Temperature C"]["value"]))
     def start():
         nonlocal source,state,playing,water,elapsed,visual,saved_code
         candidate=editor.get()
         try:compile_rule(candidate)
-        except RuleError as e:set_message("Code error: "+str(e)[:120]);return
+        except RuleError as e:
+            playing=False;water=False;set_message("Code error: "+str(e)[:85]);return
         saved_code=source=candidate;state=initial();elapsed=pace;visual=0.;water=False;playing=True
         editor["focus"]=0;camera("macro");set_message("Running. One day every "+str(pace)+" seconds.")
     def toggle_pause():
@@ -304,10 +341,12 @@ def run():
         state=initial();playing=False;water=False;elapsed=0;visual=0.
         set_message("Reset to seed. Run to try again.")
     def submit():
-        nonlocal complete
+        nonlocal complete,state,source,visual,elapsed,playing,water
         try:result=challenge(editor.get())
         except RuleError as e:set_message("Code error: "+str(e)[:120]);return
         passed=sum(a==b for _,a,b in result)
+        source=editor.get();state=Plant(moisture=20 if passed==len(result) else next(n for n,a,b in result if a!=b));visual=0;elapsed=pace;playing=True;water=False
+        camera("macro")
         if passed==len(result):
             complete=True
             try:save_progress()
@@ -320,9 +359,9 @@ def run():
     def tick():
         nonlocal state,water,last_input,playing
         last_input=state.moisture;water=evaluate(source,state);state=advance(state,water)
-        if state.day>=60:
+        if state.day>=60 or (stage==0 and state.day>=24):
             playing=False
-            set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
+            if stage==2:set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
     def update(task):
         nonlocal elapsed,visual,shown
         if screen!="lesson":return Task.cont
@@ -350,6 +389,7 @@ def run():
         set_cam();return Task.cont
     app.taskMgr.add(update,"lesson-state")
     app.accept("escape",home)
+    app.accept("tab",lambda:insert_code("    ") if editor is not None and editor["focus"] else None)
     clear("loading");label(page,"BloomLogic",480,315,44,GREEN);label(page,"Preparing the lesson library",480,355,20,MUTED)
     app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
     home()
@@ -358,8 +398,12 @@ def run():
         def capture(name):
             for _ in range(5):app.taskMgr.step();app.graphicsEngine.renderFrame()
             assert app.win.saveScreenshot(Filename.fromOsSpecific(str(out/name)))
-        capture("home.png");open_lesson();capture("guide.png")
+        capture("home.png");open_lesson();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5));capture("guide.png")
         guide_step=1;show_lesson(0);capture("prediction.png")
+        guide_step=2;show_lesson(0)
+        for _ in range(24):tick()
+        assert state.growth==1
+        visual=1;capture("guided-growth.png")
         show_lesson(1);capture("code.png");show_lesson(2)
         settings["Initial moisture"]["value"]=42;settings["Light hours"]["value"]=15;settings["Temperature C"]["value"]=28
         start()
@@ -374,6 +418,7 @@ def run():
         before=state;editor.enterText("import os");start();assert state==before
         show_lesson(3);editor.enterText(DEFAULT_CODE.replace("40","50"))
         assert all(a==b for _,a,b in challenge(editor.get()))
+        submit();assert complete
         capture("challenge.png")
         home();capture("return-home.png")
         app.destroy();return
