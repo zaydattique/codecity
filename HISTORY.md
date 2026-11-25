@@ -17,3 +17,7 @@ Selected Kirill Sannikov's CC0 painted wooden bench from Poly Haven to prove the
 ## Hosted verification wiring | 2026-11-25
 
 Committed a free hosted workflow with pinned actions, Python tests, Godot Linux import and explicit smoke marker, Blender LTS download/checksum and CPU-render pilot. Artifacts have seven-day retention and read-only repository permissions; no automatic commits of binary art. GitHub confirmed the main ref update and recursive tree with 31 source files. The Actions runs endpoint returned zero runs at the initial check; first execution still pending and manual workflow dispatch may be required. No runtime or visual pass is claimed.
+
+## Hosted pilot verification and character candidate | 2026-11-25
+
+Fetched the completed run 45585769664 and inspected both job logs. Python 3.14.10 38 tests passed (0.21s), Godot 4.7.2 import and boot marker succeeded, Blender 4.5.17 LTS rendered the actual licensed bench. Downloaded artifact 15009260029 and inspected its 960x720 preview and report: 630 triangles, dimensions 1.165 x 0.497 x 0.889 m, consistent grain and visible edge wear. Candidate appropriate for indoor furniture, pending Godot import/collision review. No gameplay build or GPU benchmark claimed. Added a two-protagonist authoring profile and MPFB candidate build job using pinned upstream 650c5c53 and official CC0 system assets. Actual character runtime, texture/mesh preview, LOD/motion and art approval are still unverified. Windows interactive and isolated upstream runtime gates remain open.

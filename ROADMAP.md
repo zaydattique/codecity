@@ -26,3 +26,7 @@ One detailed street with continuous sidewalks and collision/nav, one fully rigge
 ## Hosted automation checkpoint
 
 Public main source transfer and free render-pilot scripts are now committed. The pilot uses an actual CC0 prop to verify the toolchain before character production. Local Python tests passed; first hosted execution and visual approval remain pending. Phase 01 runtime gates still open. Do not expand city or generate the full cast before hero/street acceptance.
+
+## Current gates after hosted pilot
+
+Linux pinned engine smoke and Python target tests passed; real Blender bench export/render passed and preview reviewed. Phase 01 still requires Windows interactive and upstream candidate isolation. Phase 02 character candidate job is a controlled art feasibility test, not a completed vertical slice. Two playable characters: Adrian and Maya, other principal characters remain story NPCs. First detailed street remains Harbor Boulevard; no full city generation before vertical slice gate. Character selection, profile UI, shared real minimap/full map, waypoints and location graph are acceptance criteria after actual characters and street exist. No decorative/fake controls or location previews.

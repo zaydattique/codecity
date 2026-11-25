@@ -29,3 +29,7 @@ Planned decide envelope: version, request ID, generation, simulation tick, seed 
 ## Future production boundaries
 
 Phone, jobs, economy, weather, traffic, interiors, dialogue and missions use the same interaction, state and event contracts. Each feature is added only when real state transitions and input/animation checks exist. Export Windows executable plus data, runtime worker, required notices, offline test with no installed tools. Keep renderer/performance evidence and regression checklist with each milestone.
+
+## Two protagonist profiles and navigation contract
+
+`art/characters.json` holds two authoring profiles, not live game stats. The runtime selection must validate one of two stable IDs, create a save only after successful spawn, keep both profiles distinct, and use the same player controller. No numerical stat bars until corresponding mechanics exist. A single world-space location/lane graph must drive both minimap and full-map, player position, headings, waypoint routing and destination availability. Use x/z metres with north = -z; mark planned districts unavailable until streamed scenes and connected navigation actually exist. Full-map zoom/pan and waypoint selection operate on real nodes. Minimap follows authoritative transform; do not use a painted image as the source of geography. Preserve existing fictional coastal city scope. Harbor Boulevard is the proposed first street; harbor apartment and cafe are planned spawn locations, not implemented.

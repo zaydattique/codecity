@@ -29,3 +29,7 @@ Copy art/intake.example.json to art/intake.json and keep all source files and th
 ## Free CPU pipeline pilot
 
 Use the fixed painted wooden bench pilot before attempting automatic MPFB human customization. Run python tools/fetch_pilot_asset.py and blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/render_pilot_asset.py. Stage only; verify glTF dependencies, provenance hashes, dimensions, UV/materials, embedded textures and triangle counts; review preview and in-engine import before approving. Do not treat the studio preview as a finished street. Character pipeline still requires licensed human, hair, clothing and motion inputs.
+
+## Character candidate automation
+
+Use pinned MPFB 2.0.18 source and official MakeHuman system assets pack, no paid generation. CI builds/installs extension outside game and runs `blender --background --disable-autoexec --python-exit-code 1 --python tools/build_character.py -- --id adrian --pack <official-system-assets.zip>`. Output only to ignored build/characters, real rendered front, three-quarter and face views. First candidate uses generic CC0 clothing/hair for validation; no motion, LOD or final art claim. Verify appearance, clothing fit, material export, exact profile proportions, custom wardrobe and animation before accepting. Maya remains second planned playable lead.

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "playable": [
+    {
+      "id": "adrian",
+      "name": "Adrian Cole",
+      "age": 27,
+      "height_m": 1.81,
+      "role": "Driver and mechanic",
+      "bio": "A resourceful newcomer taking on repair and driving jobs while unraveling a local disappearance.",
+      "spawn": "harbor_apartment",
+      "candidate": {
+        "gender": 1,
+        "age": 0.3,
+        "height": 0.58,
+        "muscle": 0.62,
+        "weight": 0.46,
+        "race": {
+          "african": 0.1,
+          "asian": 0.2,
+          "caucasian": 0.7
+        },
+        "skin": "young_caucasian_male",
+        "hair": "short04",
+        "clothes": "male_casualsuit03"
+      }
+    },
+    {
+      "id": "maya",
+      "name": "Maya Bennett",
+      "age": 26,
+      "height_m": 1.69,
+      "role": "Investigative journalist",
+      "bio": "An observant reporter investigating the city's competing interests and missing-person case.",
+      "spawn": "harbor_cafe",
+      "candidate": {
+        "gender": 0,
+        "age": 0.29,
+        "height": 0.49,
+        "muscle": 0.48,
+        "weight": 0.45,
+        "race": {
+          "african": 0.08,
+          "asian": 0.3,
+          "caucasian": 0.62
+        },
+        "skin": "young_caucasian_female",
+        "hair": "long01",
+        "clothes": "female_casualsuit01"
+      }
+    }
+  ]
+}

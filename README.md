@@ -4,11 +4,11 @@ Original, non-educational, story-driven open-world Windows game. The player expe
 
 ## Status: Foundation and asset preflight; runtime gates open
 
-Public main is owner-approved. Development boot scene and standalone Python ping probe only; no gameplay assets or executable yet. Local Phase 01/02 tests passed, engine execution remains pending.
+Public main is owner-approved. Development boot scene and standalone Python ping probe only; no gameplay assets or executable yet. Hosted Linux engine smoke and Python tests passed; Windows and interactive checks remain pending.
 
 ## Toolchain baseline
 
-Godot 4.7.2 stable (standard, not .NET); matching Windows export templates; Blender 4.5.17 LTS; CPython 3.14.10 x64; pytest for development. The local tests use Python 3.13.5; exact target runtime compatibility is unverified. Pin any additional packages and record hashes after a real install. Use official downloads: https://godotengine.org/download/archive/4.7.2-stable/, https://www.blender.org/releases/4-5/, https://www.python.org/downloads/release/python-31410/.
+Godot 4.7.2 stable (standard, not .NET); matching Windows export templates; Blender 4.5.17 LTS; CPython 3.14.10 x64; pytest for development. The local tests use Python 3.13.5; target Python tests now verified in hosted Linux CI. Pin any additional packages and record hashes after a real install. Use official downloads: https://godotengine.org/download/archive/4.7.2-stable/, https://www.blender.org/releases/4-5/, https://www.python.org/downloads/release/python-31410/.
 
 ## Windows verification (PowerShell, repository root)
 
@@ -32,7 +32,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Godot smoke failed' }
 & $Godot --path game
 ```
 
-Require the exact `CODECITY_FOUNDATION_SMOKE_OK` log marker, exit zero and no script/import errors. The frame limit is a watchdog, not success. Interactive test: boot, confirm the development screen fits 720p and 1080p, Tab to Exit and activate by keyboard and mouse. Python ping tests exercise real subprocess I/O; Godot is not connected to the worker. No export preset is provided yet. No asset build scripts are claimed to exist.
+Require the exact `CODECITY_FOUNDATION_SMOKE_OK` log marker, exit zero and no script/import errors. The frame limit is a watchdog, not success. Interactive test: boot, confirm the development screen fits 720p and 1080p, Tab to Exit and activate by keyboard and mouse. Python ping tests exercise real subprocess I/O; Godot is not connected to the worker. No export preset is provided yet. Asset candidate scripts are described below.
 
 ## Project contracts
 
@@ -48,4 +48,8 @@ The pilot is a real CC0 Poly Haven painted wooden bench, not a character or fini
 
 ## GitHub Actions
 
-[CodeCity verification and asset pilot](https://github.com/zaydattique/codecity/actions) uses standard public-repository Ubuntu runners, pinned action revisions, target Python, Godot archive SHA-256 and Blender official checksums. The two jobs run Python/engine smoke and the separate real asset pilot. If no push run appears, open Actions, select CodeCity verification and asset pilot, then Run workflow on main. Download foundation-logs and cc0-bench-pilot-not-approved from a successful run; inspect preview.png and report.json. Artifacts are not game-ready approvals. Initial API check returned zero runs; workflow execution remains unverified.
+[CodeCity verification and asset pilot](https://github.com/zaydattique/codecity/actions) uses standard public-repository Ubuntu runners, pinned action revisions, target Python, Godot archive SHA-256 and Blender official checksums. The two jobs run Python/engine smoke and the separate real asset pilot. If no push run appears, open Actions, select CodeCity verification and asset pilot, then Run workflow on main. Download foundation-logs and cc0-bench-pilot-not-approved from a successful run; inspect preview.png and report.json. Artifacts are not game-ready approvals. First workflow passed; details below.
+
+## Verified hosted results and next candidate
+
+Run 45585769664 succeeded on Linux with Python 3.14.10 (38 tests), Godot 4.7.2 import/boot and Blender 4.5.17 LTS export/render. The actual CC0 bench studio render was visually inspected; wood grain, edge wear and shading are coherent, appropriate for indoor furniture. 630 triangles; 1.165 x 0.497 x 0.889 m. Godot import of this particular mesh and collision/interaction remain pending. See https://github.com/zaydattique/codecity/actions/runs/45585769664 . The new character-candidate job builds a rigged MPFB Adrian using the official CC0 system pack and pinned tool, then exports source, GLB and three real previews. Its first run is unverified; do not treat it as final hero art. Exactly two planned playable characters: Adrian and Maya. No real navigation UI or map implemented yet.

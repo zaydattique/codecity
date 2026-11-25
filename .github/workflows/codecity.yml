@@ -106,3 +106,63 @@ jobs:
             build/asset-pilot/render.log
           if-no-files-found: ignore
           retention-days: 7
+
+  character-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: makehumancommunity/mpfb2
+          ref: 650c5c53bd6989a8ac264f31fa1d11d4a0c7bd8a
+          path: references/mpfb2
+          persist-credentials: false
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          base=https://download.blender.org/release/Blender4.5
+          file=blender-4.5.17-linux-x64.tar.xz
+          curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"
+          curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums
+          grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Build and install pinned MPFB extension
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mpfb-package"
+          blender --command extension build --source-dir references/mpfb2/src/mpfb --output-dir "$RUNNER_TEMP/mpfb-package"
+          shopt -s nullglob
+          packages=("$RUNNER_TEMP/mpfb-package/"*.zip)
+          test "${#packages[@]}" -eq 1
+          blender --command extension install-file --repo user_default --enable "${packages[0]}"
+      - name: Download official CC0 system pack
+        run: |
+          set -euo pipefail
+          curl -fL --retry 2 --max-time 480 --max-filesize 400000000 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o "$RUNNER_TEMP/system-assets.zip"
+          sha256sum "$RUNNER_TEMP/system-assets.zip"
+      - name: Build Adrian candidate and inspect render outputs
+        run: |
+          set -euo pipefail
+          mkdir -p build/characters
+          blender --background --disable-autoexec --python-exit-code 1 --python tools/build_character.py -- --id adrian --pack "$RUNNER_TEMP/system-assets.zip" 2>&1 | tee build/characters/adrian.log
+          grep -q CODECITY_CHARACTER_CANDIDATE_OK build/characters/adrian.log
+          for f in adrian.blend adrian.glb front.png three_quarter.png face.png report.json; do test -s "build/characters/adrian/$f"; done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: adrian-character-candidate-not-approved
+          path: |
+            build/characters/adrian.log
+            build/characters/adrian/adrian.blend
+            build/characters/adrian/adrian.glb
+            build/characters/adrian/front.png
+            build/characters/adrian/three_quarter.png
+            build/characters/adrian/face.png
+            build/characters/adrian/report.json
+          if-no-files-found: ignore
+          retention-days: 7
