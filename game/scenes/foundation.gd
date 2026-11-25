@@ -18,7 +18,7 @@ var _persistent := false
 func _ready() -> void:
 	_persistent=DisplayServer.get_name()!="headless"
 	for arg: String in OS.get_cmdline_user_args():
-		if arg.ends_with("-smoke") or arg=="--smoke":_persistent=false
+		if arg.ends_with("-smoke") or arg=="--smoke" or arg=="--capture":_persistent=false
 	if _persistent:_sessions.load_profiles()
 	_menu.theme=Style.theme()
 	_menu.get_node("Title").add_theme_color_override("font_color",Color(0.54,0.87,0.91))
@@ -35,8 +35,8 @@ func _ready() -> void:
 	_launch.pressed.connect(_open_street)
 	_menu.add_child(_launch)
 	_menu.move_child(_launch,_menu.get_child_count()-2)
-	if "--demo-smoke" in OS.get_cmdline_user_args():
-		call_deferred("_demo_smoke")
+	if "--integrated-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_integrated_smoke")
 	elif "--academy-smoke" in OS.get_cmdline_user_args():
 		call_deferred("_academy_smoke")
 	elif "--vehicle-smoke" in OS.get_cmdline_user_args():
@@ -187,7 +187,7 @@ func _academy_smoke() -> void:
 	get_tree().quit(0)
 
 # Standalone packaged crowd and story readiness, not a manual playthrough.
-func _demo_smoke() -> void:
+func _integrated_smoke() -> void:
 	_name.text="Integrated export verification"
 	_mode.select(0)
 	_character.select(0)
@@ -204,5 +204,5 @@ func _demo_smoke() -> void:
 		push_error("Packaged Python crowd failed")
 		get_tree().quit(1)
 		return
-	print("CODECITY_EXPORTED_DEMO_OK")
+	print("CODECITY_EXPORTED_INTEGRATED_OK")
 	get_tree().quit(0)
