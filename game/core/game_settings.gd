@@ -8,6 +8,7 @@ var master_volume := 0.8
 var show_hints := false
 var fullscreen := false
 var rotate_minimap := true
+var subtitles := true
 var vsync := true
 var fps_limit := 60
 var resolution_index := 1
@@ -25,6 +26,7 @@ func _ready() -> void:
 		show_hints=bool(cfg.get_value("ui","hints",false))
 		fullscreen=bool(cfg.get_value("display","fullscreen",false))
 		rotate_minimap=bool(cfg.get_value("ui","rotate_minimap",true))
+		subtitles=bool(cfg.get_value("ui","subtitles",true))
 		vsync=bool(cfg.get_value("display","vsync",true))
 		fps_limit=int(cfg.get_value("display","fps_limit",60))
 		if not FPS_LIMITS.has(fps_limit):fps_limit=60
@@ -54,6 +56,7 @@ func save() -> void:
 	cfg.set_value("ui","hints",show_hints)
 	cfg.set_value("display","fullscreen",fullscreen)
 	cfg.set_value("ui","rotate_minimap",rotate_minimap)
+	cfg.set_value("ui","subtitles",subtitles)
 	cfg.set_value("display","vsync",vsync)
 	cfg.set_value("display","fps_limit",fps_limit)
 	cfg.set_value("display","resolution",resolution_index)
