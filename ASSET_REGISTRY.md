@@ -36,3 +36,5 @@ Street art candidates: asphalt_01 (Charlotte Baglioni/Dario Barresi), concrete_p
 Complete Adrian v001 artifact 15013111694 includes five actual views; 36,362 tris, 53 bones, 1.574 m height vs 1.81 m target, no clips. REWORK. Street surface v001 and 147-piece facade kit generated in 45595559815 artifact 15013880219, both visually inspected. No complete buildings at this checkpoint. New assembly script targets four closed exteriors using exact source .blend hashes; not accepted until rerender. No gameplay approvals.
 
 Replacement vehicle research candidate: CarConcept pinned GLB c0f38c989a78cc4ba63253b5338705e0afb0142f. Actual review pipeline committed; no generated output or approval yet. Do not ship before removal/clearance of logos and passing visual, budget, physics and import gates.
+
+Dual candidate run 45595560052: Adrian with footwear generated, Maya failed 1.3809m. Previous age values were incorrect child-to-young morphs per pinned MPFB. Both adult profile presets corrected to 0.5; reject prior age-morphed visual candidates as final. Rebuild pending.

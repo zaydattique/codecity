@@ -35,3 +35,11 @@ def test_reject_archive_path(tmp_path,name):
     with zipfile.ZipFile(archive) as z:
         assert [e.orig_filename for e in z.infolist()]==[name]
     with pytest.raises(ValueError): extract_pack(archive,tmp_path/'out')
+
+
+def test_adult_profile_morphs():
+    for id in ('adrian', 'maya'):
+        profile = load_profile(id)
+        assert profile['age'] >= 18
+        assert 0.5 <= profile['candidate']['age'] <= 0.65
+        assert profile['candidate']['shoes']

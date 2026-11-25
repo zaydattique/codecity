@@ -57,6 +57,9 @@ def main():
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     profile = load_profile(args.id)
     preset = profile['candidate']
+    # MPFB 2.0.18 age=0.5 is the young-adult target; values below it blend child geometry.
+    if not 0.5 <= preset['age'] <= 0.65:
+        raise ValueError('Protagonists must use adult age morphs')
     base = ROOT/'build'/'characters'/args.id
     base.mkdir(parents=True, exist_ok=False)
     # Use installed extension, not copied GPL program code in the game.
