@@ -7,6 +7,15 @@ const City = preload("res://core/city_layout.gd")
 const CityStream = preload("res://core/city_stream.gd")
 var city_enabled := false
 var city_stream: Node3D
+const Shop = preload("res://core/harbor_shop.gd")
+var shop: Node3D
+var _shop_open:=false
+signal cash_changed(value: int)
+var cash:=500
+var _cash_label: Label
+var _health_bar: ProgressBar
+var _health_text: Label
+var _respawn_remaining:=0.0
 var _subtitle_panel: PanelContainer
 var _subtitle: Label
 var _subtitle_queue: Array[Dictionary]=[]
@@ -115,10 +124,25 @@ func _ready() -> void:
 		else:
 			city_stream=stream
 			add_child(stream)
-	_make_collision()
 	_make_light()
 	_make_hud()
 	_make_subtitles()
+	_make_vitals()
+	if city_enabled and _enable_npcs and Crowd.installed(true):
+		var market:=Shop.new()
+		add_child(market)
+		if market.setup(self,get_node("HarborArt"),_hud):
+			shop=market
+			shop.trade_changed.connect(_shop_menu)
+			shop.purchase_requested.connect(_buy)
+			_map.shop_target=Layout.map_position(shop.entrance)
+		else:
+			market.queue_free()
+			_enable_npcs=false
+			push_error("Market door could not be resolved from the actual art.")
+	_make_collision()
+	player.health_changed.connect(_update_vitals)
+	player.strike.connect(_player_strike)
 	if academy_mode:
 		station=Academy.new()
 		station.position=Vector3(-5.25,0.15,5.0)
@@ -146,6 +170,7 @@ func _ready() -> void:
 			crowd=director
 			add_child(crowd)
 			crowd.dialogue.connect(_say)
+			crowd.attacked.connect(_npc_strike)
 			# Exclude moving NPC geometry from the static aerial map.
 			for node: Node in crowd.find_children("*","MeshInstance3D",true,false):
 				(node as MeshInstance3D).layers=2
@@ -229,6 +254,7 @@ func _make_collision() -> void:
 	for r: Rect2 in Layout.COURTS:
 		_box("CourtCollision",Vector3(r.get_center().x,-0.075,r.get_center().y),Vector3(r.size.x,0.45,r.size.y))
 	for i: int in range(Layout.BUILDINGS.size()):
+		if i==1 and is_instance_valid(shop):continue
 		var r: Rect2=Layout.BUILDINGS[i]
 		var h: float=Layout.HEIGHTS[i]
 		_box("ClosedExterior%d"%i,Vector3(r.get_center().x,0.15+h*0.5,r.get_center().y),Vector3(r.size.x,h,r.size.y))
@@ -346,10 +372,15 @@ func _make_hud() -> void:
 
 func _refresh_hints() -> void:
 	_map.rotate_with_actor=_prefs.rotate_minimap
-	_status.visible=_prefs.show_hints and not _paused and not _editor_open and not _map.expanded
+	_status.visible=_prefs.show_hints and not _paused and not _editor_open and not _shop_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_world:return
+	if _shop_open:
+		if event.is_action_pressed("pause_game"):
+			shop.close_trade()
+			get_viewport().set_input_as_handled()
+		return
 	if _editor_open:
 		if event.is_action_pressed("pause_game"):
 			station.close_editor()
@@ -365,6 +396,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and not _cursor_unlocked and Interaction.within_range(player,station,2.5):
 		station.open_editor()
 		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("interact") and _try_shop():
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("attack") and not academy_mode and not _driving and not _paused and not _map.expanded and not _cursor_unlocked:
+		if player.start_punch():get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and _try_story_contact():
 		get_viewport().set_input_as_handled()
@@ -430,11 +467,23 @@ func _process(delta: float) -> void:
 	_update_story()
 	if _paused:return
 	_tick_subtitles(delta)
+	if player.dead:
+		_respawn_remaining-=delta
+		if _respawn_remaining<=0:
+			if is_instance_valid(shop):shop.player_inside=false
+			player.respawn(Layout.SPAWN+Vector3.UP*0.02)
+			_sync_controls()
 	if is_instance_valid(city_stream):city_stream.set_focus(vehicle if _driving else player)
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
 		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
 		return
+	if is_instance_valid(shop) and not _driving and not _paused and not _map.expanded:
+		var hint:=_shop_hint()
+		if not hint.is_empty():
+			_vehicle_hint.text=hint
+			_vehicle_hint.visible=not _shop_open
+			return
 	if vehicle==null or not vehicle.built:return
 	if _driving:
 		_vehicle_hint.text="%.0f km/h"%vehicle.speed_kmh()
@@ -460,7 +509,7 @@ func _district_name() -> String:
 
 func _sync_controls() -> void:
 	_update_actor_hud()
-	var enabled: bool=not _paused and not _map.expanded and not _editor_open and not _cursor_unlocked
+	var enabled: bool=not _paused and not _map.expanded and not _editor_open and not _shop_open and not _cursor_unlocked and not player.dead
 	player.controls_enabled=enabled and not _driving
 	if vehicle!=null:
 		vehicle.input_enabled=enabled and _driving
@@ -629,12 +678,13 @@ func _update_story() -> void:
 	_story_heading.text="MISSION COMPLETE" if _story_stage==4 else "A NEW BEGINNING  |  %d / 4"%(_story_stage+1)
 	_story_label.text=STORY_OBJECTIVES[_story_stage]
 	_story_panel.visible=not _paused and not _map.expanded
-	_story_marker.visible=_story_stage==3 and not _paused
+	_story_marker.visible=_story_stage==3 and not _paused and not contact.dead
 	_map.story_target=Layout.map_position(contact.global_position) if _story_stage==3 else Vector2.INF
 
 func _try_story_contact() -> bool:
 	if _story_stage!=3 or academy_mode or _driving or _paused or _map.expanded or _cursor_unlocked or not is_instance_valid(crowd):return false
 	var contact: Node3D=crowd.actors[STORY_CONTACT]
+	if contact.dead:return false
 	if not Interaction.within_range(player,contact,2.5):return false
 	var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP*0.8,contact.global_position+Vector3.UP*0.8,1)
 	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():return false
@@ -692,3 +742,133 @@ func _tick_subtitles(delta: float) -> void:
 		_subtitle.text="%s: %s"%[item["speaker"],item["line"]]
 		_subtitle_remaining=clampf(1.8+float(String(item["line"]).length())*0.035,2.0,6.0)
 	_subtitle_panel.visible=_subtitle_remaining>0 and _prefs.subtitles and not _paused and not _editor_open and not _map.expanded
+
+func _make_vitals() -> void:
+	if academy_mode:return
+	var panel:=PanelContainer.new()
+	panel.position=Vector2(20,398)
+	panel.custom_minimum_size=Vector2(224,0)
+	panel.add_theme_stylebox_override("panel",Style.panel(Color(0.035,0.055,0.075,0.92),5,8))
+	var layout:=VBoxContainer.new()
+	layout.add_theme_constant_override("separation",4)
+	panel.add_child(layout)
+	var row:=HBoxContainer.new()
+	_health_text=Label.new()
+	_health_text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	row.add_child(_health_text)
+	_cash_label=Label.new()
+	_cash_label.add_theme_color_override("font_color",Color(0.65,0.91,0.69))
+	row.add_child(_cash_label)
+	layout.add_child(row)
+	_health_bar=ProgressBar.new()
+	_health_bar.max_value=100
+	_health_bar.show_percentage=false
+	_health_bar.custom_minimum_size=Vector2(0,9)
+	_health_bar.add_theme_stylebox_override("fill",Style.panel(Color(0.24,0.70,0.42),3,0))
+	layout.add_child(_health_bar)
+	_hud.add_child(panel)
+	_update_vitals(player.health)
+
+func _update_vitals(value: int) -> void:
+	if is_instance_valid(_health_bar):
+		_health_bar.value=value
+		_health_text.text="HEALTH  %d"%value
+		_cash_label.text="$%d"%cash
+	if value==0:
+		_respawn_remaining=5.0
+		if is_instance_valid(shop) and shop.opened:shop.close_trade()
+		_sync_controls()
+
+func restore_cash(value: int) -> void:
+	cash=clampi(value,0,10000000)
+	_update_vitals(player.health)
+
+func reward_cash(value: int) -> void:
+	if value<=0:return
+	cash=mini(10000000,cash+value)
+	cash_changed.emit(cash)
+	_update_vitals(player.health)
+
+func _shop_hint() -> String:
+	if not is_instance_valid(shop):return ""
+	var key: String=_prefs.binding_label("interact")
+	if not shop.player_inside and player.global_position.distance_to(shop.entrance)<=1.8:return key+"  Enter Harbor Market"
+	if shop.player_inside:
+		if player.global_position.distance_to(shop.interior_entry)<=1.8:return key+"  Exit market"
+		if shop.can_trade(player,crowd.actors.get("rhea")):return key+"  Speak to Rhea"
+	return ""
+
+func _try_shop() -> bool:
+	if not is_instance_valid(shop) or _paused or _map.expanded or _cursor_unlocked or _driving or player.dead:return false
+	if not shop.player_inside:
+		if shop.enter(player):
+			_say("Rhea","Welcome to Harbor Market.")
+			return true
+		return false
+	if shop.exit(player):return true
+	if shop.open_trade(player,crowd.actors.get("rhea"),cash):
+		_say("Rhea","What can I get for you?")
+		return true
+	return false
+
+func _shop_menu(open: bool) -> void:
+	_shop_open=open
+	player.stop_controls()
+	_sync_controls()
+	_map.visible=not open
+	_pause_button.visible=not open
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+
+func _buy(index: int) -> void:
+	if not is_instance_valid(shop) or not shop.opened or not shop.can_trade(player,crowd.actors.get("rhea")) or index<0 or index>=Shop.PRICES.size():return
+	var price: int=Shop.PRICES[index]
+	if cash<price:
+		shop.result("Not enough cash.",cash)
+		return
+	if not player.heal(Shop.HEALS[index]):
+		shop.result("Your health is already full.",cash)
+		return
+	cash-=price
+	cash_changed.emit(cash)
+	_update_vitals(player.health)
+	shop.result("Purchased "+Shop.PRODUCTS[index]+".",cash)
+	_say("Adrian" if _character=="adrian" else "Maya","Thanks.")
+
+func _player_strike() -> void:
+	if academy_mode or _driving or _paused or _map.expanded or _shop_open or player.dead or not is_instance_valid(crowd):return
+	var forward: Vector3=player._visual.global_basis.z.normalized()
+	var target: Node3D=crowd.strike_target(player.global_position,forward,1.8)
+	if is_instance_valid(target) and target.take_damage(20):
+		_hit_effect(target.global_position+Vector3.UP*1.1)
+		if not target.dead:crowd.register_hit(target,player.global_position)
+		else:crowd.perceive("threat",player.global_position,8.0)
+
+func _npc_strike(actor: Node3D) -> void:
+	if academy_mode or _driving or _paused or _shop_open or player.dead or actor.dead or actor.global_position.distance_to(player.global_position)>1.8:return
+	var ray:=PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.9,player.global_position+Vector3.UP*0.9,1)
+	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():return
+	if player.take_damage(12):_hit_effect(player.global_position+Vector3.UP*1.1)
+
+func _hit_effect(at: Vector3) -> void:
+	var particles:=CPUParticles3D.new()
+	particles.amount=10
+	particles.lifetime=0.4
+	particles.one_shot=true
+	particles.explosiveness=1.0
+	particles.direction=Vector3.UP
+	particles.spread=90
+	particles.initial_velocity_min=0.5
+	particles.initial_velocity_max=1.6
+	particles.gravity=Vector3(0,-6,0)
+	var drop:=SphereMesh.new()
+	drop.radius=0.018
+	drop.height=0.036
+	var color:=StandardMaterial3D.new()
+	color.albedo_color=Color(0.52,0.04,0.06)
+	drop.material=color
+	particles.mesh=drop
+	particles.emitting=false
+	particles.position=at
+	add_child(particles)
+	particles.emitting=true
+	get_tree().create_timer(0.65,false).timeout.connect(particles.queue_free)
