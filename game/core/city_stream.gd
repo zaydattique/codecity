@@ -134,7 +134,8 @@ func _add_parcel(chunk: Node3D,item: Dictionary,groups: Dictionary) -> void:
 	for entry: Dictionary in _templates[index]:
 		var t: Transform3D=entry["transform"]
 		var mesh: Mesh=entry["mesh"]
-		var key: String="%d:%d:%s"%[mesh.get_instance_id(),style,str(entry["wall"])]
+		var finish_index:=floori(float(style)/4.0)%City.PALETTE.size()
+		var key: String="%d:%d:%d:%s"%[mesh.get_instance_id(),index,finish_index,str(entry["wall"])]
 		if not _mesh_cache.has(key):
 			var copy:=mesh.duplicate() as Mesh
 			var materials: Array=entry["materials"]
