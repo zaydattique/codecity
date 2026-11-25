@@ -1,13 +1,20 @@
 extends Node3D
-## Six real rigs, one batch per 30 simulation ticks; no player-facing AI data.
+## Distinct real rigs, one batch per 30 simulation ticks; no player-facing AI data.
 const Bridge = preload("res://core/npc_bridge.gd")
 const Actor = preload("res://core/street_npc.gd")
 const IDS := ["nora","omar","elena","marcus","sana","liam"]
+const CITY_IDS := ["jules","rhea","vincent","farah","theo","iris"]
+const CITY_HEIGHTS := [1.72,1.64,1.77,1.76,1.67,1.60]
+const CITY_SPAWNS := [Vector3(-80,0.04,72),Vector3(-80,0.04,91),Vector3(0,0.04,72),Vector3(0,0.04,91),Vector3(80,0.04,72),Vector3(80,0.04,91)]
+const CITY_POINTS := {"park_west_a":Vector3(-80,0,66),"park_west_b":Vector3(-80,0,96),"park_center_a":Vector3(0,0,65),"park_center_b":Vector3(0,0,96),"park_east_a":Vector3(80,0,66),"park_east_b":Vector3(80,0,96)}
 const HEIGHTS := [1.66,1.78,1.61,1.85,1.70,1.74]
 const POINTS := {"west_south":Vector3(-4.6,0.15,11.5),"west_north":Vector3(-4.6,0.15,-11.5),"east_south":Vector3(4.5,0.15,11.5),"east_north":Vector3(4.5,0.15,-11.5),"bench":Vector3(4,0.15,2),"crossing":Vector3(0,0,0)}
 const SPAWNS := [Vector3(-4.6,0.18,-7),Vector3(4.5,0.18,7),Vector3(-4.5,0.18,2),Vector3(4.5,0.18,-6),Vector3(4.4,0.18,11),Vector3(-4.5,0.18,-12)]
 const ACTIONS := ["walk","rest","give_space","acknowledge","complain","inspect"]
+signal dialogue(speaker: String,line: String)
 var actors := {}
+var active_ids: Array=[]
+var active_points: Dictionary={}
 var bridge: Node
 var player: Node3D
 var vehicle: Node3D
@@ -19,25 +26,33 @@ var _event_id := 0
 var accepted_batches := 0
 var failed := false
 
-static func installed() -> bool:
+static func installed(city: bool=false) -> bool:
 	if Bridge.paths().is_empty():return false
-	for id: String in IDS:
+	for id: String in (IDS+CITY_IDS if city else IDS):
 		if not ResourceLoader.exists("res://candidate_assets/npc_"+id+".glb","PackedScene"):return false
 	return true
 
-func prepare(hero: Node3D,car: Node3D) -> bool:
-	if not installed():return false
+func prepare(hero: Node3D,car: Node3D,city: bool=false) -> bool:
+	if not installed(city):return false
+	active_ids=IDS+CITY_IDS if city else IDS.duplicate()
+	active_points=POINTS.duplicate()
+	if city:active_points.merge(CITY_POINTS)
 	player=hero
 	vehicle=car
-	for i: int in range(IDS.size()):
-		var id: String=IDS[i]
+	var heights: Array=HEIGHTS+CITY_HEIGHTS if city else HEIGHTS
+	var spawns: Array=SPAWNS+CITY_SPAWNS if city else SPAWNS
+	for i: int in range(active_ids.size()):
+		var id: String=active_ids[i]
 		var scene := load("res://candidate_assets/npc_"+id+".glb") as PackedScene
 		var actor := Actor.new()
-		if not actor.configure(id,scene,HEIGHTS[i]):
+		if not actor.configure(id,scene,heights[i]):
 			actor.free()
 			return false
 		actor.name=id
-		actor.position=SPAWNS[i]
+		actor.position=spawns[i]
+		actor.use_crossing=IDS.has(id)
+		actor.spoke.connect(func(line: String):
+			if is_instance_valid(player) and actor.global_position.distance_to(subject().global_position)<=9.0:dialogue.emit(id.capitalize(),line))
 		add_child(actor)
 		actors[id]=actor
 	return true
@@ -56,7 +71,7 @@ func subject() -> Node3D:
 
 func perceive(kind: String,origin: Vector3,radius: float) -> void:
 	_event_id+=1
-	for id: String in IDS:
+	for id: String in active_ids:
 		var actor: Node3D=actors[id]
 		var distance := actor.global_position.distance_to(origin)
 		if distance>radius:continue
@@ -69,10 +84,10 @@ func _physics_process(_delta: float) -> void:
 	var tick: int=_clock.tick
 	var observations: Array=[]
 	var target := subject()
-	for id: String in IDS:
+	for id: String in active_ids:
 		var actor: CharacterBody3D=actors[id]
 		var p := actor.global_position
-		observations.append({"id":id,"position":[clampf(p.x,-6,6),clampf(p.z,-16,16)],"minute":_clock.minute_of_day(),"tick":tick,"reached":actor.arrived,"player_distance":p.distance_to(target.global_position),"event":_events.get(id)})
+		observations.append({"id":id,"position":[clampf(p.x,-600,600),clampf(p.z,-600,600)],"minute":_clock.minute_of_day(),"tick":tick,"reached":actor.arrived,"player_distance":p.distance_to(target.global_position),"event":_events.get(id)})
 	if bridge.submit(observations,tick):
 		_submitted_tick=tick
 		_next_tick=tick+30
@@ -81,7 +96,7 @@ func _physics_process(_delta: float) -> void:
 
 func _accept(result: Dictionary) -> void:
 	var intents: Variant=result.get("intents")
-	if not intents is Array or intents.size()!=6:
+	if not intents is Array or intents.size()!=active_ids.size():
 		_halt()
 		return
 	var seen := {}
@@ -92,12 +107,12 @@ func _accept(result: Dictionary) -> void:
 		var id: Variant=intent.get("id")
 		var rate: Variant=intent.get("speed")
 		var expiry: Variant=intent.get("valid_until")
-		if not id is String or not actors.has(id) or seen.has(id) or not POINTS.has(intent.get("destination")) or not intent.get("action") in ACTIONS or not (rate is float or rate is int) or not is_finite(float(rate)) or float(rate)<0 or float(rate)>2 or not (expiry is float or expiry is int) or expiry!=_submitted_tick+120 or expiry<_clock.tick:
+		if not id is String or not actors.has(id) or seen.has(id) or not active_points.has(intent.get("destination")) or not intent.get("action") in ACTIONS or not (rate is float or rate is int) or not is_finite(float(rate)) or float(rate)<0 or float(rate)>2 or not (expiry is float or expiry is int) or expiry!=_submitted_tick+120 or expiry<_clock.tick:
 			_halt()
 			return
 		seen[id]=true
 	for intent: Dictionary in intents:
-		actors[intent["id"]].apply_intent(intent,POINTS[intent["destination"]],subject())
+		actors[intent["id"]].apply_intent(intent,active_points[intent["destination"]],subject())
 	accepted_batches+=1
 
 func _halt() -> void:
@@ -106,3 +121,15 @@ func _halt() -> void:
 	if is_instance_valid(bridge) and bridge.pid>0:bridge._stop()
 	# Explicitly stop on failure; not a substitute GDScript AI policy.
 	print("CODECITY_NPC_WORKER_UNAVAILABLE idle fallback")
+
+func nearest_visible(origin: Vector3,radius: float) -> Node3D:
+	var result: Node3D
+	var nearest:=radius
+	for actor: Node3D in actors.values():
+		var distance:=actor.global_position.distance_to(origin)
+		if distance>nearest:continue
+		var query:=PhysicsRayQueryParameters3D.create(origin+Vector3.UP*0.8,actor.global_position+Vector3.UP*0.8,1)
+		if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():continue
+		nearest=distance
+		result=actor
+	return result

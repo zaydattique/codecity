@@ -1,6 +1,7 @@
 extends SceneTree
 const Harbor = preload("res://scenes/harbor_playtest.gd")
 const Layout = preload("res://core/harbor_layout.gd")
+const City = preload("res://core/city_layout.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -83,7 +84,7 @@ func _verify() -> void:
 	await ticks(110)
 	Input.action_release("move_left")
 	await ticks(12)
-	if actor.position.x < -5.78 or actor.position.x > -5.4:
+	if actor.position.x < -7.05 or actor.position.x > -6.8:
 		_fail("building wall collision")
 		return
 	actor.auto_camera=true
@@ -99,7 +100,7 @@ func _verify() -> void:
 	# Aim camera toward the real closed exterior and check the obstruction.
 	actor.yaw=-PI/2.0
 	await ticks(20)
-	if actor.camera_position().x < -5.99:
+	if actor.camera_position().x < -7.24:
 		_fail("camera crossed building collision")
 		return
 	actor.yaw=0.0
@@ -119,7 +120,66 @@ func _verify() -> void:
 	Input.action_release("move_forward")
 	Input.action_release("sprint")
 	await ticks(25)
-	world._toggle_map()
+	# A real player must traverse curb, former facade limit, alley and rear court.
+	for count: int in world._facade_counts:
+		if count<5:
+			_fail("actual imported facade group not relocated")
+			return
+	if world._court_material==null:
+		_fail("licensed paving material missing")
+		return
+	actor.auto_camera=false
+	actor.yaw=0
+	actor.global_position=Vector3(-2.9,0.04,8.0)
+	actor.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_left")
+	await ticks(57)
+	Input.action_release("move_left")
+	await ticks(18)
+	if actor.position.x > -5.8 or not actor.is_on_floor() or absf(actor.position.y-0.15)>0.06:
+		_fail("road-to-footpath or former exterior access: %s grounded=%s"%[actor.position,actor.is_on_floor()])
+		return
+	# West alley: center z=-3, then walk behind the actual building footprint.
+	actor.global_position=Vector3(-4.9,0.18,-3.0)
+	actor.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_left")
+	await ticks(205)
+	Input.action_release("move_left")
+	await ticks(18)
+	if actor.position.x > -17.0 or not actor.is_on_floor() or not Layout.walkable(Layout.map_position(actor.position)):
+		_fail("west alley to rear courtyard traversal")
+		return
+	var rear_start: Vector3=actor.position
+	Input.action_press("move_forward")
+	await ticks(65)
+	Input.action_release("move_forward")
+	await ticks(15)
+	if actor.position.z>rear_start.z-3 or not actor.is_on_floor():
+		_fail("rear court longitudinal traversal")
+		return
+	if Layout.walkable(Vector2(-12,5)) or not Layout.walkable(Vector2(-18,-3)) or not Layout.walkable(Vector2(12,0)):
+		_fail("map building and alley validity")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/rear_court.png")!=OK:
+			_fail("rear court capture")
+			return
+	# Local map follows the actor art rather than camera heading.
+	actor._visual.rotation.y=PI/2.0
+	world._map.rotate_with_actor=true
+	if not world._map._heading().rotated(world._map._rotation()).is_equal_approx(Vector2.UP):
+		_fail("minimap facing transform")
+		return
+	var click:=InputEventMouseButton.new()
+	click.button_index=MOUSE_BUTTON_LEFT
+	click.pressed=true
+	world._map._gui_input(click)
+	if not world._map.expanded or not is_zero_approx(world._map._rotation()):
+		_fail("click to expand north-up map")
+		return
 	var paused_pos: Vector3=actor.position
 	Input.action_press("move_forward")
 	await ticks(30)
@@ -164,8 +224,74 @@ func _verify() -> void:
 	if not other.player.is_on_floor() or not is_equal_approx(other.player.height_m,1.69) or (require_motion and not other.player.motion_installed):
 		_fail("second protagonist spawn")
 		return
-	print("CODECITY_STREET_PLAYTEST_OK walking jump wall map pause both protagonists")
 	other.queue_free()
+	await process_frame
+	# Validate the actual city plan, not a decorative map.
+	var styles: Dictionary={}
+	var towers:=0
+	var buildings:=0
+	for x: int in range(-City.RADIUS,City.RADIUS+1):
+		for z: int in range(-City.RADIUS,City.RADIUS+1):
+			for item: Dictionary in City.parcels(Vector2i(x,z)):
+				var rect: Rect2=item["rect"]
+				if not City.BOUNDS.encloses(rect) or City.walkable(rect.get_center()):
+					_fail("city parcel or waypoint mismatch")
+					return
+				styles[item["style"]]=true
+				towers+=int(item["tower"])
+				buildings+=1
+	if styles.size()!=50 or towers!=10 or buildings<50 or City.EXTENT!=1200.0:
+		_fail("city layout counts")
+		return
+	var city=Harbor.new()
+	if not city.prepare("adrian",false,false,true):
+		_fail("city preparation")
+		return
+	root.add_child(city)
+	await ticks(25)
+	if not city.city_enabled or not is_instance_valid(city.city_stream) or city.city_stream._chunks.size()!=9 or city.city_stream.built_parcels<4:
+		_fail("actual city chunk assembly")
+		return
+	var walker: CharacterBody3D=city.player
+	walker.auto_camera=false
+	walker.yaw=0
+	walker.global_position=Vector3(0,0.04,14.0)
+	walker.velocity=Vector3.ZERO
+	await ticks(15)
+	Input.action_press("move_back")
+	await ticks(465)
+	Input.action_release("move_back")
+	await ticks(20)
+	if walker.position.z<43 or not walker.is_on_floor() or not city.city_stream._chunks.has(Vector2i(0,1)) or city.city_stream._chunks.size()>9:
+		_fail("continuous city traversal: %s"%walker.position)
+		return
+	# Actual generated parcel collision and floor at a neighboring city block.
+	var target: Dictionary=City.parcels(Vector2i(1,1))[0] if not City.PARK_CELLS.has(Vector2i(1,1)) else City.parcels(Vector2i(1,0))[0]
+	var parcel: Rect2=target["rect"]
+	var center:=parcel.get_center()
+	walker.global_position=Vector3(parcel.position.x-2,0.04,center.y)
+	walker.velocity=Vector3.ZERO
+	await ticks(25)
+	Input.action_press("move_right")
+	await ticks(80)
+	Input.action_release("move_right")
+	await ticks(15)
+	if walker.position.x>parcel.position.x-0.15 or not walker.is_on_floor():
+		_fail("generated building actual collision")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_buildings.png")!=OK:
+			_fail("city building capture")
+			return
+		city._toggle_map()
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/city_full_map.png")!=OK:
+			_fail("city full map capture")
+			return
+	print("CODECITY_CITY_LAYOUT_OK extent=1200 styles=",styles.size()," towers=",towers," parcels=",buildings)
+	print("CODECITY_STREET_PLAYTEST_OK walking jump wall map pause both protagonists and city traversal")
+	city.queue_free()
 	quit(0)
 
 func _fail(message: String) -> void:

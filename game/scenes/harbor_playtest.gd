@@ -3,6 +3,14 @@ extends Node3D
 ## Explicit candidate playtest; no finished animations, interiors or missions claimed.
 signal leave_requested
 const Layout = preload("res://core/harbor_layout.gd")
+const City = preload("res://core/city_layout.gd")
+const CityStream = preload("res://core/city_stream.gd")
+var city_enabled := false
+var city_stream: Node3D
+var _subtitle_panel: PanelContainer
+var _subtitle: Label
+var _subtitle_queue: Array[Dictionary]=[]
+var _subtitle_remaining:=0.0
 const Player = preload("res://core/street_player.gd")
 const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
@@ -47,6 +55,8 @@ var _status: Label
 var _paused := false
 var _character := ""
 var _ready_world := false
+var _facade_counts: Array[int]=[0,0,0,0]
+var _court_material: Material
 
 static func installed() -> bool:
 	for path: String in ["street.glb","adrian.glb","maya.glb"]:
@@ -54,7 +64,8 @@ static func installed() -> bool:
 			return false
 	return true
 
-func prepare(character: String, education: bool=false, enable_npcs: bool=true) -> bool:
+func prepare(character: String, education: bool=false, enable_npcs: bool=true, enable_city: bool=false) -> bool:
+	city_enabled=enable_city
 	academy_mode=education
 	_enable_npcs=enable_npcs
 	if is_inside_tree() or character not in ["adrian","maya"] or not installed():
@@ -94,9 +105,20 @@ func _ready() -> void:
 		return
 	process_mode=Node.PROCESS_MODE_ALWAYS
 	player.process_mode=Node.PROCESS_MODE_PAUSABLE
+	_relayout_art()
+	if city_enabled:
+		var stream:=CityStream.new()
+		if not stream.configure(get_node("HarborArt"),_court_material,player):
+			stream.free()
+			city_enabled=false
+			push_error("City requires the reviewed facade and paving assets.")
+		else:
+			city_stream=stream
+			add_child(stream)
 	_make_collision()
 	_make_light()
 	_make_hud()
+	_make_subtitles()
 	if academy_mode:
 		station=Academy.new()
 		station.position=Vector3(-5.25,0.15,5.0)
@@ -118,11 +140,12 @@ func _ready() -> void:
 				var sky_material:=node.environment.sky.sky_material as ProceduralSkyMaterial
 				sky_material.sky_top_color=Color(0.13,0.22,0.39)
 				sky_material.sky_horizon_color=Color(0.68,0.46,0.39)
-	if _enable_npcs and Crowd.installed():
+	if _enable_npcs and Crowd.installed(city_enabled):
 		var director := Crowd.new()
-		if director.prepare(player,vehicle):
+		if director.prepare(player,vehicle,city_enabled):
 			crowd=director
 			add_child(crowd)
+			crowd.dialogue.connect(_say)
 			# Exclude moving NPC geometry from the static aerial map.
 			for node: Node in crowd.find_children("*","MeshInstance3D",true,false):
 				(node as MeshInstance3D).layers=2
@@ -152,26 +175,103 @@ func _box(label: String, center: Vector3, extent: Vector3) -> void:
 	add_child(body)
 	body.position=center
 
+# Move each reviewed facade assembly as a unit. Keep doors/windows and UVs intact.
+func _relayout_art() -> void:
+	var palette: Array[Color]=[Color(0.83,0.91,1.0),Color(1.0,0.84,0.65),Color(0.77,0.87,0.77),Color(1.0,0.74,0.64)]
+	var cache: Dictionary={}
+	for node: Node in get_node("HarborArt").find_children("*","MeshInstance3D",true,false):
+		var m:=node as MeshInstance3D
+		if m.mesh==null:continue
+		var name_lower:=String(m.name).to_lower()
+		if name_lower.begins_with("sidewalk") and _court_material==null:
+			_court_material=m.get_active_material(0)
+		for i: int in range(Layout.BUILDING_IDS.size()):
+			if not name_lower.begins_with(Layout.BUILDING_IDS[i]):continue
+			_facade_counts[i]+=1
+			var depth: float=Layout.BUILDING_DEPTH_SCALE[i]
+			var front: float=6.0 if i<2 else -6.0
+			var reshape:=Transform3D(Basis.from_scale(Vector3(depth,1,1)),Vector3(front*(1.0-depth),0,0))
+			m.global_transform=reshape*m.global_transform
+			m.global_position+=Layout.BUILDING_OFFSETS[i]
+			# Distinct exterior finish on wall surfaces only, not windows or doors.
+			if "wall_" in name_lower or "crown_" in name_lower:
+				for s: int in range(m.mesh.get_surface_count()):
+					var original:=m.get_active_material(s)
+					if not original is StandardMaterial3D:continue
+					var key: String="%d:%d"%[i,original.get_instance_id()]
+					if not cache.has(key):
+						var finish:=original.duplicate() as StandardMaterial3D
+						finish.albedo_color*=palette[i]
+						cache[key]=finish
+					m.set_surface_override_material(s,cache[key])
+			break
+	for count: int in _facade_counts:
+		if count==0:push_error("Reviewed facade group not found; layout mismatch")
+	if _court_material==null:push_error("Reviewed sidewalk paving not found; court material unavailable")
+	for r: Rect2 in Layout.COURTS:
+		var tile:=MeshInstance3D.new()
+		var plane:=PlaneMesh.new()
+		plane.size=r.size
+		if _court_material is StandardMaterial3D:
+			var paving:=_court_material.duplicate() as StandardMaterial3D
+			paving.uv1_scale=Vector3(r.size.x/1.8,r.size.y/1.8,1)
+			plane.material=paving
+		else:plane.material=_court_material
+		tile.mesh=plane
+		tile.position=Vector3(r.get_center().x,0.15,r.get_center().y)
+		add_child(tile)
+
 func _make_collision() -> void:
 	# Authored floor and facade collision proxies match the reviewed mesh footprint.
 	_box("RoadCollision",Vector3(0,-0.15,0),Vector3(6.8,0.30,32))
 	for r: Rect2 in Layout.SIDEWALKS:
 		_box("SidewalkCollision",Vector3(r.get_center().x,-0.075,r.get_center().y),Vector3(r.size.x,0.45,r.size.y))
+	for r: Rect2 in Layout.COURTS:
+		_box("CourtCollision",Vector3(r.get_center().x,-0.075,r.get_center().y),Vector3(r.size.x,0.45,r.size.y))
 	for i: int in range(Layout.BUILDINGS.size()):
 		var r: Rect2=Layout.BUILDINGS[i]
 		var h: float=Layout.HEIGHTS[i]
 		_box("ClosedExterior%d"%i,Vector3(r.get_center().x,0.15+h*0.5,r.get_center().y),Vector3(r.size.x,h,r.size.y))
-	# Temporary playtest limits at actual open ends. No invisible city extension.
-	_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
-	_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
-	_make_road_closure(-16.0)
-	_make_road_closure(16.0)
+	# Existing road closures remain visible; the perimeter is a visible rail fence.
+	if not city_enabled:
+		_make_block_fence()
+		_box("NorthTestLimit",Vector3(0,1.5,-16.1),Vector3(12,3,0.2))
+		_box("SouthTestLimit",Vector3(0,1.5,16.1),Vector3(12,3,0.2))
+		_make_road_closure(-16.0)
+		_make_road_closure(16.0)
 	# Furniture collisions derived from actual imported source meshes.
 	for node: Node in get_node("HarborArt").find_children("*","MeshInstance3D",true,false):
 		var m := node as MeshInstance3D
 		var n := String(m.name).to_lower()
 		if m.mesh != null and ("bench" in n or "lamp" in n):
 			m.create_trimesh_collision()
+
+func _make_block_fence() -> void:
+	var material:=StandardMaterial3D.new()
+	material.albedo_color=Color(0.27,0.31,0.32)
+	material.metallic=0.65
+	material.roughness=0.53
+	for x: float in [-20.0,20.0]:
+		_box("BlockBoundary",Vector3(x,1.5,0),Vector3(0.2,3,36))
+		_fence_rail(Vector3(x,0.65,0),Vector3(0.10,0.10,36),material)
+		_fence_rail(Vector3(x,1.2,0),Vector3(0.10,0.10,36),material)
+		for z: int in range(-18,19,3):
+			_fence_rail(Vector3(x,0.65,z),Vector3(0.13,1.3,0.13),material)
+	for z: float in [-18.0,18.0]:
+		_box("BlockBoundary",Vector3(0,1.5,z),Vector3(40,3,0.2))
+		_fence_rail(Vector3(0,0.65,z),Vector3(40,0.10,0.10),material)
+		_fence_rail(Vector3(0,1.2,z),Vector3(40,0.10,0.10),material)
+		for x: int in range(-20,21,4):
+			_fence_rail(Vector3(x,0.65,z),Vector3(0.13,1.3,0.13),material)
+
+func _fence_rail(center: Vector3,extent: Vector3,material: Material) -> void:
+	var rail:=MeshInstance3D.new()
+	var mesh:=BoxMesh.new()
+	mesh.size=extent
+	mesh.material=material
+	rail.mesh=mesh
+	rail.position=center
+	add_child(rail)
 
 func _make_light() -> void:
 	var env := WorldEnvironment.new()
@@ -186,6 +286,10 @@ func _make_light() -> void:
 	env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color=Color(0.75,0.81,0.9)
 	env.environment.ambient_light_energy=0.65
+	if city_enabled:
+		env.environment.fog_enabled=true
+		env.environment.fog_light_color=Color(0.73,0.80,0.86)
+		env.environment.fog_density=0.011
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-52,-32,0)
@@ -200,10 +304,16 @@ func _make_hud() -> void:
 	_map=Map.new()
 	_map.actor=player
 	_map.academy=academy_mode
+	_map.city_enabled=city_enabled
+	_map.rotate_with_actor=_prefs.rotate_minimap
+	_map.expand_requested.connect(func():
+		if not _paused and not _editor_open:_toggle_map())
 	_map.position=Vector2(20,480)
 	_map.size=Vector2(224,220)
 	_map.clip_contents=true
-	if DisplayServer.get_name()!="headless":
+	if city_enabled:
+		_map.aerial=ImageTexture.create_from_image(City.map_image())
+	elif DisplayServer.get_name()!="headless":
 		_make_overhead_map()
 	_hud.add_child(_map)
 	_status=Label.new()
@@ -235,6 +345,7 @@ func _make_hud() -> void:
 	_refresh_hints()
 
 func _refresh_hints() -> void:
+	_map.rotate_with_actor=_prefs.rotate_minimap
 	_status.visible=_prefs.show_hints and not _paused and not _editor_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -259,7 +370,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and is_instance_valid(crowd) and not _driving and not _paused and not _map.expanded and not _cursor_unlocked:
-		crowd.perceive("greet",player.global_position,2.5)
+		if is_instance_valid(crowd.nearest_visible(player.global_position,2.5)):
+			_say("Adrian" if _character=="adrian" else "Maya","Hey, how is it going?")
+			crowd.perceive("greet",player.global_position,2.5)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("vehicle_horn") and _driving and not _paused and not _map.expanded and not _cursor_unlocked:
@@ -302,6 +415,7 @@ func _set_pause(value: bool) -> void:
 	player.stop_controls()
 	_sync_controls()
 	_pause_panel.visible=value
+	if is_instance_valid(_subtitle_panel) and value:_subtitle_panel.hide()
 	_pause_button.visible=not value
 	_refresh_hints()
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
@@ -311,10 +425,12 @@ func _exit_tree() -> void:
 		get_tree().paused=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _ready_world:return
 	_update_story()
 	if _paused:return
+	_tick_subtitles(delta)
+	if is_instance_valid(city_stream):city_stream.set_focus(vehicle if _driving else player)
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
 		_vehicle_hint.text="E  Harbor utilities" if Interaction.within_range(player,station,2.5) else "Harbor utilities | Follow the map marker"
@@ -333,9 +449,14 @@ func _update_actor_hud() -> void:
 		return
 	var name := "Adrian Cole" if _character=="adrian" else "Maya Bennett"
 	if _driving:
-		_status.text="Harbor Boulevard | %s\nVehicle controls\nM map · Esc pause"%name
+		_status.text="%s | %s\nVehicle controls\nM map · Esc pause"%[_district_name(),name]
 	else:
-		_status.text="Harbor Boulevard | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%name
+		_status.text="%s | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%[_district_name(),name]
+
+func _district_name() -> String:
+	if not city_enabled:return "Harbor Boulevard"
+	var actor: Node3D=vehicle if _driving else player
+	return City.district(City.cell_at(Vector2(actor.global_position.x,actor.global_position.z)))
 
 func _sync_controls() -> void:
 	_update_actor_hud()
@@ -382,7 +503,8 @@ func _safe_exit() -> Vector3:
 		if floor_hit.is_empty() or floor_hit.normal.y<0.7:
 			continue
 		var feet: Vector3=floor_hit.position+Vector3.UP*0.035
-		if not Layout.street_contains(feet) or not vehicle.clear_of_door(feet):
+		var walkable: bool=City.walkable(Vector2(feet.x,feet.z)) if city_enabled else Layout.street_contains(feet)
+		if not walkable or not vehicle.clear_of_door(feet):
 			continue
 		var capsule := CapsuleShape3D.new()
 		capsule.radius=0.29
@@ -452,7 +574,7 @@ func _make_overhead_map() -> void:
 				(node as MeshInstance3D).layers=2
 	var camera := Camera3D.new()
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL
-	camera.size=36
+	camera.size=Layout.MAP_EXTENT
 	camera.cull_mask=1
 	camera.position=Vector3(0,60,0)
 	camera.rotation_degrees=Vector3(-90,0,0)
@@ -517,6 +639,8 @@ func _try_story_contact() -> bool:
 	var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP*0.8,contact.global_position+Vector3.UP*0.8,1)
 	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():return false
 	_story_stage=4
+	_say("Adrian" if _character=="adrian" else "Maya","The coupe is running well. I finished the test drive.")
+	_say("Nora","Good. We can get the car back on the road.")
 	crowd.perceive("greet",player.global_position,2.5)
 	_story_sound.play()
 	_update_story()
@@ -540,3 +664,31 @@ func _feedback_clip(horn: bool) -> AudioStreamWAV:
 	clip.mix_rate=rate
 	clip.data=samples
 	return clip
+
+func _make_subtitles() -> void:
+	_subtitle_panel=PanelContainer.new()
+	_subtitle_panel.position=Vector2(298,613)
+	_subtitle_panel.custom_minimum_size=Vector2(684,64)
+	_subtitle_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	_subtitle_panel.add_theme_stylebox_override("panel",Style.panel(Color(0.025,0.035,0.045,0.83),5,10))
+	_subtitle=Label.new()
+	_subtitle.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_subtitle.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	_subtitle.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	_subtitle.add_theme_font_size_override("font_size",19)
+	_subtitle_panel.add_child(_subtitle)
+	_hud.add_child(_subtitle_panel)
+	_subtitle_panel.hide()
+
+func _say(speaker: String,line: String) -> void:
+	if not is_instance_valid(_subtitle_panel) or _subtitle_queue.size()>=8:return
+	_subtitle_queue.append({"speaker":speaker.left(32),"line":line.left(160)})
+	if _subtitle_remaining<=0.0:_tick_subtitles(0)
+
+func _tick_subtitles(delta: float) -> void:
+	_subtitle_remaining=maxf(0.0,_subtitle_remaining-delta)
+	if _subtitle_remaining<=0.0 and not _subtitle_queue.is_empty():
+		var item: Dictionary=_subtitle_queue.pop_front()
+		_subtitle.text="%s: %s"%[item["speaker"],item["line"]]
+		_subtitle_remaining=clampf(1.8+float(String(item["line"]).length())*0.035,2.0,6.0)
+	_subtitle_panel.visible=_subtitle_remaining>0 and _prefs.subtitles and not _paused and not _editor_open and not _map.expanded
