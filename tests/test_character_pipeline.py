@@ -22,5 +22,16 @@ def test_extract(tmp_path):
 def test_reject_archive_path(tmp_path,name):
     archive=tmp_path/'pack.zip'
     with zipfile.ZipFile(archive,'w') as z:
-        z.writestr(zipfile.ZipInfo(name),'fixture')
+        if '\\' in name:
+            z.writestr('a/b','fixture')
+        else:
+            z.writestr(name,'fixture')
+    if '\\' in name:
+        # Windows ZipInfo normalizes backslashes when constructing a member.
+        # Inject a raw malformed member name into both same-length ZIP headers.
+        data=archive.read_bytes()
+        assert data.count(b'a/b')==2
+        archive.write_bytes(data.replace(b'a/b',b'a\\b'))
+    with zipfile.ZipFile(archive) as z:
+        assert z.namelist()==[name]
     with pytest.raises(ValueError): extract_pack(archive,tmp_path/'out')
