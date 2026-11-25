@@ -1,7 +1,0 @@
-# NPC intelligence
-
-See [architecture](../ARCHITECTURE.md) and sections 07–09 of the [master directive](MASTER_PRODUCTION_DIRECTIVE.md). Current worker supports ping only. Next implement bounded decision batches with schedules, needs, personality, relationship/memory and perceived events; validate proposed intents in Godot and distinguish fallback. NPCs must behave independently, never expose internal scores. Six independent actors in the slice before 24 civilian appearance configurations or 25–40 nearby active NPCs; measure actual cost. No behavior claims until visible tests with real animated actors. Academy code execution is isolated from the trusted NPC worker.
-
-P23 source core now implemented in ai/npc_brain.py: six distinct profiles, occupation/work schedule, energy/stress/affinity, event-distance perception and memory, route progression, personal space and reaction cooldown; deterministic batch with atomic validation, exposed through worker npc_batch op. Tests exercise actual Python process. Godot runtime bridge and six distinct approved visual NPC actors still outstanding. Do not claim visible intelligence or run fallback as Python.
-
-Runtime source added: six actual model gate, persistent Python mailbox, all-or-nothing intent validation, 30-tick cadence, expiry, simple sidewalk/crossing executor, physics collisions and range/LOS events. Worker missing/failure stops NPCs and reports fallback in development logs. No visible NPC scoring. Actual six-model import and behavioral QA pending.
