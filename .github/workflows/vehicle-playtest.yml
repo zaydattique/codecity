@@ -7,6 +7,13 @@ on:
   push:
     branches: [main]
     paths:
+      - 'ai/academy.py'
+      - 'game/core/academy*.gd'
+      - 'game/core/game_settings.gd'
+      - 'game/core/pause_settings.gd'
+      - 'game/core/street_map.gd'
+      - 'game/scenes/foundation.gd'
+      - 'verification/academy_playtest.gd'
       - 'game/core/street_vehicle.gd'
       - 'game/core/street_player.gd'
       - 'game/scenes/harbor_playtest.gd'
@@ -54,7 +61,7 @@ jobs:
           cp -a game/. build/vehicle-game/
           mkdir -p build/vehicle-game/candidate_assets build/vehicle-game/_qa
           cp build/previous/game/candidate_assets/{adrian,maya,street}.glb build/vehicle-game/candidate_assets/
-          cp verification/vehicle_playtest.gd verification/street_playtest.gd build/vehicle-game/_qa/
+          cp verification/vehicle_playtest.gd verification/street_playtest.gd verification/academy_playtest.gd build/vehicle-game/_qa/
           python - <<'PY'
           import json,hashlib,shutil
           from pathlib import Path
@@ -77,20 +84,31 @@ jobs:
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
           chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
       - name: Real geometry import and deterministic drive test
+        env:
+          CODECITY_ACADEMY_SCRIPT: ${{ github.workspace }}/ai/academy.py
         run: |
           set -euo pipefail
           godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           timeout 240 "$godot" --headless --path build/vehicle-game --editor --import 2>&1 | tee build/evidence/import.log
           timeout 90 "$godot" --headless --path build/vehicle-game --script res://_qa/vehicle_playtest.gd 2>&1 | tee build/evidence/vehicle.log
           grep -q CODECITY_VEHICLE_PLAYTEST_OK build/evidence/vehicle.log
+          timeout 90 "$godot" --headless --path build/vehicle-game --script res://_qa/street_playtest.gd -- --motion 2>&1 | tee build/evidence/street.log
+          grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street.log
+          timeout 60 "$godot" --headless --path build/vehicle-game --script res://_qa/academy_playtest.gd 2>&1 | tee build/evidence/academy.log
+          grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/*.log; then exit 1; fi
       - name: Render driving and safe exit
+        env:
+          CODECITY_ACADEMY_SCRIPT: ${{ github.workspace }}/ai/academy.py
         run: |
           set -euo pipefail
           godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/vehicle-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/vehicle_playtest.gd -- --capture 2>&1 | tee build/evidence/render.log
           grep -q CODECITY_VEHICLE_PLAYTEST_OK build/evidence/render.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/*.log; then exit 1; fi
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90 xvfb-run -a -s "-screen 0 1280x720x24" "$godot" --audio-driver Dummy --path build/vehicle-game --rendering-method gl_compatibility --resolution 1280x720 --script res://_qa/academy_playtest.gd -- --capture 2>&1 | tee build/evidence/academy-render.log
+          grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy-render.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/academy-render.log; then exit 1; fi
           cp build/vehicle-game/_qa/*.png build/evidence/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -116,16 +134,17 @@ jobs:
           mv build/vehicle-game build/vehicle-package/game
           cp verification/candidate_export_presets.cfg build/vehicle-package/game/export_presets.cfg
           cp THIRD_PARTY_NOTICES.md build/vehicle-package/distribution/
+          cp ai/academy.py build/vehicle-package/distribution/
           cp build/evidence/coupe-report.json build/vehicle-package/distribution/
           cat > build/vehicle-package/distribution/README.txt <<'EOF'
-          CodeCity Driving Test - development candidate, not a released game.
+          CodeCity Academy Demo v0.2.0 - development candidate, not a released game.
           Two protagonists, one street and a functional coupe candidate.
-          Launch CodeCity_Driving_Test.exe with the PCK in the same folder.
-          Select Living World and a character; open the street physics test.
+          Launch CodeCity_Academy_Demo.exe with the PCK, academy.py and python directory together.
+          Select a profile and character. Academy: approach the lighting cabinet, E, write Python and run it. Living World: drive the coupe.
           WASD and mouse move; Shift sprint, Alt walk, C crouch, Space jump.
           Approach the parked coupe and press F. W/S drive/reverse, A/D steer,
           Space brake, L headlights. Stop before F exit. M map, Esc pause.
-          No seated driver visual, NPC simulation, interiors, missions or save.
+          Python lesson supports variables, if, for/range, print and set_lamp; not unrestricted Python. No seated driver visual, NPC simulation, interiors or game saves.
           Godot 4.7.2; no online connection needed for this candidate.
           EOF
           curl -fL --proto '=https' --proto-redir '=https' --max-time 60 https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/LICENSE.txt -o build/vehicle-package/distribution/Godot-LICENSE.txt
@@ -145,6 +164,6 @@ jobs:
     uses: ./.github/workflows/candidate-windows-export.yml
     with:
       project_artifact: tested-vehicle-project-candidate
-      suite: vehicle
-      exe: CodeCity_Driving_Test.exe
-      output_artifact: CodeCity-Windows-Driving-Test
+      suite: academy
+      exe: CodeCity_Academy_Demo.exe
+      output_artifact: CodeCity-Windows-Academy-Demo

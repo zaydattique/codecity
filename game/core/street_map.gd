@@ -62,7 +62,7 @@ func _draw() -> void:
 	for r: Rect2 in Layout.BUILDINGS:
 		draw_rect(_map_rect(r),Color(0.18,0.25,0.29))
 		draw_rect(_map_rect(r),Color(0.39,0.49,0.52),false,1.5)
-		for y: float in range(int(r.position.y)+3,int(r.end.y),3):
+		for y: int in range(int(r.position.y)+3,int(r.end.y),3):
 			draw_line(_screen(Vector2(r.position.x,y)),_screen(Vector2(r.end.x,y)),Color(0.27,0.34,0.37),1)
 	for y: int in range(-15,16,3):
 		draw_line(_screen(Vector2(0,y)),_screen(Vector2(0,y+1.4)),Color(0.55,0.61,0.63),1.5,true)
@@ -75,7 +75,7 @@ func _draw() -> void:
 		draw_circle(_screen(waypoint),6,Color(0.92,0.68,0.23),false,2.0)
 	if is_instance_valid(actor):
 		var pos := _screen(Layout.map_position(actor.global_position))
-		var heading := actor.global_basis.z if actor is VehicleBody3D else -Basis(Vector3.UP,actor.yaw).z
+		var heading: Vector3 = actor.global_basis.z if actor is VehicleBody3D else -Basis(Vector3.UP,float(actor.get("yaw"))).z
 		var direction := Vector2(heading.x,heading.z).normalized()
 		var side := Vector2(-direction.y,direction.x)
 		draw_circle(pos,10,Color(0.08,0.12,0.15))

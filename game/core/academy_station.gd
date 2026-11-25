@@ -10,12 +10,16 @@ var _code: CodeEdit
 var _output: Label
 var _run: Button
 var _done := false
+var _sound: AudioStreamPlayer
 var opened := false
 
 func setup(hud: CanvasLayer) -> void:
 	_bridge=Bridge.new()
 	add_child(_bridge)
 	_bridge.finished.connect(_apply)
+	_sound=AudioStreamPlayer.new()
+	_sound.stream=_completion_tone()
+	add_child(_sound)
 	for z: float in [-10.0,10.0]:
 		var lamp := SpotLight3D.new()
 		lamp.position=Vector3(5.15,3.4,z)-global_position
@@ -147,7 +151,26 @@ func _apply(result: Dictionary) -> void:
 		_output.text+="\nMission complete. The street lights are restored."
 		if not _done:
 			_done=true
+			_sound.play()
 			completed.emit()
 
 func lamps_online() -> bool:
 	return _lights.size()==2 and _lights[0].visible and _lights[1].visible
+
+# Original short two-tone feedback, no third-party sound asset.
+func _completion_tone() -> AudioStreamWAV:
+	var samples := PackedByteArray()
+	var rate := 22050
+	var count := 6615
+	samples.resize(count*2)
+	for i: int in range(count):
+		var t := float(i)/rate
+		var freq := 660.0 if t<0.14 else 880.0
+		var env := minf(1.0,t/0.025)*maxf(0.0,minf(1.0,(0.3-t)/0.06))
+		var val := int(sin(TAU*freq*t)*env*4800)
+		samples.encode_s16(i*2,val)
+	var clip := AudioStreamWAV.new()
+	clip.format=AudioStreamWAV.FORMAT_16_BITS
+	clip.mix_rate=rate
+	clip.data=samples
+	return clip

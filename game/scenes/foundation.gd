@@ -25,7 +25,9 @@ func _ready() -> void:
 	_launch.pressed.connect(_open_street)
 	_menu.add_child(_launch)
 	_menu.move_child(_launch,_menu.get_child_count()-2)
-	if "--vehicle-smoke" in OS.get_cmdline_user_args():
+	if "--academy-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_academy_smoke")
+	elif "--vehicle-smoke" in OS.get_cmdline_user_args():
 		call_deferred("_vehicle_smoke")
 	elif "--smoke" in OS.get_cmdline_user_args():
 		call_deferred("_smoke")
@@ -134,4 +136,30 @@ func _vehicle_smoke() -> void:
 		get_tree().quit(1)
 		return
 	print("CODECITY_EXPORTED_VEHICLE_OK")
+	get_tree().quit(0)
+
+func _academy_smoke() -> void:
+	_name.text="Packaged Python verification"
+	_mode.select(1)
+	_character.select(1)
+	_on_apply_pressed()
+	_open_street()
+	if not is_instance_valid(_world) or _world.station==null:
+		push_error("Packaged Academy runtime unavailable")
+		get_tree().quit(1)
+		return
+	var station: Node3D=_world.station
+	station.open_editor()
+	if not station.run_source("for lamp in range(2):\n    set_lamp(lamp, True)\nprint('Online')"):
+		push_error("Packaged Python could not start")
+		get_tree().quit(1)
+		return
+	var deadline := Time.get_ticks_msec()+7000
+	while station._run.disabled and Time.get_ticks_msec()<deadline:
+		await get_tree().create_timer(0.025).timeout
+	if not station.lamps_online():
+		push_error("Packaged Python did not change world")
+		get_tree().quit(1)
+		return
+	print("CODECITY_EXPORTED_ACADEMY_OK")
 	get_tree().quit(0)

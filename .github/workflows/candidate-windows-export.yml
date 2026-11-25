@@ -56,6 +56,33 @@ jobs:
               [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, "$target/$name", $true)
             }
           } finally { $archive.Dispose() }
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        if: inputs.suite == 'academy'
+        with:
+          python-version: '3.14.10'
+      - name: Bundle standalone Python runtime and verify it
+        if: inputs.suite == 'academy'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Copy the pinned CPython interpreter, standard library and native
+          # modules only. Exclude pip/site-packages, tests and development tools.
+          $base = python -c "import sys; print(sys.base_prefix)"
+          if ($LASTEXITCODE -ne 0) { throw "Python discovery failed" }
+          $target = (New-Item -Force -ItemType Directory build/distribution/python).FullName
+          Copy-Item "$base/python.exe" $target
+          Copy-Item "$base/python*.dll" $target
+          Get-ChildItem "$base/vcruntime*.dll" | Copy-Item -Destination $target
+          Copy-Item "$base/DLLs" $target -Recurse
+          Copy-Item "$base/Lib" $target -Recurse
+          foreach ($name in @("site-packages","test","ensurepip","idlelib","tkinter","turtledemo")) {
+            $unused=Join-Path "$target/Lib" $name
+            if (Test-Path $unused) { Remove-Item -Recurse -Force $unused }
+          }
+          $license=Join-Path $base "LICENSE.txt"
+          if (!(Test-Path $license)) { throw "Python license missing" }
+          Copy-Item $license build/distribution/Python-LICENSE.txt
+          & "$target/python.exe" -I -S -c "import ast,json,sys; print(sys.version); assert sys.version_info[:3]==(3,14,10)"
+          if ($LASTEXITCODE -ne 0) { throw "Copied Python runtime failed" }
       - name: Windows actual physics regression and export
         run: |
           $ErrorActionPreference = 'Stop'
@@ -63,14 +90,20 @@ jobs:
           if (!$godot) { throw "Missing editor console" }
           & $godot.FullName --headless --path build/game --editor --import 2>&1 | Tee-Object build/windows-logs/import.log
           if ($LASTEXITCODE -ne 0) { throw "Windows import failed" }
-          if ($env:CANDIDATE_SUITE -notin @("street","vehicle")) { throw "Unknown verification suite" }
-          if ($env:CANDIDATE_EXE -notin @("CodeCity_Street_Test.exe","CodeCity_Driving_Test.exe")) { throw "Unknown candidate executable name" }
+          if ($env:CANDIDATE_SUITE -notin @("street","vehicle","academy")) { throw "Unknown verification suite" }
+          if ($env:CANDIDATE_EXE -notin @("CodeCity_Street_Test.exe","CodeCity_Driving_Test.exe","CodeCity_Academy_Demo.exe")) { throw "Unknown candidate executable name" }
           & $godot.FullName --headless --path build/game --script res://_qa/street_playtest.gd -- --motion 2>&1 | Tee-Object build/windows-logs/physics.log
           if ($LASTEXITCODE -ne 0) { throw "Windows candidate physics failed" }
           if (!(Select-String -Path build/windows-logs/physics.log -SimpleMatch CODECITY_STREET_PLAYTEST_OK)) { throw "Physics marker absent" }
-          if ($env:CANDIDATE_SUITE -eq "vehicle") {
+          if ($env:CANDIDATE_SUITE -in @("vehicle","academy")) {
             & $godot.FullName --headless --path build/game --script res://_qa/vehicle_playtest.gd 2>&1 | Tee-Object build/windows-logs/vehicle.log
             if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/vehicle.log -SimpleMatch CODECITY_VEHICLE_PLAYTEST_OK)) { throw "Native Windows vehicle check failed" }
+          }
+          if ($env:CANDIDATE_SUITE -eq "academy") {
+            $env:CODECITY_ACADEMY_SCRIPT=(Resolve-Path build/distribution/academy.py).Path
+            $env:CODECITY_PYTHON=(Resolve-Path build/distribution/python/python.exe).Path
+            & $godot.FullName --headless --path build/game --script res://_qa/academy_playtest.gd 2>&1 | Tee-Object build/windows-logs/academy.log
+            if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/academy.log -SimpleMatch CODECITY_ACADEMY_PLAYTEST_OK)) { throw "Native Windows Python lesson failed" }
           }
           $output = Join-Path (Resolve-Path build/distribution).Path $env:CANDIDATE_EXE
           & $godot.FullName --headless --path build/game --export-release "Windows Candidate" $output 2>&1 | Tee-Object build/windows-logs/export.log
@@ -81,12 +114,24 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $exe = (Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
           $log = Join-Path (Resolve-Path build/windows-logs).Path "exported-boot.log"
-          $smoke = if ($env:CANDIDATE_SUITE -eq "vehicle") { "--vehicle-smoke" } else { "--smoke" }
-          $marker = if ($env:CANDIDATE_SUITE -eq "vehicle") { "CODECITY_EXPORTED_VEHICLE_OK" } else { "CODECITY_FOUNDATION_SMOKE_OK" }
+          $smoke = if ($env:CANDIDATE_SUITE -in @("vehicle","academy")) { "--vehicle-smoke" } else { "--smoke" }
+          $marker = if ($env:CANDIDATE_SUITE -in @("vehicle","academy")) { "CODECITY_EXPORTED_VEHICLE_OK" } else { "CODECITY_FOUNDATION_SMOKE_OK" }
           $p = Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--quit-after","360","--",$smoke) -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
           if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Exported game boot timeout" }
           if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch $marker)) { throw "Exported game failed" }
           if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Exported game errors" }
+      - name: Standalone bundled Python mission smoke
+        if: inputs.suite == 'academy'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:CODECITY_ACADEMY_SCRIPT -ErrorAction SilentlyContinue
+          Remove-Item Env:CODECITY_PYTHON -ErrorAction SilentlyContinue
+          $exe=(Resolve-Path build/distribution/CodeCity_Academy_Demo.exe).Path
+          $log=Join-Path (Resolve-Path build/windows-logs).Path "exported-academy.log"
+          $p=Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--","--academy-smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
+          if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Packaged Academy timeout" }
+          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_EXPORTED_ACADEMY_OK)) { throw "Packaged Python lesson failed" }
+          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Packaged Academy errors" }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.output_artifact }}

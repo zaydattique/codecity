@@ -25,7 +25,7 @@ func apply() -> void:
 	if bus>=0:
 		AudioServer.set_bus_mute(bus,master_volume<=0.001)
 		AudioServer.set_bus_volume_db(bus,linear_to_db(maxf(0.001,master_volume)))
-	if DisplayServer.get_name()!="headless":
+	if DisplayServer.get_name()!="headless" and DisplayServer.window_get_mode()!=(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
 	changed.emit()
 

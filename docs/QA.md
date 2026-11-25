@@ -34,3 +34,5 @@ Vehicle candidate package requires exact reviewed derivative digest, successful 
 Actual door sweep clearance now derived from imported closed door mesh bounds and 0..50 degree hinge transform, conservative sampled envelope plus 0.38m margin. Exit candidates behind the door checked against actual ground and capsule obstacles; reject if none. Regression requires exit player outside this swept volume; full entry animation/hand IK and door collision remain pending.
 
 P09 latest run 45631491513: Linux headless/render, native Windows street and vehicle regressions, standalone EXE installed world, character and wheel-contact smoke passed. Artifact 15031685807. Motion/physics candidate not equivalent to interactive target hardware, complete animations or full game acceptance.
+
+New Academy fixture uses real menu and actual Python process, rejects import attempt without applying partial lamp command, accepts variable/for loop/print and verifies actual spotlights and distinct profile mission progress. Tests native Windows and bundled runtime outside editor; run results required before release. Camera/map/settings changes must not regress previous driving or walking.

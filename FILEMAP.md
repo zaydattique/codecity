@@ -55,3 +55,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `ai/academy.py` bounded Python subset interpreter and CLI; `tests/test_academy.py` execution/denial/atomic/limit tests; `game/core/academy_bridge.gd` trusted bounded process bridge and `academy_station.gd` real lamp control/CodeEdit. Existing menu and street integrate separate Academy mode.
 
 `game/core/game_settings.gd` persistent local settings autoload; `pause_settings.gd` actual pause/settings controls. Updated existing camera/map and street scene rather than parallel controllers.
+
+`verification/academy_playtest.gd` actual mission smoke, native Python bridge and denial/atomic/physical light assertions. Shared Windows exporter now has Academy suite with bundled CPython and standalone lesson test.

@@ -182,19 +182,20 @@ func _refresh_hints() -> void:
 	_status.visible=GameSettings.show_hints and not _paused and not _editor_open and not _map.expanded
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _ready_world:
-		return
+	if not _ready_world:return
 	if _editor_open:
-		if event.is_action_pressed("menu_cursor") and not _paused and not _map.expanded:
+		if event.is_action_pressed("pause_game"):
+			station.close_editor()
+			get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("menu_cursor") and not _paused and not _map.expanded:
 		_cursor_unlocked=not _cursor_unlocked
 		player.stop_controls()
 		_sync_controls()
 		Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if _cursor_unlocked else Input.MOUSE_MODE_CAPTURED
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("pause_game"):station.close_editor()
-		return
-	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and Interaction.within_range(player,station,2.5):
+	if academy_mode and event.is_action_pressed("interact") and not _paused and not _map.expanded and not _cursor_unlocked and Interaction.within_range(player,station,2.5):
 		station.open_editor()
 		get_viewport().set_input_as_handled()
 		return
@@ -204,10 +205,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_set_pause(not _paused)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("vehicle_toggle") and not _paused and not _map.expanded:
+	elif event.is_action_pressed("vehicle_toggle") and not _paused and not _map.expanded and not _cursor_unlocked:
 		try_toggle_vehicle()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("vehicle_lights") and _driving and not _paused and not _map.expanded:
+	elif event.is_action_pressed("vehicle_lights") and _driving and not _paused and not _map.expanded and not _cursor_unlocked:
 		vehicle.toggle_headlights()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("full_map") and not _paused:
@@ -216,6 +217,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _toggle_map() -> void:
 	_map.toggle_full()
+	_cursor_unlocked=false
 	_map.position=Vector2(160,55) if _map.expanded else Vector2(20,480)
 	_map.size=Vector2(960,610) if _map.expanded else Vector2(224,220)
 	_refresh_hints()
@@ -274,7 +276,7 @@ func _sync_controls() -> void:
 		vehicle.input_enabled=enabled and _driving
 
 func try_toggle_vehicle() -> bool:
-	if not _ready_world or _paused or _map.expanded or vehicle==null or not vehicle.stopped():
+	if not _ready_world or _paused or _map.expanded or _cursor_unlocked or vehicle==null or not vehicle.stopped():
 		return false
 	if _driving:
 		var exit := _safe_exit()
@@ -323,6 +325,7 @@ func _safe_exit() -> Vector3:
 
 func _academy_editor(value: bool) -> void:
 	_editor_open=value
+	_cursor_unlocked=false
 	player.stop_controls()
 	_sync_controls()
 	_map.visible=not value
