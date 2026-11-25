@@ -114,10 +114,21 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(scratch))
     scene=bpy.context.scene
+    # Some glTF importers also instantiate disconnected nodes. Remove only
+    # the two explicitly audited leaf meshes, then retain the original guard.
+    detached_marks=[]
+    for o in list(scene.objects):
+        if o.name in ("License Plate","InteriorSteeringEmblem"):
+            if o.children or o.type!="MESH":
+                raise ValueError("Unexpected branding node hierarchy")
+            detached_marks.append(o.name)
+            bpy.data.objects.remove(o,do_unlink=True)
     roots=[o for o in scene.objects if o.parent is None]
     original=[o for o in scene.objects if o.type=="MESH"]
-    if len(original)<90 or any("emblem" in o.name.lower() or "license" in o.name.lower() for o in original):
-        raise ValueError("Missing geometry or retained named branding")
+    flagged=[o.name for o in original if "emblem" in o.name.lower() or "license" in o.name.lower()]
+    print("COUPE_IMPORT meshes",len(original),"detached_marks",detached_marks,"flagged",flagged,flush=True)
+    if len(original)<90 or flagged:
+        raise ValueError("Missing geometry or retained named branding: "+str(flagged))
     wheel_nodes={k:bpy.data.objects.get(v) for k,v in WHEELS.items()}
     if any(v is None for v in wheel_nodes.values()):
         raise ValueError("Missing actual wheel groups")
