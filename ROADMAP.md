@@ -36,3 +36,5 @@ Bench candidate visual and structural Godot import gates now pass. Windows headl
 ## Revised Phase A continuation
 
 Hosted Windows 44/44 and Godot headless boot passed (45588073887); Linux 44/44 and Godot boot passed (45588073883). Bench candidate verified, interactive/export/GPU and upstream source isolation still open. Current focused work: restore MPFB source acquisition, validate session/interaction and Academy result contracts; next actual character/street/coupe and isolated gameplay references. Do not build city or mark Academy executable until sandbox security and actual world gates pass. Phase 02 art and functional dual-mode slice gates remain open.
+
+Dual-mode profile/session and range contract passed hosted Windows; Python 65 tests pass. Upstream isolated smoke passed for OpenCity and Truck Town, failed strict leak checks for GDQuest/Easy Vehicle/Road Generator. First small camera math adaptation added, pending regression; no demo art copied. Art candidate acquisition remains blocking the real vertical slice.

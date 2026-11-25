@@ -17,3 +17,5 @@ New authoritative docs: MASTER_PRODUCTION_DIRECTIVE.md and the six specialized d
 `.github/workflows/upstream-isolation.yml` isolated pinned reference import/startup matrix; `tools/verify_local.ps1` local equivalent foundation/session smoke and optional asset builds. No engine binary or source pack committed.
 
 Foundation `.github/workflows/codecity.yml` is now independent from `.github/workflows/asset-production.yml` (licensed bench/selected character candidate and five rendered views). Supersedes earlier combined workflow references.
+
+`game/core/camera_orbit.gd`: first MIT OpenCity camera geometry adaptation, pure functions, tested by the expanded session fixture; not connected to player camera yet.

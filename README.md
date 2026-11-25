@@ -63,3 +63,5 @@ Read [master directive](docs/MASTER_PRODUCTION_DIRECTIVE.md), [Academy curriculu
 Local PowerShell (install pytest and pinned tools first): `powershell -ExecutionPolicy Bypass -File tools/verify_local.ps1 -Godot godot -Python python`. Optional `-AssetPilot` and `-Character adrian -SystemPack art/raw/system-assets.zip` require Blender and enabled pinned MPFB. Use a fresh build/local-verification directory for each run. Upstream isolation runs separately; no demo copied into game. Windows export remains unavailable until real slice is implemented.
 
 Latest verified Windows run 45593768569: 65 Python tests, Godot boot, exact bench import. Foundation and licensed asset production now run independently. Select Adrian or Maya in the asset workflow's manual Run workflow action; generated front/side/rear/three-quarter/face previews remain candidates. No automatic approval.
+
+Verified at 58f9591: Windows 65 tests, foundation and session markers passed; exact bench import passed. Upstream OpenCity/Truck Town passed headless smoke, three other candidates failed cleanup checks. Camera orbit math adapted from MIT OpenCity, not yet wired to an actual player controller.

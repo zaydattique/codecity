@@ -1,6 +1,6 @@
 # Third-party notices and source audit | 2026-11-25
 
-No third-party gameplay code integrated. One CC0 bench has been downloaded, rendered and imported in isolated verification; MPFB authoring tool is checked out by CI. This is a source evaluation ledger, not a redistribution clearance. Each GitHub revision was resolved via GitHub metadata and its relevant text files inspected; no upstream checkout or execution possible in staging (DNS resolution failed). All runtime compatibility and performance fields are **not tested**. Per-asset review remains mandatory.
+One small MIT camera geometry adaptation is now in source (see actual integration ledger below); no upstream demo gameplay scene integrated. One CC0 bench has been downloaded, rendered and imported in isolated verification; MPFB authoring tool is checked out by CI. This is a source evaluation ledger, not a redistribution clearance. Each GitHub revision was resolved via GitHub metadata and its relevant text files inspected; no upstream checkout or execution possible in staging (DNS resolution failed). All runtime compatibility and performance fields are **not tested**. Per-asset review remains mandatory.
 
 | Candidate / pinned commit | Evidence and license | Compatibility / evaluation decision |
 |---|---|---|
@@ -53,3 +53,40 @@ MPFB candidate tool uses exact source commit 650c5c53bd6989a8ac264f31fa1d11d4a0c
 Official secondary system pack mirror: https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip . Both URLs are listed in the pinned official catalog/config. Download hash records provenance; no upstream published pack hash has been established. OpenCity/GDQuest/Easy Vehicle/Road Generator still research-only until isolated tests complete.
 
 Upstream isolation workflow now checks out exact five audited compatible Godot references into separate runners and performs bounded import/startup under pinned Godot. Only logs are uploaded, no demo assets or code redistributed. Runtime handling and module extraction still require tests; check workflow conclusions before claiming compatibility.
+
+## Actual isolation results, run 45593883936 (Godot 4.7.2 Linux)
+
+- OpenCity (job 139134782433): bounded headless import/startup passed.
+- Godot Truck Town (job 139134782530): bounded headless import/startup passed.
+- GDQuest (job 139134781995): failed strict exit-resource check (one resource still in use).
+- Road Generator (job 139134782523): failed strict exit check (dummy renderer allocation/resource leaks).
+- Easy Vehicle Physics (job 139134782565): failed strict exit-resource check (one resource still in use).
+
+These are headless smoke results, not handling, navigation, visual or performance approvals. Do not mask resource errors; isolate minimal source and investigate root causes before integration. No demo art included.
+
+### First code reuse: OpenCity camera math
+
+Adapted the spherical offset formula from scripts/follow_camera.gd at ba9514cdd88ecc2d40ecad503a644449fc98e665 into game/core/camera_orbit.gd. Removed all demo-specific group/vehicle/input dependencies, added finite-value validation and replaced linear smoothing with frame-rate-independent exponential smoothing. Regression verifies axis, length, invalid distance and smoothing composition in Godot. It is a reusable geometry module, not yet a connected third-person controller; no character or vehicle behavior claimed. Upstream smoke passed; new module test pending.
+
+MIT License
+
+Copyright (c) 2026 Charan Raj Kandula
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+

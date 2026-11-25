@@ -1,6 +1,7 @@
 extends SceneTree
 const Sessions = preload("res://core/session_state.gd")
 const Interaction = preload("res://core/world_interaction.gd")
+const Orbit = preload("res://core/camera_orbit.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -40,6 +41,17 @@ func _verify() -> void:
 	target.position = Vector3(2, 0, 0)
 	if not Interaction.within_range(actor, target, 2.1) or Interaction.within_range(actor, target, 1.9) or Interaction.within_range(actor, actor, 2.1):
 		_fail("world interaction radius")
+		return
+	if not Orbit.offset(0.0, 0.0, 5.0).is_equal_approx(Vector3(0, 0, 5)) or not Orbit.offset(PI / 2.0, 0.0, 5.0).is_equal_approx(Vector3(5, 0, 0)):
+		_fail("camera orbit directions")
+		return
+	if not is_equal_approx(Orbit.offset(0.3, -0.5, 5.0).length(), 5.0) or Orbit.offset(0.0, 0.0, -1.0) != Vector3.ZERO:
+		_fail("camera orbit distance")
+		return
+	var whole: float = Orbit.follow_weight(9.0, 1.0 / 30.0)
+	var half: float = Orbit.follow_weight(9.0, 1.0 / 60.0)
+	if not is_equal_approx(whole, 1.0 - (1.0 - half) * (1.0 - half)):
+		_fail("camera smoothing frame invariance")
 		return
 	state.deactivate()
 	if state.complete_mission("other", "academy"):
