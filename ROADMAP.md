@@ -50,3 +50,5 @@ Phase A checkpoint: complete Adrian five-view artifact verified but scale/style 
 Actual four-building exterior street candidate and second coupe candidate generated; both over budget. Run candidate mesh optimization and inspect before approval. Adult character morph corrected, both full revised renders pending. Phase A not closed; remaining interactive, art and source-specific behavior gates explicitly open.
 
 Both adult rigged candidates generated and inspected; height and triangle gates pass, art and animation remain open. Optimized coupe hits 60k budget, street exceeds 110k. Direct-collapse retry and real Godot staged candidate import/render checks queued. Phase A remains open pending actual tests, approval and remaining art work.
+
+Numerical street/coupe budgets now pass on revised optimizer; latest Windows/Linux 67 tests and smoke/session pass. Imported character raw AABB check failed; measuring actual skinned world-space vertices and preserving both bounds in QA. Engine-render and actual art review still required.

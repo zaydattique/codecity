@@ -103,8 +103,12 @@ func _check_character(actor: Node3D, height: float) -> bool:
 	var skins := actor.find_children("*", "Skeleton3D", true, false)
 	if skins.size() != 1 or (skins[0] as Skeleton3D).get_bone_count() != 53:
 		return false
+	var skeleton := skins[0] as Skeleton3D
+	skeleton.force_update_all_bone_transforms()
 	var low := INF
 	var high := -INF
+	var raw_low := INF
+	var raw_high := -INF
 	var textured := false
 	var mesh_count := 0
 	for node: Node in actor.find_children("*", "MeshInstance3D", true, false):
@@ -113,13 +117,52 @@ func _check_character(actor: Node3D, height: float) -> bool:
 			return false
 		mesh_count += 1
 		var box: AABB = mesh.global_transform * mesh.get_aabb()
-		low = minf(low, box.position.y)
-		high = maxf(high, box.end.y)
+		raw_low = minf(raw_low, box.position.y)
+		raw_high = maxf(raw_high, box.end.y)
+		var skin := mesh.skin
+		if skin == null or mesh.get_node_or_null(mesh.skeleton) != skeleton:
+			return false
+		var transforms: Array[Transform3D] = []
+		for bind: int in range(skin.get_bind_count()):
+			var bone := skin.get_bind_bone(bind)
+			if skin.get_bind_name(bind) != &"":
+				bone = skeleton.find_bone(skin.get_bind_name(bind))
+			if bone < 0 or bone >= skeleton.get_bone_count():
+				return false
+			transforms.append(skeleton.get_bone_global_pose(bone) * skin.get_bind_pose(bind))
 		for i: int in range(mesh.mesh.get_surface_count()):
+			var arrays: Array = mesh.mesh.surface_get_arrays(i)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+			if verts.is_empty() or weights.size() != bones.size() or bones.size() % verts.size() != 0:
+				return false
+			@warning_ignore("integer_division")
+			var influences: int = bones.size() / verts.size()
+			if influences != 4 and influences != 8:
+				return false
+			for v: int in range(verts.size()):
+				var pos := Vector3.ZERO
+				var total := 0.0
+				for j: int in range(influences):
+					var index: int = v * influences + j
+					var w: float = weights[index]
+					if w <= 0.0:
+						continue
+					var bind: int = bones[index]
+					if bind < 0 or bind >= transforms.size():
+						return false
+					pos += (transforms[bind] * verts[v]) * w
+					total += w
+				if absf(total - 1.0) > 0.02:
+					return false
+				var world_pos: Vector3 = skeleton.global_transform * pos
+				low = minf(low, world_pos.y)
+				high = maxf(high, world_pos.y)
 			var mat := mesh.get_active_material(i)
 			if mat is BaseMaterial3D and mat.albedo_texture != null:
 				textured = true
-	print("CHARACTER_IMPORT meshes=",mesh_count," bones=53 height=",high-low)
+	print("CHARACTER_IMPORT meshes=",mesh_count," bones=53 skinned_height=",high-low," raw_aabb_height=",raw_high-raw_low)
 	return textured and mesh_count >= 7 and absf(high-low-height) <= 0.08
 
 func _fail(message: String) -> void:
