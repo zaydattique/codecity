@@ -24,6 +24,10 @@ class LessonError(ValueError):
     pass
 
 
+class ReturnValue(Exception):
+    def __init__(self,value):self.value=value
+
+
 class Interpreter:
     def __init__(self):
         self.env={}
@@ -32,6 +36,9 @@ class Interpreter:
         self.commands=[]
         self.lamps=[False,False]
         self.concepts=set()
+        self.water=0
+        self.functions={}
+        self.in_function=False
 
     def tick(self):
         self.steps+=1
@@ -44,7 +51,9 @@ class Interpreter:
         if type(v) is str and len(v)<=128: return v
         if type(v) is list and len(v)<=8 and all(type(x) in (int,bool,str) for x in v):
             return [self.value(x) for x in v]
-        raise LessonError("Use small integers, booleans or short strings.")
+        if type(v) is dict and len(v)<=8 and all(type(k) is str and len(k)<=32 and type(x) in (int,bool,str) for k,x in v.items()):
+            return {k:self.value(x) for k,x in v.items()}
+        raise LessonError("Use bounded scalar values, lists or dictionaries.")
 
     def expr(self,n):
         self.tick()
@@ -53,8 +62,24 @@ class Interpreter:
             if len(n.elts)>8:raise LessonError("Use at most eight list items.")
             self.concepts.add("list")
             return self.value([self.expr(x) for x in n.elts])
+        if isinstance(n,ast.Dict):
+            if len(n.keys)>8 or any(k is None for k in n.keys):raise LessonError("Use at most eight dictionary entries.")
+            keys=[self.expr(k) for k in n.keys]
+            if any(type(k) is not str or len(k)>32 for k in keys):raise LessonError("Dictionary keys must be short strings.")
+            self.concepts.add("dict")
+            return self.value({k:self.expr(v) for k,v in zip(keys,n.values)})
+        if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and not n.keywords:
+            if n.func.id=="water_level" and not n.args:
+                self.concepts.add("sensor")
+                return self.water
+            if n.func.id in self.functions:
+                return self.call_function(n.func.id,[self.expr(a) for a in n.args])
         if isinstance(n,ast.Subscript):
             seq,index=self.expr(n.value),self.expr(n.slice)
+            if type(seq) is dict:
+                if type(index) is not str or index not in seq:raise LessonError("Unknown dictionary key.")
+                self.concepts.add("key")
+                return seq[index]
             if type(seq) is not list or type(index) is not int or not -len(seq)<=index<len(seq):
                 raise LessonError("Use a valid integer list index.")
             self.concepts.add("index")
@@ -104,16 +129,40 @@ class Interpreter:
         raise LessonError("Expression not supported in this lesson.")
 
     def assign(self,target,value):
-        if not isinstance(target,ast.Name) or not IDENT.fullmatch(target.id) or target.id in ("print","range","set_lamp"):
+        if not isinstance(target,ast.Name) or not IDENT.fullmatch(target.id) or target.id in ("print","range","set_lamp","pump","water_level") or target.id in self.functions:
             raise LessonError("Choose a simple variable name.")
         if len(self.env)>=24 and target.id not in self.env:
             raise LessonError("Too many variables.")
         self.env[target.id]=self.value(value)
 
+    def call_function(self,name,args):
+        if self.in_function:raise LessonError("Nested or recursive function calls are not supported.")
+        node=self.functions[name]
+        if len(args)!=len(node.args.args):raise LessonError("Incorrect number of function arguments.")
+        original=self.env
+        self.env={param.arg:self.value(v) for param,v in zip(node.args.args,args)}
+        self.in_function=True
+        self.concepts.add("function")
+        try:
+            self.block(node.body)
+        except ReturnValue as result:
+            self.concepts.add("return")
+            return result.value
+        finally:
+            self.env=original
+            self.in_function=False
+        raise LessonError("Functions must return a value.")
+
     def block(self,body):
         for n in body:
             self.tick()
-            if isinstance(n,ast.Assign) and len(n.targets)==1:
+            if isinstance(n,ast.FunctionDef):
+                if self.in_function or n.name in self.functions or n.name in self.env:raise LessonError("Define each function once at top level.")
+                self.functions[n.name]=n
+            elif isinstance(n,ast.Return):
+                if not self.in_function or n.value is None:raise LessonError("Return a value inside a function.")
+                raise ReturnValue(self.expr(n.value))
+            elif isinstance(n,ast.Assign) and len(n.targets)==1:
                 self.assign(n.targets[0],self.expr(n.value))
                 self.concepts.add("assignment")
             elif isinstance(n,ast.If):
@@ -159,7 +208,15 @@ class Interpreter:
                     if len(self.commands)>=MAX_COMMANDS:raise LessonError("Too many lamp commands.")
                     self.lamps[index]=on
                     self.commands.append({"lamp":index,"on":on})
-                else:raise LessonError("Only print() and set_lamp() are allowed here.")
+                elif c.func.id=="pump" and len(args)==1:
+                    units=args[0]
+                    if type(units) is not int or not 1<=units<=20 or self.water+units>100:
+                        raise LessonError("Pump 1 to 20 litres without exceeding 100.")
+                    if len(self.commands)>=MAX_COMMANDS:raise LessonError("Too many equipment commands.")
+                    self.water+=units
+                    self.commands.append({"pump":units})
+                    self.concepts.add("pump")
+                else:raise LessonError("Only print(), set_lamp() and pump() are statement commands.")
             else:
                 raise LessonError("Statement not supported in this lesson.")
 
@@ -173,14 +230,23 @@ class Interpreter:
         # Fail closed even for unreachable statements. No attributes, imports,
         # functions, comprehensions, arbitrary calls or unbounded loops.
         allowed=(ast.Module,ast.Assign,ast.Name,ast.Store,ast.Load,ast.Constant,
-                 ast.If,ast.For,ast.While,ast.List,ast.Subscript,ast.Expr,ast.Call,ast.BinOp,ast.UnaryOp,ast.Compare,
+                 ast.If,ast.For,ast.While,ast.List,ast.Dict,ast.Subscript,ast.FunctionDef,ast.arguments,ast.arg,ast.Return,ast.Expr,ast.Call,ast.BinOp,ast.UnaryOp,ast.Compare,
                  ast.BoolOp,ast.Add,ast.Sub,ast.Mult,ast.FloorDiv,ast.Mod,ast.UAdd,
                  ast.USub,ast.Not,ast.Eq,ast.NotEq,ast.Lt,ast.LtE,ast.Gt,ast.GtE,
                  ast.And,ast.Or)
+        defs=[n for n in nodes if isinstance(n,ast.FunctionDef)]
+        reserved={"print","set_lamp","range","pump","water_level"}
+        names={n.name for n in defs}
+        if len(defs)>4 or len(names)!=len(defs):raise LessonError("Use at most four uniquely named functions.")
+        for n in defs:
+            a=n.args
+            params=[p.arg for p in a.args]
+            if n not in tree.body or not IDENT.fullmatch(n.name) or n.name in reserved or n.decorator_list or n.returns or getattr(n,"type_params",[]) or a.posonlyargs or a.kwonlyargs or a.vararg or a.kwarg or a.defaults or a.kw_defaults or len(params)>4 or len(set(params))!=len(params) or any(not IDENT.fullmatch(p.arg) or p.arg in reserved or p.annotation for p in a.args):
+                raise LessonError("Use top-level functions with up to four simple parameters.")
         for n in nodes:
             if not isinstance(n,allowed):raise LessonError("Unsupported Python feature: "+type(n).__name__)
-            if isinstance(n,ast.Call) and (not isinstance(n.func,ast.Name) or n.func.id not in ("print","set_lamp","range") or n.keywords):
-                raise LessonError("Only print(), range() and set_lamp() are available.")
+            if isinstance(n,ast.Call) and (not isinstance(n.func,ast.Name) or n.func.id not in reserved|names or n.keywords):
+                raise LessonError("Only lesson commands and defined functions are available.")
         try:self.block(tree.body)
         except (ArithmeticError,ValueError,RecursionError) as e:raise LessonError(str(e)[:120]) from None
         return {"ok":True,"output":"\n".join(self.output),"commands":self.commands,
