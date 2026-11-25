@@ -48,3 +48,5 @@ First street art pipeline now authored: real textured 32m road/sidewalk and stre
 Phase A checkpoint: complete Adrian five-view artifact verified but scale/style need correction. Street surface + modular source library passed render; actual four-building exterior assembly queued. Maya and replacement vehicle still outstanding; no expansion.
 
 Actual four-building exterior street candidate and second coupe candidate generated; both over budget. Run candidate mesh optimization and inspect before approval. Adult character morph corrected, both full revised renders pending. Phase A not closed; remaining interactive, art and source-specific behavior gates explicitly open.
+
+Both adult rigged candidates generated and inspected; height and triangle gates pass, art and animation remain open. Optimized coupe hits 60k budget, street exceeds 110k. Direct-collapse retry and real Godot staged candidate import/render checks queued. Phase A remains open pending actual tests, approval and remaining art work.

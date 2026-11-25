@@ -29,3 +29,5 @@ Foundation `.github/workflows/codecity.yml` is now independent from `.github/wor
 `tools/render_concept_coupe.py` and `.github/workflows/concept-coupe.yml` render and inventory exact alternative coupe for review, not integration. Report retains license and logo restrictions.
 
 `tools/optimize_mesh_candidates.py` shared static non-destructive mesh reduction with instance-weighted target, UV/material/bounds checks and real comparison renders. `.github/workflows/asset-optimization.yml` stages exact inspected street and car geometry; car only inspection images/report are uploaded.
+
+`verification/phase_a_asset_review.gd` and `.github/workflows/phase-a-art-review.yml`: staged exact candidate GLB import and real Godot software-rendered views, no shipping asset changes. Optimizer retries intact source after overaggressive planar dissolve.

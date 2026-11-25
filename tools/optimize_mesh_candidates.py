@@ -56,6 +56,13 @@ def reduced_mesh(original,goal):
         planar_count=triangles(result)
         temp.modifiers.remove(planar)
         temp.data=result
+        # Dissolve can collapse a thin decorative source to fewer than four
+        # triangles; retry directly from the intact mesh in that case.
+        if planar_count<4:
+            temp.data=work
+            bpy.data.meshes.remove(result)
+            result=None
+            planar_count=original_count
         if planar_count>goal:
             collapse=temp.modifiers.new("Budget candidate","DECIMATE")
             collapse.decimate_type="COLLAPSE"
@@ -65,7 +72,8 @@ def reduced_mesh(original,goal):
             final=bpy.data.meshes.new_from_object(temp.evaluated_get(depsgraph),preserve_all_data_layers=True,depsgraph=depsgraph)
             temp.modifiers.remove(collapse)
             temp.data=final
-            bpy.data.meshes.remove(result)
+            if result is not None:
+                bpy.data.meshes.remove(result)
             result=final
         count=triangles(result)
         if count<4 or count>=original_count:
