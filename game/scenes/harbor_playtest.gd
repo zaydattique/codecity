@@ -133,10 +133,10 @@ func _make_hud() -> void:
 	_hud.add_child(_map)
 	_status=Label.new()
 	_status.position=Vector2(20,252)
-	_status.text="Street physics test | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause\n%s"%[("Adrian Cole" if _character=="adrian" else "Maya Bennett"),("Licensed motion retarget test" if player.motion_installed else "Motion clips not installed.")]
+	_update_actor_hud()
 	_hud.add_child(_status)
 	_vehicle_hint=Label.new()
-	_vehicle_hint.position=Vector2(20,375)
+	_vehicle_hint.position=Vector2(20,355)
 	_hud.add_child(_vehicle_hint)
 	_vehicle_hint.visible=vehicle!=null
 	_pause_panel=PanelContainer.new()
@@ -210,7 +210,17 @@ func _process(_delta: float) -> void:
 	else:
 		_vehicle_hint.text="Approach the parked coupe to drive."
 
+func _update_actor_hud() -> void:
+	if _status==null:
+		return
+	var name := "Adrian Cole" if _character=="adrian" else "Maya Bennett"
+	if _driving:
+		_status.text="Harbor Boulevard | %s\nVehicle controls\nM map · Esc pause\nCandidate driving test"%name
+	else:
+		_status.text="Harbor Boulevard | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%name
+
 func _sync_controls() -> void:
+	_update_actor_hud()
 	var enabled: bool=not _paused and not _map.expanded
 	player.controls_enabled=enabled and not _driving
 	if vehicle!=null:

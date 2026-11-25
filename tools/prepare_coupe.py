@@ -49,7 +49,30 @@ def neutralize(raw):
             for i,v in enumerate(obj):
                 scrub(v,f"{path}[{i}]")
     for i,mat in enumerate(doc["materials"]):
+        had_emissive="emissiveTexture" in mat
         scrub(mat,f"material[{i}]")
+        # Removing artwork must not leave its multiply factor glowing uniformly.
+        if had_emissive and "emissiveTexture" not in mat:
+            mat["emissiveFactor"]=[0,0,0]
+            mat.get("extensions",{}).pop("KHR_materials_emissive_strength",None)
+        name=mat.get("name","")
+        pbr=mat.setdefault("pbrMetallicRoughness",{})
+        if name=="Glass":
+            # Compatibility renderer cannot reproduce the source transmission
+            # extension faithfully. Author a real tinted alpha-blend material.
+            mat.get("extensions",{}).pop("KHR_materials_transmission",None)
+            mat["alphaMode"]="BLEND"
+            pbr.update(baseColorFactor=[0.12,0.18,0.22,0.36],metallicFactor=0,roughnessFactor=0.16)
+        elif name.startswith("Paint"):
+            pbr["roughnessFactor"]=0.38
+            coat=mat.get("extensions",{}).get("KHR_materials_clearcoat")
+            if coat is not None:
+                coat["clearcoatFactor"]=0.36
+                coat["clearcoatRoughnessFactor"]=0.32
+            if "normalTexture" in mat:
+                mat["normalTexture"]["scale"]=0.10
+        elif name in ("Rim1","Rim2","Mirror","Hardware"):
+            pbr["roughnessFactor"]=0.32
         if mat.get("name")=="Tireside":
             pbr=mat.setdefault("pbrMetallicRoughness",{})
             pbr["baseColorFactor"]=[0.024,0.024,0.024,1]
@@ -249,7 +272,7 @@ def main():
     door.matrix_world=previous
     report={"status":"development_candidate_only","source_sha256":SHA,"source_commit":PIN,
             "license":"CC-BY-4.0","attribution":"Eric Chadwick / Darmstadt Graphics Group GmbH (2024); based on Unity Fan CC0 model",
-            "modifications":"mesh reduction, excluded branding textures/plate/emblem, normalized orientation, neutral wheel pose and wheel sockets",
+            "modifications":"mesh reduction, excluded branding artwork/plate/emblem, corrected residual emission, tinted alpha glass and moderated paint, normalized wheel pose and sockets",
             "excluded_texture_references":removed,"triangles_before":before,"triangles_after":after,
             "dimensions_godot_m":[span.x,span.z,span.y],"wheels":wheel_report,
             "door_pivots":["DoorPivot_L","DoorPivot_R"],"glb_sha256":hashlib.sha256((OUT/"coupe.glb").read_bytes()).hexdigest(),

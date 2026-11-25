@@ -27,7 +27,7 @@ func _verify() -> void:
 	approach.y=0.20
 	world.player.global_position=approach
 	await ticks(30)
-	if not world.try_toggle_vehicle() or not car.occupied or world.player.controls_enabled or world.player.collision_layer!=0 or world._map.actor!=car:
+	if not world.try_toggle_vehicle() or not car.occupied or world.player.controls_enabled or world.player.collision_layer!=0 or world._map.actor!=car or not world._status.text.contains("Vehicle controls"):
 		_fail("entry or control ownership")
 		return
 	await ticks(10)
@@ -98,7 +98,7 @@ func _verify() -> void:
 		_fail("driving pause")
 		return
 	world._set_pause(false)
-	if not world.try_toggle_vehicle() or car.occupied or not world.player.controls_enabled or world._map.actor!=world.player:
+	if not world.try_toggle_vehicle() or car.occupied or not world.player.controls_enabled or world._map.actor!=world.player or not world._status.text.contains("WASD move"):
 		_fail("safe exit and control restoration")
 		return
 	await ticks(25)
