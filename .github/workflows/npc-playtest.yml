@@ -8,6 +8,14 @@ on:
       - 'game/core/street_npc.gd'
       - 'verification/npc_playtest.gd'
       - '.github/workflows/npc-playtest.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'game/**'
+      - 'ai/**'
+      - 'verification/**'
+      - '.github/workflows/npc-playtest.yml'
+      - '.github/workflows/candidate-windows-export.yml'
   workflow_run:
     workflows: ["CodeCity six civilian art candidates"]
     branches: [main]
@@ -53,7 +61,7 @@ jobs:
           cp -a game/. build/npc-game/
           mkdir -p build/npc-game/candidate_assets build/npc-game/_qa
           cp build/previous/game/candidate_assets/*.glb build/npc-game/candidate_assets/
-          cp verification/npc_playtest.gd build/npc-game/_qa/
+          cp verification/{npc,street,vehicle,academy}_playtest.gd build/npc-game/_qa/
           python - <<'PY'
           import hashlib,json,shutil
           from pathlib import Path
@@ -82,12 +90,19 @@ jobs:
       - name: Actual six-actor Python runtime regression
         env:
           CODECITY_NPC_SCRIPT: ${{ github.workspace }}/ai/worker.py
+          CODECITY_ACADEMY_SCRIPT: ${{ github.workspace }}/ai/academy.py
         run: |
           set -euo pipefail
           godot="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           timeout 240 "$godot" --headless --path build/npc-game --editor --import 2>&1 | tee build/evidence/import.log
           timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/npc_playtest.gd 2>&1 | tee build/evidence/npc.log
           grep -q CODECITY_NPC_PLAYTEST_OK build/evidence/npc.log
+          timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/street_playtest.gd -- --motion 2>&1 | tee build/evidence/street.log
+          grep -q CODECITY_STREET_PLAYTEST_OK build/evidence/street.log
+          timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/vehicle_playtest.gd 2>&1 | tee build/evidence/vehicle.log
+          grep -q CODECITY_VEHICLE_PLAYTEST_OK build/evidence/vehicle.log
+          timeout 90 "$godot" --headless --path build/npc-game --script res://_qa/academy_playtest.gd 2>&1 | tee build/evidence/academy.log
+          grep -q CODECITY_ACADEMY_PLAYTEST_OK build/evidence/academy.log
           if grep -E 'SCRIPT ERROR:|ERROR:' build/evidence/*.log; then exit 1; fi
       - name: Render actual populated street
         env:
@@ -106,3 +121,37 @@ jobs:
           path: build/evidence/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Stage integrated university demo for Windows candidate QA
+        run: |
+          set -euo pipefail
+          mkdir -p build/demo-package
+          cp -a build/previous/distribution build/demo-package/distribution
+          cp ai/{academy,worker,npc_brain}.py build/demo-package/distribution/
+          cp THIRD_PARTY_NOTICES.md build/demo-package/distribution/
+          cp verification/candidate_export_presets.cfg build/npc-game/export_presets.cfg
+          mv build/npc-game build/demo-package/game
+          cat > build/demo-package/distribution/README.txt <<'EOF'
+          CodeCity integrated university demo candidate, not a production release.
+          Keep EXE, PCK, python directory, academy.py, worker.py and npc_brain.py together.
+          Academy: approach the lighting cabinet, E, select an exercise, write and run Python.
+          Living World: enter coupe with F, drive, brake, exit and report to Nora using E.
+          WASD and mouse, Shift sprint, Space jump/brake, M map, Esc pause, H horn.
+          Six distinct candidate NPCs run an offline Python decision worker.
+          Mixed Godot/GDScript and Python; restricted teaching interpreter, not full Python.
+          No final art approval, durable save, interior or hardware performance guarantee.
+          EOF
+          tar --exclude=.godot --exclude='*.import' -czf build/demo-package/tested-project.tar.gz -C build/demo-package game distribution
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tested-integrated-demo-project
+          path: build/demo-package/tested-project.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  windows-export:
+    needs: verify
+    uses: ./.github/workflows/candidate-windows-export.yml
+    with:
+      project_artifact: tested-integrated-demo-project
+      suite: demo
+      exe: CodeCity_Academy_Demo.exe
+      output_artifact: CodeCity-Windows-Integrated-Demo-Candidate

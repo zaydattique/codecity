@@ -18,6 +18,7 @@ var _door_sweep := AABB()
 var _camera: Camera3D
 var _headlights: Array[SpotLight3D] = []
 var _driver_side := -1.0
+var _engine_audio: AudioStreamPlayer3D
 
 func configure(model: PackedScene) -> bool:
 	if model == null or is_inside_tree():
@@ -122,6 +123,13 @@ func _ready() -> void:
 		light.visible=false
 		add_child(light)
 		_headlights.append(light)
+	_engine_audio=AudioStreamPlayer3D.new()
+	_engine_audio.stream=_engine_loop()
+	_engine_audio.max_distance=20.0
+	_engine_audio.unit_size=3.0
+	_engine_audio.volume_db=-20.0
+	_engine_audio.position=Vector3(0,0.65,1.0)
+	add_child(_engine_audio)
 	built=true
 	brake=45.0
 	print("CODECITY_COUPE_WHEEL_SETUP_OK ",centers," radii=",radii)
@@ -164,6 +172,10 @@ func _physics_process(delta: float) -> void:
 	steering=move_toward(steering,steer_target,1.5*delta)
 	if occupied:
 		_update_camera(delta)
+		var load_amount:=clampf(absf(engine_force)/2300.0,0.0,1.0)
+		var rate:=clampf(absf(speed)/MAX_SPEED,0.0,1.0)
+		_engine_audio.pitch_scale=lerpf(_engine_audio.pitch_scale,0.85+rate*0.75+load_amount*0.3,minf(1.0,delta*6.0))
+		_engine_audio.volume_db=lerpf(_engine_audio.volume_db,-22.0+load_amount*8.0+rate*4.0,minf(1.0,delta*6.0))
 
 func contacts() -> int:
 	var count := 0
@@ -204,9 +216,11 @@ func set_occupied(value: bool) -> void:
 	occupied=value
 	input_enabled=value
 	if value:
+		_engine_audio.play()
 		_camera.current=true
 		_update_camera(1.0)
 	else:
+		_engine_audio.stop()
 		engine_force=0
 		brake=45
 		_camera.current=false
@@ -246,3 +260,23 @@ func _update_camera(delta: float) -> void:
 	_camera.global_position=p
 	if p.distance_squared_to(focus)>0.001:
 		_camera.look_at(focus)
+
+# Original seamless periodic prototype engine bed. Not a recorded car sound.
+func _engine_loop() -> AudioStreamWAV:
+	var rate:=22050
+	var count:=rate
+	var samples:=PackedByteArray()
+	samples.resize(count*2)
+	for i: int in range(count):
+		var t:=float(i)/float(rate)
+		var pulse:=0.65+0.35*sin(TAU*24.0*t)
+		var wave:=sin(TAU*48.0*t)+0.35*sin(TAU*96.0*t)+0.18*sin(TAU*144.0*t)
+		samples.encode_s16(i*2,int(wave*pulse*6000.0))
+	var clip:=AudioStreamWAV.new()
+	clip.format=AudioStreamWAV.FORMAT_16_BITS
+	clip.mix_rate=rate
+	clip.data=samples
+	clip.loop_mode=AudioStreamWAV.LOOP_FORWARD
+	clip.loop_begin=0
+	clip.loop_end=count
+	return clip

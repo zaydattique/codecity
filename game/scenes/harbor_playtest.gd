@@ -16,6 +16,22 @@ const Style = preload("res://core/ui_style.gd")
 var _cursor_unlocked := false
 var _pause_button: Button
 signal academy_completed
+signal story_completed
+const STORY_CONTACT := "nora"
+var _story_stage := 0
+var _story_start := Vector3.ZERO
+var _story_label: Label
+var _story_panel: PanelContainer
+const STORY_OBJECTIVES := [
+	"Nora is waiting for an update. Enter the parked coupe (F).",
+	"Take the coupe for a short test drive (4 m).",
+	"Stop safely and exit the coupe (F).",
+	"Find Nora and report the test drive (E).",
+	"Nora: Good. We can get the car back on the road."]
+var _story_heading: Label
+var _story_sound: AudioStreamPlayer
+var _horn: AudioStreamPlayer3D
+var _story_marker: Label3D
 var academy_mode := false
 var station: Node3D
 var _editor_open := false
@@ -99,7 +115,18 @@ func _ready() -> void:
 		if director.prepare(player,vehicle):
 			crowd=director
 			add_child(crowd)
+			# Exclude moving NPC geometry from the static aerial map.
+			for node: Node in crowd.find_children("*","MeshInstance3D",true,false):
+				(node as MeshInstance3D).layers=2
 		else:director.free()
+	if vehicle!=null:
+		_horn=AudioStreamPlayer3D.new()
+		_horn.stream=_feedback_clip(true)
+		_horn.max_distance=18.0
+		_horn.process_mode=Node.PROCESS_MODE_PAUSABLE
+		vehicle.add_child(_horn)
+	if not academy_mode and vehicle!=null and is_instance_valid(crowd):
+		_setup_story()
 	_ready_world=true
 	if DisplayServer.get_name()!="headless":
 		Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
@@ -219,12 +246,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		station.open_editor()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("interact") and _try_story_contact():
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("interact") and is_instance_valid(crowd) and not _driving and not _paused and not _map.expanded and not _cursor_unlocked:
 		crowd.perceive("greet",player.global_position,2.5)
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("vehicle_horn") and is_instance_valid(crowd) and _driving and not _paused and not _map.expanded:
-		crowd.perceive("horn",vehicle.global_position,8.0)
+	if event.is_action_pressed("vehicle_horn") and _driving and not _paused and not _map.expanded and not _cursor_unlocked:
+		if is_instance_valid(_horn):_horn.play()
+		if is_instance_valid(crowd):crowd.perceive("horn",vehicle.global_position,8.0)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("pause_game"):
@@ -273,6 +304,7 @@ func _exit_tree() -> void:
 
 func _process(_delta: float) -> void:
 	if not _ready_world:return
+	_update_story()
 	if _paused:return
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
@@ -292,7 +324,7 @@ func _update_actor_hud() -> void:
 		return
 	var name := "Adrian Cole" if _character=="adrian" else "Maya Bennett"
 	if _driving:
-		_status.text="Harbor Boulevard | %s\nVehicle controls\nM map · Esc pause\nCandidate driving test"%name
+		_status.text="Harbor Boulevard | %s\nVehicle controls\nM map · Esc pause"%name
 	else:
 		_status.text="Harbor Boulevard | %s\nWASD move · Shift sprint · Alt walk\nSpace jump · C crouch · V camera\nM map · Esc pause"%name
 
@@ -313,6 +345,7 @@ func try_toggle_vehicle() -> bool:
 		vehicle.set_occupied(false)
 		player.leave_vehicle(exit)
 		_driving=false
+		if _story_stage==2:_story_stage=3
 		_map.actor=player
 		_sync_controls()
 		return true
@@ -325,6 +358,9 @@ func try_toggle_vehicle() -> bool:
 	player.board_vehicle()
 	vehicle.set_occupied(true)
 	_driving=true
+	if _story_stage==0 and is_instance_valid(_story_label):
+		_story_start=vehicle.global_position
+		_story_stage=1
 	_map.actor=vehicle
 	_sync_controls()
 	return true
@@ -416,3 +452,82 @@ func _make_overhead_map() -> void:
 	camera.current=true
 	_map.aerial=overhead.get_texture()
 	overhead.render_target_update_mode=SubViewport.UPDATE_ONCE
+
+# A New Beginning uses the actual car and existing NPC.
+func _setup_story() -> void:
+	_story_panel=PanelContainer.new()
+	_story_panel.position=Vector2(20,120)
+	_story_panel.custom_minimum_size=Vector2(350,0)
+	_story_panel.add_theme_stylebox_override("panel",Style.panel(Color(0.035,0.055,0.075,0.93),6,12))
+	var layout:=VBoxContainer.new()
+	layout.add_theme_constant_override("separation",5)
+	_story_panel.add_child(layout)
+	_story_heading=Label.new()
+	_story_heading.add_theme_font_size_override("font_size",13)
+	_story_heading.add_theme_color_override("font_color",Color(0.96,0.82,0.52))
+	layout.add_child(_story_heading)
+	_story_label=Label.new()
+	_story_label.custom_minimum_size=Vector2(326,0)
+	_story_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	_story_label.add_theme_font_size_override("font_size",18)
+	_story_label.add_theme_color_override("font_color",Color(0.96,0.82,0.52))
+	_story_label.add_theme_color_override("font_shadow_color",Color(0.02,0.03,0.04))
+	_story_label.add_theme_constant_override("shadow_offset_x",2)
+	_story_label.add_theme_constant_override("shadow_offset_y",2)
+	layout.add_child(_story_label)
+	_hud.add_child(_story_panel)
+	_story_marker=Label3D.new()
+	_story_marker.text="Nora"
+	_story_marker.font_size=42
+	_story_marker.pixel_size=0.004
+	_story_marker.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	_story_marker.position=Vector3(0,2.05,0)
+	_story_marker.hide()
+	crowd.actors[STORY_CONTACT].add_child(_story_marker)
+	_story_sound=AudioStreamPlayer.new()
+	_story_sound.stream=_feedback_clip(false)
+	add_child(_story_sound)
+	_update_story()
+
+func _update_story() -> void:
+	if not is_instance_valid(_story_label):return
+	var contact: Node3D=crowd.actors[STORY_CONTACT]
+	if _story_stage==1 and _driving and not _paused:
+		var distance:=Vector2(vehicle.global_position.x-_story_start.x,vehicle.global_position.z-_story_start.z)
+		if distance.length()>=4.0:_story_stage=2
+	_story_heading.text="MISSION COMPLETE" if _story_stage==4 else "A NEW BEGINNING  |  %d / 4"%(_story_stage+1)
+	_story_label.text=STORY_OBJECTIVES[_story_stage]
+	_story_panel.visible=not _paused and not _map.expanded
+	_story_marker.visible=_story_stage==3 and not _paused
+	_map.story_target=Layout.map_position(contact.global_position) if _story_stage==3 else Vector2.INF
+
+func _try_story_contact() -> bool:
+	if _story_stage!=3 or academy_mode or _driving or _paused or _map.expanded or _cursor_unlocked or not is_instance_valid(crowd):return false
+	var contact: Node3D=crowd.actors[STORY_CONTACT]
+	if not Interaction.within_range(player,contact,2.5):return false
+	var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP*0.8,contact.global_position+Vector3.UP*0.8,1)
+	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():return false
+	_story_stage=4
+	crowd.perceive("greet",player.global_position,2.5)
+	_story_sound.play()
+	_update_story()
+	story_completed.emit()
+	return true
+
+# Short original synthesized feedback; not final sound design.
+func _feedback_clip(horn: bool) -> AudioStreamWAV:
+	var rate:=22050
+	var count:=int(rate*(0.32 if horn else 0.42))
+	var samples:=PackedByteArray()
+	samples.resize(count*2)
+	for i: int in range(count):
+		var t:=float(i)/float(rate)
+		var envelope:=minf(1.0,t/0.02)*minf(1.0,float(count-i)/float(rate)/0.06)
+		var freq:=360.0 if horn else (523.25 if t<0.18 else 783.99)
+		var wave:=sin(TAU*freq*t)+0.35*sin(TAU*(freq+90.0)*t)
+		samples.encode_s16(i*2,int(wave*envelope*4200))
+	var clip:=AudioStreamWAV.new()
+	clip.format=AudioStreamWAV.FORMAT_16_BITS
+	clip.mix_rate=rate
+	clip.data=samples
+	return clip

@@ -11,6 +11,23 @@ var _code: CodeEdit
 var _output: Label
 var _run: Button
 var _done := false
+var _lesson := 0
+var _lesson_picker: OptionButton
+var _description: Label
+var _practice_done: Dictionary = {}
+const LESSON_TITLES := ["01   Restore both street lights", "02   Variables: north lamp", "03   Conditions: south lamp"]
+const LESSON_DESCRIPTIONS := [
+	"Restore lamps 0 and 1 and print a status message. Use range() and for to repeat commands.",
+	"Power only the north lamp (0). Store its ID and a boolean in variables, pass them to set_lamp(), then print a status message.",
+	"Power only the south lamp (1). Use an if condition to decide which lamp to switch on, then print a status message."]
+const LESSON_STARTERS := [
+	"# Restore both lamps\ncount = 2\nfor lamp in range(count):\n    # Write your command here\n    print(lamp)\n",
+	"# Use variables to power lamp 0\nlamp = 0\npower = True\n# Write your command here\n",
+	"# Power only lamp 1\nfor lamp in range(2):\n    if lamp == 1:\n        # Write your command here\n        print(lamp)\n"]
+const LESSON_HINTS := [
+	"Inside the loop, call set_lamp(lamp, True). Then print a status message.",
+	"Call set_lamp(lamp, power), then print a message. Leave lamp 1 off.",
+	"Inside the if block, call set_lamp(lamp, True). Leave lamp 0 off."]
 var _sound: AudioStreamPlayer
 var opened := false
 
@@ -84,21 +101,22 @@ func setup(hud: CanvasLayer) -> void:
 	eyebrow.add_theme_font_size_override("font_size",14)
 	eyebrow.add_theme_color_override("font_color",Color(0.48,0.85,0.89))
 	layout.add_child(eyebrow)
-	var heading := Label.new()
-	heading.text="01   Restore the street lights"
-	heading.add_theme_font_size_override("font_size",25)
-	layout.add_child(heading)
-	var desc := Label.new()
-	desc.text="Two lamps are offline. Write Python using variables, range(), for, if, print() and set_lamp(id, True). Restore lamps 0 and 1 and print a status message."
-	desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	layout.add_child(desc)
+	_lesson_picker=OptionButton.new()
+	_lesson_picker.add_theme_font_size_override("font_size",22)
+	for title: String in LESSON_TITLES:
+		_lesson_picker.add_item(title)
+	layout.add_child(_lesson_picker)
+	_description=Label.new()
+	_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	_description.text=LESSON_DESCRIPTIONS[0]
+	layout.add_child(_description)
 	_code=CodeEdit.new()
 	_code.custom_minimum_size=Vector2(0,250)
 	_code.add_theme_font_size_override("font_size",19)
 	_code.add_theme_color_override("font_color",Color(0.91,0.94,0.96))
 	_code.add_theme_color_override("line_number_color",Color(0.51,0.62,0.67))
 	_code.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	_code.text="# Restore both lamps\ncount = 2\nfor lamp in range(count):\n    # Write your command here\n    print(lamp)\n"
+	_code.text=LESSON_STARTERS[0]
 	_code.gutters_draw_line_numbers=true
 	var highlighter := CodeHighlighter.new()
 	highlighter.number_color=Color(0.95,0.73,0.40)
@@ -139,7 +157,7 @@ func setup(hud: CanvasLayer) -> void:
 	buttons.add_child(_run)
 	var hint := Button.new()
 	hint.text="Hint"
-	hint.pressed.connect(func(): _output.text="Inside the loop, call set_lamp(lamp, True). Then print a status message.")
+	hint.pressed.connect(func(): _output.text=LESSON_HINTS[_lesson])
 	hint.custom_minimum_size=Vector2(100,44)
 	buttons.add_child(hint)
 	var spacer := Control.new()
@@ -153,6 +171,18 @@ func setup(hud: CanvasLayer) -> void:
 	layout.add_child(buttons)
 	hud.add_child(_panel)
 	_panel.hide()
+	_lesson_picker.item_selected.connect(_select_lesson)
+
+func _select_lesson(index: int) -> void:
+	if _run.disabled or index<0 or index>=LESSON_TITLES.size():
+		_lesson_picker.select(_lesson)
+		return
+	if index==_lesson:return
+	_lesson=index
+	_lesson_picker.select(index)
+	_description.text=LESSON_DESCRIPTIONS[index]
+	_code.text=LESSON_STARTERS[index]
+	_output.text="Practice completed earlier. Run again to test your code." if _practice_done.has(index) else "Run your code to test the lamps. Each run starts with both lamps off."
 
 func open_editor() -> void:
 	if opened:return
@@ -173,11 +203,13 @@ func run_source(source: String) -> bool:
 		_output.text="Python runtime unavailable or program exceeds 4096 bytes."
 		return false
 	_run.disabled=true
+	_lesson_picker.disabled=true
 	_output.text="Running Python lesson..."
 	return true
 
 func _apply(result: Dictionary) -> void:
 	_run.disabled=false
+	_lesson_picker.disabled=false
 	var output: Variant=result.get("output","Invalid result.")
 	if not output is String or output.length()>512:
 		_output.text="Invalid Python result."
@@ -202,12 +234,21 @@ func _apply(result: Dictionary) -> void:
 		state[int(id)]=command["on"]
 	for i: int in range(2):_lights[i].visible=state[i]
 	_output.text=output+"\nLamps online: %d / 2"%(int(state[0])+int(state[1]))
-	if state[0] and state[1] and not output.strip_edges().is_empty():
+	var matches: bool = (state[0] and state[1]) if _lesson==0 else (state[0] and not state[1]) if _lesson==1 else (not state[0] and state[1])
+	if not matches or output.strip_edges().is_empty():
+		_output.text+="\nTarget not met. Check the selected exercise and print a status message."
+		return
+	if _lesson==0:
 		_output.text+="\nMission complete. The street lights are restored."
 		if not _done:
 			_done=true
 			_sound.play()
 			completed.emit()
+	else:
+		_output.text+="\nPractice complete. The correct lamp is powered."
+		if not _practice_done.has(_lesson):
+			_practice_done[_lesson]=true
+			_sound.play()
 
 func lamps_online() -> bool:
 	return _lights.size()==2 and _lights[0].visible and _lights[1].visible

@@ -101,3 +101,9 @@ Academy demo checkpoint: 45664681340 passed Linux/Windows street, vehicle and ac
 ## Current public Academy demo
 
 [Download CodeCity Academy Demo v0.2.0](https://github.com/zaydattique/codecity/releases/download/v0.2.0-academy-demo/CodeCity_Academy_Demo_v0.2.0.zip). Public prerelease published successfully in 45666920642 from the previously verified Windows build 45664681340. Extract all files and start CodeCity_Academy_Demo.exe. Includes bundled CPython and the physical lighting mission, revised camera, settings and driving. Hybrid GDScript/Python, not a pure Python game. Six-NPC work is not in this release.
+
+### Upcoming demo practice extension (unverified source branch)
+The review branch adds north-lamp variables and south-lamp conditional exercises to the original physical lighting mission, with starter code and hints. These are not in public v0.2.0. The original mission is still the only profile-level completion; practice is session-local. Hosted and manual Windows verification required before a new release.
+
+### Integrated university demo candidate (PR #1)
+Source now connects the six previously generated candidate NPC rigs and persistent Python worker to the existing Academy and Living World modes. Living World adds A New Beginning: enter the coupe, move at least four metres, safely exit and report to Nora at her live location. The combined candidate adds spatial synthesized horn/engine audio, mission confirmation and a compact objective panel. The integrated Linux/Windows pipeline stages the exact prior vehicle and six-cast artifacts, bundles Python and both worker files, runs all four physical suites and standalone boot checks. This is not a new published release until checks and candidate review pass. Existing public v0.2.0 remains unchanged.

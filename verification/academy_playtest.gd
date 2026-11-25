@@ -39,6 +39,29 @@ func _verify() -> void:
 	if not await _wait_for_result(station) or station._lights[0].visible or not station._output.text.contains("Unsupported"):
 		_fail("unsafe source or partial command application")
 		return
+	# Exercise selection and actual physical outcomes, not just console messages.
+	station._lesson_picker.item_selected.emit(1)
+	station._code.text="set_lamp(1, True)\nprint('Wrong lamp')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or station._practice_done.has(1) or not station._output.text.contains("Target not met"):
+		_fail("incorrect practice result accepted")
+		return
+	station._code.text="lamp = 0\npower = True\nset_lamp(lamp, power)\nprint('North online')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(1) or not station._lights[0].visible or station._lights[1].visible:
+		_fail("variables exercise and physical north lamp")
+		return
+	station._lesson_picker.item_selected.emit(2)
+	station._code.text="for lamp in range(2):\n    if lamp == 1:\n        set_lamp(lamp, True)\nprint('South online')"
+	station._run.pressed.emit()
+	if not await _wait_for_result(station) or not station._practice_done.has(2) or station._lights[0].visible or not station._lights[1].visible:
+		_fail("conditions exercise and physical south lamp")
+		return
+	var practice_profile: Dictionary=menu._sessions.snapshot(menu.active_snapshot()["profile_id"])
+	if not practice_profile["progress"]["academy"].is_empty():
+		_fail("practice completed the main mission")
+		return
+	station._lesson_picker.item_selected.emit(0)
 	station._code.text="count = 2\nfor lamp in range(count):\n    set_lamp(lamp, True)\nprint('Restored', count)"
 	station._run.pressed.emit()
 	if not await _wait_for_result(station):

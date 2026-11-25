@@ -15,12 +15,18 @@ func _verify() -> void:
 	if not Crowd.installed():
 		_fail("six actual cast assets or Python missing")
 		return
-	var world=Harbor.new()
-	if not world.prepare("adrian"):
-		world.free()
+	var packed := load("res://scenes/foundation.tscn") as PackedScene
+	var menu := packed.instantiate()
+	root.add_child(menu)
+	menu._name.text="Living World QA"
+	menu._mode.select(0)
+	menu._character.select(0)
+	menu._on_apply_pressed()
+	menu._open_street()
+	var world: Node3D=menu._world
+	if world==null:
 		_fail("world preparation")
 		return
-	root.add_child(world)
 	var crowd: Node3D=world.crowd
 	if crowd==null or crowd.actors.size()!=6:
 		_fail("six actual NPC actors missing")
@@ -73,6 +79,56 @@ func _verify() -> void:
 		await RenderingServer.frame_post_draw
 		if root.get_texture().get_image().save_png("res://_qa/npc_overview.png")!=OK:
 			_fail("NPC overview capture")
+			return
+	# Story progress must follow actual vehicle ownership, displacement and contact.
+	if world._story_stage!=0 or world._try_story_contact():
+		_fail("story starts completed or accepts premature contact")
+		return
+	var car: VehicleBody3D=world.vehicle
+	if car==null:
+		_fail("story car missing")
+		return
+	var approach: Vector3=car.exit_point(1.0)
+	approach.y=0.20
+	world.player.global_position=approach
+	for i: int in range(45):await physics_frame
+	if not world.try_toggle_vehicle() or world._story_stage!=1:
+		_fail("story vehicle entry")
+		return
+	Input.action_press("move_forward")
+	for i: int in range(120):
+		await physics_frame
+		if world._story_stage==2:break
+	Input.action_release("move_forward")
+	if world._story_stage!=2:
+		_fail("story actual drive did not reach goal")
+		return
+	Input.action_press("vehicle_brake")
+	for i: int in range(120):await physics_frame
+	Input.action_release("vehicle_brake")
+	if not world.try_toggle_vehicle() or world._story_stage!=3:
+		_fail("story safe exit")
+		return
+	# Fixture positioning only: production still requires range and line of sight.
+	var contact: Vector3=nora.global_position
+	var remote: Vector3=Vector3(-4.6,0.18,12.0) if contact.z<0 else Vector3(-4.6,0.18,-12.0)
+	world.player.global_position=remote
+	if world._try_story_contact():
+		_fail("remote story contact")
+		return
+	world.player.global_position=contact+Vector3(0.0,0.0,1.0)
+	if not world._try_story_contact() or world._story_stage!=4 or world._try_story_contact():
+		_fail("story contact or duplicate completion")
+		return
+	var active: Dictionary=menu.active_snapshot()
+	var progress: Dictionary=menu._sessions.snapshot(active["profile_id"])["progress"]
+	if progress["living_world"]!=["a_new_beginning"] or not progress["academy"].is_empty():
+		_fail("story profile progression separation")
+		return
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		if root.get_texture().get_image().save_png("res://_qa/story_complete.png")!=OK:
+			_fail("story capture")
 			return
 	# Pause and terminate the real Python worker; require explicit idle fallback.
 	world._set_pause(true)
