@@ -6,6 +6,7 @@ on:
       - 'game/**'
       - 'tools/retarget_motion.py'
       - 'verification/street_playtest.gd'
+      - 'verification/candidate_export_presets.cfg'
       - '.github/workflows/street-playtest.yml'
   workflow_dispatch:
 permissions:
@@ -82,5 +83,103 @@ jobs:
         with:
           name: street-playtest-evidence
           path: build/playtest/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stage tested source project and attribution for Windows export
+        run: |
+          set -euo pipefail
+          cp verification/candidate_export_presets.cfg build/playtest/game/export_presets.cfg
+          mkdir -p build/playtest/distribution
+          cp THIRD_PARTY_NOTICES.md build/playtest/distribution/
+          cat > build/playtest/distribution/README.txt <<'EOF'
+          CodeCity Street Physics Test - development candidate, not a released game.
+          Two selectable characters and one street. No finished missions, vehicles,
+          NPC simulation or Academy execution. Visual art and motion remain candidates.
+          Launch CodeCity_Street_Test.exe with the PCK in the same folder.
+          Create a local profile, choose Living World and a character, select profile,
+          then open the street physics test. WASD, mouse, Shift, Alt, Space, C, V, M, Esc.
+          Godot 4.7.2. No online connection is required for this candidate.
+          EOF
+          curl -fL --proto '=https' --proto-redir '=https' --max-time 60 https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/LICENSE.txt -o build/playtest/distribution/Godot-LICENSE.txt
+          curl -fL --proto '=https' --proto-redir '=https' --max-time 60 https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/COPYRIGHT.txt -o build/playtest/distribution/Godot-COPYRIGHT.txt
+          tar --exclude=.godot --exclude='*.import' -czf build/playtest/tested-project.tar.gz -C build/playtest game distribution
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tested-street-project-candidate
+          path: build/playtest/tested-project.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  windows-export:
+    needs: playtest
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tested-street-project-candidate
+          path: build/input
+      - name: Stage tested project
+        run: |
+          tar -xzf build/input/tested-project.tar.gz -C build
+          if ($LASTEXITCODE -ne 0) { throw "Extraction failed" }
+          New-Item -Force -ItemType Directory build/windows-logs | Out-Null
+      - name: Install pinned Windows editor and export templates
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = "$env:RUNNER_TEMP/godot.zip"
+          curl.exe -fsSL --retry 2 --max-time 300 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip -o $zip
+          if ($LASTEXITCODE -ne 0) { throw "Godot download failed" }
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953") { throw "Editor hash mismatch" }
+          Expand-Archive $zip "$env:RUNNER_TEMP/godot"
+          $template = "$env:RUNNER_TEMP/templates.tpz"
+          curl.exe -fsSL --retry 2 --max-time 900 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o $template
+          if ($LASTEXITCODE -ne 0) { throw "Template download failed" }
+          if ((Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant() -ne "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011") { throw "Template hash mismatch" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [IO.Compression.ZipFile]::OpenRead($template)
+          try {
+            $target = "$env:APPDATA/Godot/export_templates/4.7.2.stable"
+            New-Item -Force -ItemType Directory $target | Out-Null
+            foreach ($name in @("windows_release_x86_64.exe","windows_debug_x86_64.exe")) {
+              $entry = $archive.Entries | Where-Object { $_.FullName -eq "templates/$name" } | Select-Object -First 1
+              if (!$entry) { throw "Missing pinned template $name" }
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, "$target/$name", $true)
+            }
+          } finally { $archive.Dispose() }
+      - name: Windows actual physics regression and export
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $godot = Get-ChildItem "$env:RUNNER_TEMP/godot" -Recurse -Filter "*console.exe" | Select-Object -First 1
+          if (!$godot) { throw "Missing editor console" }
+          & $godot.FullName --headless --path build/game --editor --import 2>&1 | Tee-Object build/windows-logs/import.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows import failed" }
+          & $godot.FullName --headless --path build/game --script res://_qa/street_playtest.gd -- --motion 2>&1 | Tee-Object build/windows-logs/physics.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows candidate physics failed" }
+          if (!(Select-String -Path build/windows-logs/physics.log -SimpleMatch CODECITY_STREET_PLAYTEST_OK)) { throw "Physics marker absent" }
+          $output = Join-Path (Resolve-Path build/distribution).Path CodeCity_Street_Test.exe
+          & $godot.FullName --headless --path build/game --export-release "Windows Candidate" $output 2>&1 | Tee-Object build/windows-logs/export.log
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path $output) -or !(Test-Path "$($output.Replace('.exe','.pck'))")) { throw "Windows export failed" }
+          if (Select-String -Path build/windows-logs/*.log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Engine errors" }
+      - name: Boot standalone export outside editor project
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path build/distribution/CodeCity_Street_Test.exe).Path
+          $log = Join-Path (Resolve-Path build/windows-logs).Path "exported-boot.log"
+          $p = Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--quit-after","180","--","--smoke") -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
+          if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Exported game boot timeout" }
+          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch CODECITY_FOUNDATION_SMOKE_OK)) { throw "Exported game failed" }
+          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Exported game errors" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CodeCity-Windows-Street-Test
+          path: build/distribution/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: windows-candidate-export-logs
+          path: build/windows-logs/
           if-no-files-found: ignore
           retention-days: 7
