@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        id: ${{ fromJSON(github.event_name == 'pull_request' && '["jules","rhea","vincent","farah","theo","iris"]' || '["nora","omar","elena","marcus","sana","liam","jules","rhea","vincent","farah","theo","iris"]') }}
+        id: ${{ fromJSON(github.event_name == 'pull_request' && '["ada","ben","celia","dion","eva","finn","gia","hugo","ines","jonah","kira","luis","mira","noel","opal","peter","quinn","rafi"]' || '["nora","omar","elena","marcus","sana","liam","jules","rhea","vincent","farah","theo","iris","ada","ben","celia","dion","eva","finn","gia","hugo","ines","jonah","kira","luis","mira","noel","opal","peter","quinn","rafi"]') }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
