@@ -18,6 +18,7 @@ from tools.freeze_character_morphs import decode, accessor
 PIN = "ba9514cdd88ecc2d40ecad503a644449fc98e665"
 BLOB = "473e59080288428d0b6da826ba19324d07b191f0"
 CLIPS = {"Idle_Loop":"idle", "Walk_Loop":"walk", "Jog_Fwd_Loop":"jog", "Sprint_Loop":"sprint", "Crouch_Idle_Loop":"crouch_idle", "Crouch_Fwd_Loop":"crouch_walk", "Jump_Start":"jump_start", "Jump_Loop":"jump_air", "Jump_Land":"jump_land"}
+COMBAT_CLIPS = {"Punch_Jab":"punch_jab", "Punch_Cross":"punch_cross", "Hit_Chest":"hit_chest", "Death01":"death"}
 CORE = ("pelvis","spine_01","spine_02","spine_03","neck_01","head",
         "clavicle_l","upperarm_l","lowerarm_l","hand_l",
         "clavicle_r","upperarm_r","lowerarm_r","hand_r",
@@ -236,19 +237,23 @@ def correct_arm_tracks(src,dst,sn,dn,sl,dl,sg,dg,source_tracks,target_tracks):
         target_tracks[i]=(times,values,"LINEAR")
 
 
-def retarget(source,target):
+def retarget(source,target,append_combat=False):
     src,sbin=decode(source)
     dst,dbin=decode(target)
     sn,sl,sg=skeleton(src)
     dn,dl,dg=skeleton(dst)
     reverse={i:n for n,i in sn.items()}
     common=set(sn)&set(dn)
-    if dst.get("animations"):raise ValueError("Target already animated")
+    existing=dst.get("animations",[])
+    if append_combat:
+        if {a.get("name") for a in existing}!=set(CLIPS.values()):raise ValueError("Combat append requires exactly the validated locomotion clips")
+    elif existing:raise ValueError("Target already animated")
+    selected=COMBAT_CLIPS if append_combat else CLIPS
     available={a.get("name"):a for a in src.get("animations",[])}
-    if not set(CLIPS)<=set(available):raise ValueError(f"Missing clips; available={sorted(available)}")
-    result=[]
+    if not set(selected)<=set(available):raise ValueError(f"Missing clips; available={sorted(available)}")
+    result=list(existing)
     counts={}
-    for source_name,name in CLIPS.items():
+    for source_name,name in selected.items():
         anim=available[source_name]
         samplers=[]
         channels=[]
@@ -303,12 +308,13 @@ def main():
     p.add_argument("source",type=Path)
     p.add_argument("target",type=Path)
     p.add_argument("output",type=Path)
+    p.add_argument("--append-combat",action="store_true")
     a=p.parse_args()
     raw=a.source.read_bytes()
     if len(raw)!=7618436 or hashlib.sha1(f"blob {len(raw)}\0".encode()+raw,usedforsecurity=False).hexdigest()!=BLOB:
         raise ValueError("Unrecognized licensed motion source")
     if a.output.exists():raise ValueError("Preserve original assets")
-    data,counts=retarget(raw,a.target.read_bytes())
+    data,counts=retarget(raw,a.target.read_bytes(),a.append_combat)
     a.output.write_bytes(data)
     report={"source_commit":PIN,"source_blob":BLOB,"license":"CC0-1.0","author":"Quaternius",
             "clips":counts,"output_sha256":hashlib.sha256(data).hexdigest(),
