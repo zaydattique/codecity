@@ -62,10 +62,20 @@ jobs:
         run: |
           Copy-Item THIRD_PARTY_NOTICES.md dist/BloomLogic/
           Copy-Item OPEN_GREENHOUSE.md dist/BloomLogic/README.txt
-          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--self-test" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Packaged smoke test failed: $($p.ExitCode)" }
-          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--gui-test" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Packaged GUI test failed: $($p.ExitCode)" }
+          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--self-test" -PassThru
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "Packaged asset smoke test timed out" }
+          if ($p.ExitCode -ne 0) { Get-Content "$env:LOCALAPPDATA\BloomLogic\startup-error.txt" -ErrorAction SilentlyContinue; throw "Packaged smoke test failed: $($p.ExitCode)" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BloomLogic-Windows
+          path: dist/BloomLogic/
+          if-no-files-found: error
+      - name: Test packaged GUI without blocking on error dialog
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath ".\dist\BloomLogic\BloomLogic.exe" -ArgumentList "--gui-test" -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "Packaged GUI test timed out" }
+          if ($p.ExitCode -ne 0) { Get-Content "$env:LOCALAPPDATA\BloomLogic\startup-error.txt" -ErrorAction SilentlyContinue; throw "Packaged GUI test failed: $($p.ExitCode)" }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -73,7 +83,8 @@ jobs:
           path: build/runtime-review
           if-no-files-found: ignore
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
-          name: BloomLogic-Windows
-          path: dist/BloomLogic/
-          if-no-files-found: error
+          name: BloomLogic-Windows-Diagnostics
+          path: ${{ env.LOCALAPPDATA }}/BloomLogic/*.txt
+          if-no-files-found: ignore

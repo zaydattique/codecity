@@ -425,6 +425,13 @@ def run():
     app.run()
 
 if __name__=="__main__":
+    # Windowed PyInstaller has no console; redirect diagnostics to a local file.
+    if sys.stdout is None or sys.stderr is None:
+        log=profile_path().with_name("application.log")
+        log.parent.mkdir(parents=True,exist_ok=True)
+        stream=log.open("a",encoding="utf-8",buffering=1)
+        if sys.stdout is None:sys.stdout=stream
+        if sys.stderr is None:sys.stderr=stream
     try:
         if "--self-test" in sys.argv:sys.exit(self_test())
         run()
@@ -433,7 +440,7 @@ if __name__=="__main__":
         try:
             p=profile_path().with_name("startup-error.txt");p.parent.mkdir(parents=True,exist_ok=True);p.write_text(message)
         except OSError:pass
-        if sys.platform=="win32":
+        if sys.platform=="win32" and not any(x in sys.argv for x in ("--self-test","--gui-test","--capture")):
             import ctypes
             ctypes.windll.user32.MessageBoxW(None,"BloomLogic could not start. See startup-error.txt in the BloomLogic folder under Local AppData.","BloomLogic",16)
         raise

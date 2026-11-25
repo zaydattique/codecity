@@ -14,3 +14,5 @@ Run 45699394455 generated verified soil maps and a skinned teacher with 159 anim
 Owner reported the old renamed package still opened CodeCity and failed to grow at 15 hours light. Actual source and executable branding revised, growth model broad range corrected and regression added. New native catalogue, four learning stages, six-case challenge, settings, audio and diagnostics. Pinned geometry from successful run 45699850632. GUI and Windows verification pending.
 
 Core and native GUI run 45713936738 passed: reported 60-day case reaches full growth and dry branch remains seed. Actual captures showed editor/text clipping. Reduced text wrap and editor width, added physical textured CC0 props and greenhouse framing, guided automatic growth experiment and challenge-driven outcomes. New render and package gates pending.
+
+Windowed build diagnostics redirected to local log; automated checks suppress modal error dialogs and have bounded timeouts. Package upload after successful asset/logic smoke is separately distinguished from GUI verification. No unverified merge.
