@@ -20,7 +20,8 @@ var _camera: Camera3D
 var _crouched := false
 var _animation: AnimationPlayer
 var motion_installed := false
-var _was_grounded := true
+var _was_grounded := false
+var _ever_grounded := false
 
 func configure(model: PackedScene, height: float) -> bool:
 	if model == null or height < 1.5 or height > 2.0 or is_inside_tree():
@@ -31,8 +32,10 @@ func configure(model: PackedScene, height: float) -> bool:
 		return false
 	add_child(_visual)
 	var animation_nodes := _visual.find_children("*","AnimationPlayer",true,false)
+	print("MOTION_IMPORT animation_players=",animation_nodes.size())
 	if animation_nodes.size()==1:
 		_animation=animation_nodes[0] as AnimationPlayer
+		print("MOTION_IMPORT clips=",_animation.get_animation_list())
 		motion_installed=true
 		for clip: String in ["idle","walk","jog","sprint","crouch_idle","crouch_walk","jump_start","jump_loop","jump_land"]:
 			if not _animation.has_animation(clip):
@@ -113,6 +116,12 @@ func _update_motion() -> void:
 	var speed := Vector2(velocity.x,velocity.z).length()
 	var grounded := is_on_floor()
 	var current := _animation.current_animation
+	# The spawn begins just above the sidewalk; do not animate an uncommanded jump.
+	if not _ever_grounded:
+		if grounded:
+			_ever_grounded=true
+			_was_grounded=true
+		return
 	var target := "idle"
 	if not grounded:
 		if _was_grounded:

@@ -25,7 +25,7 @@ func _verify() -> void:
 		return
 	var require_motion := "--motion" in OS.get_cmdline_user_args()
 	if require_motion and (not actor.motion_installed or actor.motion_clip()!="idle"):
-		_fail("licensed idle clip missing")
+		_fail("licensed idle clip missing; installed=%s clip=%s"%[actor.motion_installed,actor.motion_clip()])
 		return
 	var start: Vector3=actor.position
 	Input.action_press("move_forward")
