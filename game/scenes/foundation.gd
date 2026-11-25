@@ -31,7 +31,9 @@ func _ready() -> void:
 	_launch.pressed.connect(_open_street)
 	_menu.add_child(_launch)
 	_menu.move_child(_launch,_menu.get_child_count()-2)
-	if "--academy-smoke" in OS.get_cmdline_user_args():
+	if "--demo-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_demo_smoke")
+	elif "--academy-smoke" in OS.get_cmdline_user_args():
 		call_deferred("_academy_smoke")
 	elif "--vehicle-smoke" in OS.get_cmdline_user_args():
 		call_deferred("_vehicle_smoke")
@@ -105,6 +107,7 @@ func _open_street() -> void:
 	_world=world
 	world.leave_requested.connect(_close_street)
 	world.academy_completed.connect(func(): _sessions.complete_mission("street_lighting","academy"))
+	world.story_completed.connect(func(): _sessions.complete_mission("a_new_beginning","living_world"))
 	$CanvasLayer.hide()
 
 func _close_street() -> void:
@@ -168,4 +171,25 @@ func _academy_smoke() -> void:
 		get_tree().quit(1)
 		return
 	print("CODECITY_EXPORTED_ACADEMY_OK")
+	get_tree().quit(0)
+
+# Standalone packaged crowd and story readiness, not a manual playthrough.
+func _demo_smoke() -> void:
+	_name.text="Demo export verification"
+	_mode.select(0)
+	_character.select(0)
+	_on_apply_pressed()
+	_open_street()
+	if not is_instance_valid(_world) or not is_instance_valid(_world.crowd) or _world.crowd.actors.size()!=6 or _world.vehicle==null or not is_instance_valid(_world._story_label):
+		push_error("Packaged crowd, car or story unavailable")
+		get_tree().quit(1)
+		return
+	var deadline:=Time.get_ticks_msec()+6000
+	while _world.crowd.accepted_batches<2 and not _world.crowd.failed and Time.get_ticks_msec()<deadline:
+		await get_tree().create_timer(0.025).timeout
+	if _world.crowd.failed or _world.crowd.accepted_batches<2:
+		push_error("Packaged Python crowd failed")
+		get_tree().quit(1)
+		return
+	print("CODECITY_EXPORTED_DEMO_OK")
 	get_tree().quit(0)
