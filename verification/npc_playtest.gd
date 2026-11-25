@@ -123,7 +123,7 @@ func _verify() -> void:
 		return
 	var active: Dictionary=menu.active_snapshot()
 	var progress: Dictionary=menu._sessions.snapshot(active["profile_id"])["progress"]
-	if progress["living_world"]!=["a_new_beginning"] or not progress["academy"].is_empty():
+	if progress["living_world"]!=["a_new_beginning"] or not progress["academy"].is_empty() or world.cash!=650 or menu._sessions.cash_balance()!=650:
 		_fail("story profile progression separation")
 		return
 	if "--capture" in OS.get_cmdline_user_args():
