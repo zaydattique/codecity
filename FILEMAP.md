@@ -67,3 +67,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `game/core/npc_bridge.gd`, `npc_director.gd`, `street_npc.gd` implement persistent IPC, bounded six-agent decision orchestration and actual rig locomotion. Existing `ai/worker.py` adds mailbox mode, preserving stdin protocol; new persistent-process test. No fake actors.
 
 `verification/npc_playtest.gd` and `.github/workflows/npc-playtest.yml` real cast/IPC/physics regression and evidence. `.github/workflows/publish-academy-prerelease.yml` publishes previously verified Academy package separately from NPC work.
+
+Integrated demo: existing harbor_playtest.gd owns short story, mission HUD and horn/confirmation audio; street_vehicle.gd owns original spatial engine loop; street_map.gd tracks live story destination; foundation.gd records mission and standalone demo smoke. NPC playtest adds story progression; existing npc-playtest and candidate-windows-export workflows stage and validate the integrated Windows candidate. No new asset binaries or duplicate implementations.
