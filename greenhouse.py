@@ -41,12 +41,19 @@ def run():
     from direct.actor.Actor import Actor
     app.disableMouse()
     app.setBackgroundColor(.13,.19,.16,1)
+    # Restrict the 3D camera to its own viewport, rather than cropping it behind the editor.
+    app.camNode.getDisplayRegion(0).setDimensions(0,.645,0,1)
+    app.camLens.setAspectRatio(1280*.645/720)
     app.camLens.setFov(42)
-    app.camera.setPos(.32,-1.5,.35);app.camera.lookAt(.24,0,.085)
+    app.accept("window-event",lambda window: app.camLens.setAspectRatio(window.getXSize()*.645/max(1,window.getYSize())))
+    app.camera.setPos(.16,-1.24,.24);app.camera.lookAt(0,0,.08)
     ambient=AmbientLight("fill");ambient.setColor(Vec4(.56,.56,.52,1))
     sun=DirectionalLight("daylight");sun.setColor(Vec4(.75,.72,.65,1))
     al=app.render.attachNewNode(ambient);sl=app.render.attachNewNode(sun);sl.setHpr(-35,-55,0)
     app.render.setLight(al);app.render.setLight(sl)
+    # Keep antialiasing for subpixel root geometry where hardware supports it.
+    from panda3d.core import AntialiasAttrib
+    app.render.setAntialias(AntialiasAttrib.MMultisample)
     root=assets()
     def model(name):
         n=app.loader.loadModel(Filename.fromOsSpecific(str(root/name)))
@@ -57,7 +64,7 @@ def run():
     soil=bench.find("**/soil_surface")
     assert not soil.isEmpty(),"Missing soil surface"
     teacher=Actor(NodePath(gltf.load_model(str(root/"teacher.glb"))))
-    teacher.reparentTo(app.render);teacher.setPos(-.60,.40,-.98);teacher.setH(0)
+    teacher.reparentTo(app.render);teacher.setPos(-.72,.58,-.98);teacher.setH(0)
     teacher.pose("explain",0)
     camera_target=[0]
     def macro():
@@ -116,19 +123,19 @@ def run():
         DirectButton(parent=panel,text=text,scale=.048,pos=(x,0,-1.65),command=func,frameColor=(.22,.43,.29,1),text_fg=(1,1,1,1),pad=(.5,.35))
     button("Run",-.99,start);button("Pause",-.62,pause);button("Reset",-.24,reset)
     label("Simplified botanical model",-1.17,-1.91,.035)
-    DirectButton(parent=app.a2dTopLeft,text="Plant close-up",scale=.045,pos=(.37,0,-.09),command=macro)
-    DirectButton(parent=app.a2dTopLeft,text="Dua: explanation",scale=.045,pos=(1.03,0,-.09),command=overview)
+    DirectButton(parent=app.a2dTopLeft,text="Plant close-up",scale=.045,pos=(.40,0,-.09),command=macro,frameColor=(.12,.23,.17,1),text_fg=(.95,.98,.91,1),pad=(.65,.35))
+    DirectButton(parent=app.a2dTopLeft,text="Dua: explanation",scale=.045,pos=(1.12,0,-.09),command=overview,frameColor=(.12,.23,.17,1),text_fg=(.95,.98,.91,1),pad=(.65,.35))
     guide=DirectLabel(parent=app.a2dBottomLeft,text="If a condition is True, its indented branch runs. Otherwise, else runs.",pos=(.06,0,.18),scale=.036,text_align=TextNode.ALeft,text_fg=(1,1,1,1),frameColor=(.08,.13,.10,1),text_wordwrap=45)
     def update(task):
         nonlocal state,elapsed,water,playing,shown,visual
         dt=min(.10,ClockObject.getGlobalClock().getDt())
         from panda3d.core import Vec3
-        pos=Vec3(.0,-2.75,.65) if camera_target[0] else Vec3(.20,-.94,.22)
-        target=Vec3(.10,0,.0) if camera_target[0] else Vec3(.22,0,.07)
+        pos=Vec3(-.30,-3.15,.38) if camera_target[0] else Vec3(.16,-1.24,.24)
+        target=Vec3(-.30,.20,-.07) if camera_target[0] else Vec3(0,0,.08)
         app.camera.setPos(app.camera.getPos()+(pos-app.camera.getPos())*min(1,dt*4))
         app.camera.lookAt(target)
         wet=state.moisture/100
-        soil.setColorScale(1-.40*wet,1-.45*wet,1-.48*wet,1)
+        soil.setColorScale(.82-.38*wet,.79-.40*wet,.76-.42*wet,1)
         if playing:
             elapsed+=dt
             if elapsed>=1.1:
@@ -147,7 +154,7 @@ def run():
                 p.setPos((i%3-1)*.004,.035,.36-(.36-.058)*phase);p.show()
             else:p.hide()
         guide["text"]=("Dua: if the condition is True, execute its action. Otherwise, use else.\nTry changing the moisture threshold, then run." if camera_target[0] else "Observe water and plant growth. Run your rule to change the outcome.")
-        info["text"]=f"Day {state.day:02}   Soil {state.moisture}%   Water {'ON' if water else 'OFF'}"
+        info["text"]=f"Day {state.day:02}   Soil {state.moisture}%   Water {'ON' if playing and water else 'OFF'}"
         return Task.cont
     app.taskMgr.add(update,"simulation")
     app.accept("escape",pause)
@@ -161,9 +168,14 @@ def run():
         settings["Moisture"]["value"]=20;start()
         for _ in range(30):
             water=evaluate(source,state);state=advance(state,water)
+        assert water is True or water is False
+        before=state
+        editor.enterText("import os");start();assert state==before and not playing
+        editor.enterText(DEFAULT)
+        pause();assert not playing
         visual=state.growth;playing=False;app.taskMgr.step();capture("grown.png")
         overview();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5))
-        app.camera.setPos(0,-2.75,.65);app.camera.lookAt(.10,0,0);capture("teacher.png")
+        app.camera.setPos(-.30,-3.15,.38);app.camera.lookAt(-.30,.20,-.07);app.taskMgr.step();capture("teacher.png")
         assert state.growth>.2
         app.destroy();return
     app.run()

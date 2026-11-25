@@ -8,3 +8,5 @@ Owner rejected initial root/stem proportions and static GLB appearance. Revised 
 Initial Windows asset/logic package passed run 45698179555, artifact 15061487464. Revised macro frame inspected: thin roots, pale uniform substrate, unfinished art. Next candidate adds verified CC0 soil maps and wetness tint, prior licensed adult rig with authored explanatory pose, native camera switching, runtime capture and packaged asset tests. New verification pending.
 
 First texture build failed because Poly Haven metadata uses Diffuse/Rough keys, not filename suffixes. Corrected the schema mapping, retaining strict integrity checks. Rerun pending.
+
+Run 45699394455 generated verified soil maps and a skinned teacher with 159 animation channels; actual native capture passed. Inspection found cropped head, low contrast roots and incomplete workbench; corrected camera viewport and framing, bench supports/floor, root visibility, button styling and paused irrigation label. Additional rule error assertion in capture. New build pending; no final approval.

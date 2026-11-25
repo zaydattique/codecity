@@ -4,3 +4,5 @@ Python owns all runtime UI, deterministic fixed-day plant state and scene orches
 Integration candidate uses native EGG meshes evaluated from the same Blender scene at 41 growth samples; Python selects the geometry according to simulation growth and separately drives pooled droplets. No prerecorded video. EGG is a temporary integration format; procedural material graphs are not preserved. Native DirectGUI editor and sensors use the existing finite CPython rules. Packaging via PyInstaller on Windows; separate mesh-load test, not full GUI QA.
 
 Runtime soil diffuse uses EGG UVs and separate wetness tint. Teacher is an independently animated GLB via panda3d-gltf; original gesture keyed in Blender. Separate overview and plant camera targets. Capture runs actual Panda3D scene. Normal and roughness maps currently used in Blender only.
+
+3D display region is confined to the left scene viewport; editor remains independent. Camera framing uses actual resolution/aspect, teacher is placed behind a supported workbench. No general-purpose Python sandbox claim.

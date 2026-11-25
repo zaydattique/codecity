@@ -61,7 +61,7 @@ for key in ("diff","nor_gl","rough"):
         soil.node_tree.links.new(node.outputs["Color"],normal.inputs["Color"])
         soil.node_tree.links.new(normal.outputs["Normal"],p.inputs["Normal"])
     image.pack()
-rootmat=material("Root | pale epidermis",(.62,.44,.23),.58)
+rootmat=material("Root | pale epidermis",(.72,.59,.37),.58)
 stemmat=material("Stem | epidermis",(.11,.26,.035),.52)
 leafmat=material("Leaf | healthy tissue",(.095,.34,.045),.38)
 leafmat.node_tree.nodes.get("Principled BSDF").inputs["Subsurface Weight"].default_value=.08
@@ -99,6 +99,11 @@ def curve(name,points,radius,mat,start=None,end=None):
     return o
 # Meter-scale rhizobox: front is intentionally open in the visualization, not fake transparent soil.
 cube("Workbench",(0,.05,-.265),(1.6,.8,.055),bench,.012)
+# Physical legs and floor for the wider explanation camera.
+for x in (-.70,.70):
+    for y in (-.28,.38):
+        cube("Workbench leg",(x,y,-.636),(.046,.046,.69),frame,.003)
+cube("Greenhouse floor",(0,0,-1.005),(5,5,.04),bench,.002)
 substrate=cube("Rhizobox | substrate",(0,.085,-.095),(.48,.16,.30),soil,.001)
 # Planar texture projection on each face, consistent with runtime EGG UVs.
 for poly in substrate.data.polygons:
@@ -115,17 +120,17 @@ seed.rotation_euler[1]=.45
 seed.keyframe_insert("scale",frame=1)
 seed.scale=(.014,.008,.008);seed.keyframe_insert("scale",frame=25)
 # Roots extend by tip reveal, with taper and independent lateral growth, not whole-plant scaling.
-main=[(0,.004,.039),(.004,.004,.015),(-.003,.004,-.020),(.006,.004,-.06),(.002,.004,-.105),(.014,.004,-.155),(.01,.004,-.195)]
-curve("Primary root",main,.0016,rootmat,12,82)
+main=[(0,.003,.039),(.004,.002,.015),(-.003,.001,-.020),(.006,.001,-.06),(.002,.001,-.105),(.014,.001,-.155),(.01,.001,-.195)]
+curve("Primary root",main,.0020,rootmat,12,82)
 for i in range(1,6):
     x,y,z=main[i]
     for side in (-1,1):
         length=random.uniform(.025,.08)*(1-i*.07)
         pts=[(x,y,z),(x+side*length*.28,y-.002,z-.012),(x+side*length*.68,y-.001,z-.025),(x+side*length,y-.002,z-.047)]
-        curve("Lateral root",pts,.00055,rootmat,29+i*10,76+i*7)
+        curve("Lateral root",pts,.00085,rootmat,29+i*10,76+i*7)
         for j in range(2):
             a=Vector(pts[j+1]);d=Vector((side*random.uniform(.008,.025),-.001,-random.uniform(.012,.035)))
-            curve("Fine root",[a,a+d*.45,a+d],.00020,rootmat,51+i*10+j*3,110+i*2)
+            curve("Fine root",[a,a+d*.45,a+d],.00035,rootmat,51+i*10+j*3,110+i*2)
 shoot=[(0,.004,.05),(-.004,.004,.067),(-.006,.007,.095),(.005,.012,.13),(.008,.015,.17)]
 curve("Hypocotyl and shoot",shoot,.0022,stemmat,29,78)
 def leaf(name,origin,direction,length,width,start,end):

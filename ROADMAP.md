@@ -4,3 +4,5 @@ G0 reset: remove obsolete game paths and instructions, preserve exact historical
 Current corrective step: G1/G2 integration preview only. Revised root and shoot proportions, evaluated geometry and offline native packaging before art approval. Still blocked: soil texture baking, physically reviewed contact, true wilt geometry, teacher gestures/audio, camera and timeline controls, detailed Windows GUI QA. Do not expand or merge.
 
 Corrective candidate: actual soil diffuse/normal/rough maps in Blender, diffuse and wetness tint in runtime; reused licensed teacher rig with custom gesture and explanatory captions. Runtime capture gate before Windows build. No final quality claim; full wilt geometry, voice, interactive QA and measured performance remain open.
+
+Actual runtime review of 45699394455: soil texture and teacher gesture visible; head crop, root aliasing and incomplete workbench rejected. Reframe and re-render. Voice, proper wilt geometry, integrated greenhouse props, wetness shader, timeline and real hardware QA still open.
