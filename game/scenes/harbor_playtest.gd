@@ -7,6 +7,10 @@ const City = preload("res://core/city_layout.gd")
 const CityStream = preload("res://core/city_stream.gd")
 var city_enabled := false
 var city_stream: Node3D
+var _subtitle_panel: PanelContainer
+var _subtitle: Label
+var _subtitle_queue: Array[Dictionary]=[]
+var _subtitle_remaining:=0.0
 const Player = preload("res://core/street_player.gd")
 const Map = preload("res://core/street_map.gd")
 const Car = preload("res://core/street_vehicle.gd")
@@ -114,6 +118,7 @@ func _ready() -> void:
 	_make_collision()
 	_make_light()
 	_make_hud()
+	_make_subtitles()
 	if academy_mode:
 		station=Academy.new()
 		station.position=Vector3(-5.25,0.15,5.0)
@@ -140,6 +145,7 @@ func _ready() -> void:
 		if director.prepare(player,vehicle,city_enabled):
 			crowd=director
 			add_child(crowd)
+			crowd.dialogue.connect(_say)
 			# Exclude moving NPC geometry from the static aerial map.
 			for node: Node in crowd.find_children("*","MeshInstance3D",true,false):
 				(node as MeshInstance3D).layers=2
@@ -364,7 +370,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and is_instance_valid(crowd) and not _driving and not _paused and not _map.expanded and not _cursor_unlocked:
-		crowd.perceive("greet",player.global_position,2.5)
+		if is_instance_valid(crowd.nearest_visible(player.global_position,2.5)):
+			_say("Adrian" if _character=="adrian" else "Maya","Hey, how is it going?")
+			crowd.perceive("greet",player.global_position,2.5)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("vehicle_horn") and _driving and not _paused and not _map.expanded and not _cursor_unlocked:
@@ -416,10 +424,11 @@ func _exit_tree() -> void:
 		get_tree().paused=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _ready_world:return
 	_update_story()
 	if _paused:return
+	_tick_subtitles(delta)
 	if is_instance_valid(city_stream):city_stream.set_focus(vehicle if _driving else player)
 	if academy_mode:
 		_vehicle_hint.visible=not _editor_open and not _paused and not _map.expanded
@@ -629,6 +638,8 @@ func _try_story_contact() -> bool:
 	var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP*0.8,contact.global_position+Vector3.UP*0.8,1)
 	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():return false
 	_story_stage=4
+	_say("Adrian" if _character=="adrian" else "Maya","The coupe is running well. I finished the test drive.")
+	_say("Nora","Good. We can get the car back on the road.")
 	crowd.perceive("greet",player.global_position,2.5)
 	_story_sound.play()
 	_update_story()
@@ -652,3 +663,31 @@ func _feedback_clip(horn: bool) -> AudioStreamWAV:
 	clip.mix_rate=rate
 	clip.data=samples
 	return clip
+
+func _make_subtitles() -> void:
+	_subtitle_panel=PanelContainer.new()
+	_subtitle_panel.position=Vector2(298,613)
+	_subtitle_panel.custom_minimum_size=Vector2(684,64)
+	_subtitle_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	_subtitle_panel.add_theme_stylebox_override("panel",Style.panel(Color(0.025,0.035,0.045,0.83),5,10))
+	_subtitle=Label.new()
+	_subtitle.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_subtitle.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	_subtitle.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	_subtitle.add_theme_font_size_override("font_size",19)
+	_subtitle_panel.add_child(_subtitle)
+	_hud.add_child(_subtitle_panel)
+	_subtitle_panel.hide()
+
+func _say(speaker: String,line: String) -> void:
+	if not is_instance_valid(_subtitle_panel) or _subtitle_queue.size()>=8:return
+	_subtitle_queue.append({"speaker":speaker.left(32),"line":line.left(160)})
+	if _subtitle_remaining<=0.0:_tick_subtitles(0)
+
+func _tick_subtitles(delta: float) -> void:
+	_subtitle_remaining=maxf(0.0,_subtitle_remaining-delta)
+	if _subtitle_remaining<=0.0 and not _subtitle_queue.is_empty():
+		var item: Dictionary=_subtitle_queue.pop_front()
+		_subtitle.text="%s: %s"%[item["speaker"],item["line"]]
+		_subtitle_remaining=clampf(1.8+float(String(item["line"]).length())*0.035,2.0,6.0)
+	_subtitle_panel.visible=_subtitle_remaining>0 and _prefs.subtitles and not _paused and not _editor_open and not _map.expanded
