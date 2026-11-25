@@ -16,7 +16,9 @@ var _persistent := false
 
 
 func _ready() -> void:
-	_persistent=DisplayServer.get_name()!="headless" and not OS.get_cmdline_user_args().any(func(arg: String):return arg.ends_with("-smoke") or arg=="--smoke")
+	_persistent=DisplayServer.get_name()!="headless"
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.ends_with("-smoke") or arg=="--smoke":_persistent=false
 	if _persistent:_sessions.load_profiles()
 	_menu.theme=Style.theme()
 	_menu.get_node("Title").add_theme_color_override("font_color",Color(0.54,0.87,0.91))
