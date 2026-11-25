@@ -49,3 +49,5 @@ P08 candidate: game/core/harbor_layout.gd, street_player.gd, street_map.gd; game
 `game/core/street_vehicle.gd` actual candidate raycast vehicle, wheel sockets, chase camera, door and lights. `game/scenes/harbor_playtest.gd` coordinates ownership/entry/exit; player methods transfer collision and controls. `verification/vehicle_playtest.gd` deterministic real asset driving regression.
 
 `.github/workflows/vehicle-playtest.yml` stages exact tested street and neutralized coupe artifact, validates source and GLB digests/report, tests actual physics and renders driving/exit evidence. Candidate verification only, no automatic car distribution.
+
+`.github/workflows/candidate-windows-export.yml` shares pinned Windows editor/template, QA and standalone export code between street/vehicle builds. `art/coupe-review-sha256.txt` exact development-package review gate (not final art approval). Foundation CLI --vehicle-smoke uses real menu, world and wheel contact checks from exported EXE.

@@ -24,7 +24,9 @@ func _ready() -> void:
 	_launch.pressed.connect(_open_street)
 	_menu.add_child(_launch)
 	_menu.move_child(_launch,_menu.get_child_count()-2)
-	if "--smoke" in OS.get_cmdline_user_args():
+	if "--vehicle-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_vehicle_smoke")
+	elif "--smoke" in OS.get_cmdline_user_args():
 		call_deferred("_smoke")
 	else:
 		_name.grab_focus()
@@ -110,3 +112,23 @@ func active_snapshot() -> Dictionary:
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
+
+## Standalone package QA: use the actual menu and installed candidate world.
+func _vehicle_smoke() -> void:
+	_name.text="Export verification"
+	_mode.select(0)
+	_character.select(0)
+	_on_apply_pressed()
+	_open_street()
+	if not is_instance_valid(_world) or _world.vehicle==null or not _world.vehicle.built or active_snapshot().get("character")!="adrian":
+		push_error("Exported candidate world or car missing")
+		get_tree().quit(1)
+		return
+	for i: int in range(120):
+		await get_tree().physics_frame
+	if _world.vehicle.contacts()<3 or not _world.player.is_on_floor() or not _world.player.motion_installed:
+		push_error("Exported candidate suspension or actor failed")
+		get_tree().quit(1)
+		return
+	print("CODECITY_EXPORTED_VEHICLE_OK")
+	get_tree().quit(0)

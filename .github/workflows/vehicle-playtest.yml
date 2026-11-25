@@ -12,6 +12,8 @@ on:
       - 'game/scenes/harbor_playtest.gd'
       - 'verification/vehicle_playtest.gd'
       - '.github/workflows/vehicle-playtest.yml'
+      - 'art/coupe-review-sha256.txt'
+      - '.github/workflows/candidate-windows-export.yml'
   workflow_dispatch:
     inputs:
       coupe_run:
@@ -25,7 +27,9 @@ jobs:
   vehicle:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    timeout-minutes: 25
+    outputs:
+      package: ${{ steps.package_gate.outputs.package }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -95,3 +99,52 @@ jobs:
           path: build/evidence/
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Stage Windows candidate only for the explicitly reviewed derivative
+        id: package_gate
+        run: |
+          set -euo pipefail
+          # No derivative approved for candidate distribution until visual QA records its exact hash.
+          expected="$(cat art/coupe-review-sha256.txt)"
+          actual="$(sha256sum build/vehicle-game/candidate_assets/coupe.glb | cut -d ' ' -f1)"
+          if [ "$expected" != "$actual" ]; then
+            echo 'package=false' >> "$GITHUB_OUTPUT"
+            echo 'Candidate not yet cleared for development package; test evidence retained.'
+            exit 0
+          fi
+          mkdir -p build/vehicle-package/distribution
+          mv build/vehicle-game build/vehicle-package/game
+          cp verification/candidate_export_presets.cfg build/vehicle-package/game/export_presets.cfg
+          cp THIRD_PARTY_NOTICES.md build/vehicle-package/distribution/
+          cp build/evidence/coupe-report.json build/vehicle-package/distribution/
+          cat > build/vehicle-package/distribution/README.txt <<'EOF'
+          CodeCity Driving Test - development candidate, not a released game.
+          Two protagonists, one street and a functional coupe candidate.
+          Launch CodeCity_Driving_Test.exe with the PCK in the same folder.
+          Select Living World and a character; open the street physics test.
+          WASD and mouse move; Shift sprint, Alt walk, C crouch, Space jump.
+          Approach the parked coupe and press F. W/S drive/reverse, A/D steer,
+          Space brake, L headlights. Stop before F exit. M map, Esc pause.
+          No seated driver visual, NPC simulation, interiors, missions or save.
+          Godot 4.7.2; no online connection needed for this candidate.
+          EOF
+          curl -fL --proto '=https' --proto-redir '=https' --max-time 60 https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/LICENSE.txt -o build/vehicle-package/distribution/Godot-LICENSE.txt
+          curl -fL --proto '=https' --proto-redir '=https' --max-time 60 https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/COPYRIGHT.txt -o build/vehicle-package/distribution/Godot-COPYRIGHT.txt
+          tar --exclude=.godot --exclude='*.import' -czf build/vehicle-package/tested-project.tar.gz -C build/vehicle-package game distribution
+          echo 'package=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: steps.package_gate.outputs.package == 'true'
+        with:
+          name: tested-vehicle-project-candidate
+          path: build/vehicle-package/tested-project.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  windows-export:
+    needs: vehicle
+    if: needs.vehicle.outputs.package == 'true'
+    uses: ./.github/workflows/candidate-windows-export.yml
+    with:
+      project_artifact: tested-vehicle-project-candidate
+      suite: vehicle
+      exe: CodeCity_Driving_Test.exe
+      output_artifact: CodeCity-Windows-Driving-Test

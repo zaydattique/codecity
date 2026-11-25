@@ -1,0 +1,102 @@
+name: Shared Windows candidate export
+on:
+  workflow_call:
+    inputs:
+      project_artifact:
+        required: true
+        type: string
+      suite:
+        required: true
+        type: string
+      exe:
+        required: true
+        type: string
+      output_artifact:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  windows-export:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      CANDIDATE_SUITE: ${{ inputs.suite }}
+      CANDIDATE_EXE: ${{ inputs.exe }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ inputs.project_artifact }}
+          path: build/input
+      - name: Stage tested project
+        run: |
+          tar -xzf build/input/tested-project.tar.gz -C build
+          if ($LASTEXITCODE -ne 0) { throw "Extraction failed" }
+          New-Item -Force -ItemType Directory build/windows-logs | Out-Null
+      - name: Install pinned Windows editor and export templates
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = "$env:RUNNER_TEMP/godot.zip"
+          curl.exe -fsSL --retry 2 --max-time 300 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip -o $zip
+          if ($LASTEXITCODE -ne 0) { throw "Godot download failed" }
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953") { throw "Editor hash mismatch" }
+          Expand-Archive $zip "$env:RUNNER_TEMP/godot"
+          $template = "$env:RUNNER_TEMP/templates.tpz"
+          curl.exe -fsSL --retry 2 --max-time 900 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o $template
+          if ($LASTEXITCODE -ne 0) { throw "Template download failed" }
+          if ((Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant() -ne "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011") { throw "Template hash mismatch" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [IO.Compression.ZipFile]::OpenRead($template)
+          try {
+            $target = "$env:APPDATA/Godot/export_templates/4.7.2.stable"
+            New-Item -Force -ItemType Directory $target | Out-Null
+            foreach ($name in @("windows_release_x86_64.exe","windows_debug_x86_64.exe")) {
+              $entry = $archive.Entries | Where-Object { $_.FullName -eq "templates/$name" } | Select-Object -First 1
+              if (!$entry) { throw "Missing pinned template $name" }
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, "$target/$name", $true)
+            }
+          } finally { $archive.Dispose() }
+      - name: Windows actual physics regression and export
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $godot = Get-ChildItem "$env:RUNNER_TEMP/godot" -Recurse -Filter "*console.exe" | Select-Object -First 1
+          if (!$godot) { throw "Missing editor console" }
+          & $godot.FullName --headless --path build/game --editor --import 2>&1 | Tee-Object build/windows-logs/import.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows import failed" }
+          if ($env:CANDIDATE_SUITE -notin @("street","vehicle")) { throw "Unknown verification suite" }
+          if ($env:CANDIDATE_EXE -notin @("CodeCity_Street_Test.exe","CodeCity_Driving_Test.exe")) { throw "Unknown candidate executable name" }
+          & $godot.FullName --headless --path build/game --script res://_qa/street_playtest.gd -- --motion 2>&1 | Tee-Object build/windows-logs/physics.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows candidate physics failed" }
+          if (!(Select-String -Path build/windows-logs/physics.log -SimpleMatch CODECITY_STREET_PLAYTEST_OK)) { throw "Physics marker absent" }
+          if ($env:CANDIDATE_SUITE -eq "vehicle") {
+            & $godot.FullName --headless --path build/game --script res://_qa/vehicle_playtest.gd 2>&1 | Tee-Object build/windows-logs/vehicle.log
+            if ($LASTEXITCODE -ne 0 -or !(Select-String -Path build/windows-logs/vehicle.log -SimpleMatch CODECITY_VEHICLE_PLAYTEST_OK)) { throw "Native Windows vehicle check failed" }
+          }
+          $output = Join-Path (Resolve-Path build/distribution).Path $env:CANDIDATE_EXE
+          & $godot.FullName --headless --path build/game --export-release "Windows Candidate" $output 2>&1 | Tee-Object build/windows-logs/export.log
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path $output) -or !(Test-Path "$($output.Replace('.exe','.pck'))")) { throw "Windows export failed" }
+          if (Select-String -Path build/windows-logs/*.log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Engine errors" }
+      - name: Boot standalone export outside editor project
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path (Join-Path build/distribution $env:CANDIDATE_EXE)).Path
+          $log = Join-Path (Resolve-Path build/windows-logs).Path "exported-boot.log"
+          $smoke = if ($env:CANDIDATE_SUITE -eq "vehicle") { "--vehicle-smoke" } else { "--smoke" }
+          $marker = if ($env:CANDIDATE_SUITE -eq "vehicle") { "CODECITY_EXPORTED_VEHICLE_OK" } else { "CODECITY_FOUNDATION_SMOKE_OK" }
+          $p = Start-Process -FilePath $exe -ArgumentList @("--headless","--audio-driver","Dummy","--log-file",$log,"--quit-after","360","--",$smoke) -WorkingDirectory (Resolve-Path build/distribution).Path -PassThru
+          if (!$p.WaitForExit(60000)) { $p.Kill(); throw "Exported game boot timeout" }
+          if ($p.ExitCode -ne 0 -or !(Select-String -Path $log -SimpleMatch $marker)) { throw "Exported game failed" }
+          if (Select-String -Path $log -Pattern "SCRIPT ERROR:|ERROR:") { throw "Exported game errors" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ inputs.output_artifact }}
+          path: build/distribution/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: windows-candidate-export-logs
+          path: build/windows-logs/
+          if-no-files-found: ignore
+          retention-days: 7
