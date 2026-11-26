@@ -75,15 +75,18 @@ def run():
     app.camLens.setFov(42)
     app.camLens.setAspectRatio(1280*.582/(720*.636))
     app.render.setAntialias(AntialiasAttrib.MMultisample)
-    amb=AmbientLight("soft fill");amb.setColor(Vec4(.36,.40,.35,1))
-    sun=DirectionalLight("daylight");sun.setColor(Vec4(.90,.86,.73,1))
+    amb=AmbientLight("soft fill");amb.setColor(Vec4(.49,.52,.47,1))
+    sun=DirectionalLight("daylight");sun.setColor(Vec4(.76,.74,.65,1))
     al=app.render.attachNewNode(amb);sl=app.render.attachNewNode(sun);sl.setHpr(-35,-55,0)
     app.render.setLight(al);app.render.setLight(sl)
     # Shader generator enables contact shadows on normal OpenGL; safe mode stays fixed-function.
     advanced=not (safe or diagnostic) and app.win.getGsg().getSupportsBasicShaders()
     if advanced:
         sun.setShadowCaster(True,1024,1024)
-        sun.getLens().setFilmSize(7,7);sun.getLens().setNearFar(1,15)
+        sun.getLens().setFilmSize(6,6);sun.getLens().setNearFar(3,11)
+        # Preserve default back-face shadow state, add modest depth bias.
+        from panda3d.core import RenderState,DepthOffsetAttrib
+        sun.setInitialState(sun.getInitialState().compose(RenderState.make(DepthOffsetAttrib.make(-2))))
         sl.setPos(-3,-4,6);sl.lookAt(0,.7,-.2)
         app.render.setShaderAuto()
     milestone("advanced lighting "+str(advanced))
@@ -242,6 +245,8 @@ def run():
             n.reparentTo(greenhouse_root);return n
         bench=model("bench.egg");box_model=model("rhizobox.egg");soil=box_model.find("**/soil_surface");model("architecture.egg");milestone("bench loaded")
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
+        # Thin and beveled surfaces need a small receive-side depth offset.
+        bench.setDepthOffset(1);soil.setDepthOffset(1)
         if advanced:
             from panda3d.core import TextureStage,Texture
             # Normal and gloss maps use the exact same UV as the diffuse map.
@@ -257,7 +262,7 @@ def run():
         # Table rear edge is y=.45. Teacher stands behind it, not through it.
         teacher.setPos(-.90,1.0,-.98);teacher.setH(-7);teacher.pose("explain",0)
         for f in list(range(1,121,3))+[120]:
-            p=model(f"plant-{f:03}.egg");p.hide();plants.append(p)
+            p=model(f"plant-{f:03}.egg");p.setDepthOffset(1);p.hide();plants.append(p)
             leaf_nodes[id(p)]=list(p.findAllMatches("**/leaf_*"))
         for _ in range(18):
             p=model("drop.egg");p.hide();drops.append(p)
@@ -628,7 +633,7 @@ def run():
         clear("fan");build_fan();fan_on=False
         label(page,"Independent practice | Ventilation controller",32,96,24)
         button(page,"Back to irrigation",1024,73,218,39,lambda:show_lesson(3),True)
-        label(page,"Greenhouse exhaust fan",54,155,23,GREEN)
+        label(page,"Exhaust fan",54,155,21,GREEN)
         label(page,"Turn the fan on above 30 C; otherwise off.",810,165,20,INK,22)
         label(page,"Write your own if / else rule.",810,225,17,MUTED)
         panel(page,810,242,424,136,GREEN)
@@ -639,9 +644,11 @@ def run():
         def temp_change():
             nonlocal fan_temp
             nonlocal fan_on
-            fan_temp=round(s["value"]);fan_status["text"]=f"Temperature: {fan_temp} C"
-            fan_on=False
-            if status is not None:set_message("Temperature changed. Run to evaluate.")
+            selected=round(s["value"])
+            changed=selected!=fan_temp;fan_temp=selected;fan_status["text"]=f"Temperature: {fan_temp} C"
+            if changed:
+                fan_on=False
+                if status is not None:set_message("Temperature changed. Run to evaluate.")
         s["command"]=temp_change;temp_change();fan_slider=s
         status=label(page,"Change temperature, then Run.",810,516,16,GREEN,25)
         trace_label=label(page,"Try 29, 30 and 31 C. The exact boundary matters.",48,648,17,INK,75)
@@ -660,7 +667,7 @@ def run():
         button(page,"Run",810,454,150,36,run_fan,True)
         button(page,"Check rule",970,454,260,36,lambda:run_fan(True))
         button(page,"Hint",810,545,150,28,lambda:set_message("Use temperature > 30 and ventilate(True) / ventilate(False)."))
-        app.camera.setPos(0,-2.3,.0);app.camera.lookAt(0,0,0)
+        app.camera.setPos(0,-2.9,.0);app.camera.lookAt(0,0,0)
     app.taskMgr.add(update,"lesson-state")
     app.accept("escape",home)
     app.accept("tab",lambda:insert_code("    ") if editor is not None and editor["focus"] else None)
@@ -722,8 +729,9 @@ def run():
         submit();assert complete
         capture("challenge.png");show_fan();capture("fan.png")
         editor.enterText(FAN_EXAMPLE);fan_slider["value"]=31;fan_temp=31;fan_run(True);assert fan_on
-        capture("fan-on.png");fan_slider["value"]=30;fan_temp=30;fan_run();assert not fan_on
-        capture("fan-off.png");show_lesson(1);show_lesson(2)
+        rotor_before=fan_rotor.getR();capture("fan-on.png");assert fan_on and fan_rotor.getR()!=rotor_before
+        fan_slider["value"]=30;fan_temp=30;fan_run();assert not fan_on
+        rotor_before=fan_rotor.getR();capture("fan-off.png");assert not fan_on and fan_rotor.getR()==rotor_before;show_lesson(1);show_lesson(2)
         home();capture("return-home.png")
         milestone("GUI assertions passed");app.destroy();milestone("GUI shutdown complete");return
     if "--input-test" in sys.argv:

@@ -18,3 +18,5 @@ Phase 1 packaged GUI verified on hosted Windows 45719638724, not user hardware. 
 Phase 2 packaged GUI passed 45721130738. Phase 3 retains 41 mesh stages, adds bounded 175 grains, 18 pooled droplets, 1024 shadow map on supported normal graphics; additional geometry and shader cost not measured. No FPS claim. Software diagnostic separate.
 
 First generated rhizobox had 172,968 triangles; optimization targets fewer than 10,000 by using low-poly grains instead of UV spheres. Actual count and frame times to verify after regeneration.
+
+First Phase 3 native render/input pass was successful but visual shadow acne observed. Lighting corrected with narrower shadow lens depth and depth bias; no frame-time claims. Reference Panda3D 1.10 lighting manual https://docs.panda3d.org/1.10/python/programming/render-attributes/lighting .

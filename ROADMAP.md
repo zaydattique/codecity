@@ -14,3 +14,5 @@ Phase 1 gate passed at 657f7e0 via 45719638724. Goal: strengthen conditional und
 
 ## Audit Phase 3 (active)
 Goal: cohesive, physically grounded greenhouse visual upgrade while preserving Phase 2 behavior. Generate exact editable Blender scene, leaf pivots, physical comparison containers, modeled fan, revised teacher gesture, licensed soil maps and lighting, water contact and audio, camera transition and UI refinement. Files: art/export scripts, greenhouse.py, visual media builder, Windows workflow. Risk: shader/driver compatibility, EGG tangent/pivot handling, teacher gesture occlusion, additional mesh costs. Gate: actual Blender geometry generation, native renders including mature stress and both fan actions, real input, packaged Windows GUI. No new lessons, no unverified merge. Facial lip sync, continuous botanical topology, transparent glass and full hardware profiling remain separate quality gaps.
+
+Phase 3 first capture rejected for shadow artifacts and missing button fills despite passing functional gates. Corrected UI and lighting, verify real moving/stopped fan after rendering; latest exact revision must pass before release.
