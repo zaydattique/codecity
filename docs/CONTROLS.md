@@ -1,9 +1,0 @@
-# Controls
-
-Current boot only registers the foundation input map; it does not move a player. Target mappings are section 11 of the master directive (WASD, mouse, Shift sprint, Space jump/handbrake, Ctrl crouch, E interact, F vehicle, G gesture, H horn, L lights, V camera, M map, Tab inventory, Up phone, J journal, Escape pause). Context ownership is required before migration: walking/driving/UI/Academy editor/cutscene exclusive focus, no gameplay input while editing. Rebind keyboard/controller, test dead zones and focus; clean-content toggle disables rude gestures/language. Do not present unimplemented mappings as working.
-
-Candidate street controls (when staged): WASD movement, Shift sprint, Alt walk, Space jump, C crouch collision only (no animation), V camera mode, M expanded map, Escape pause/back. Mouse look, map left-click waypoint, right-clear, wheel zoom, middle drag. Mode selection works, no Academy start. Candidate-only; full input and animation verification pending.
-
-When an actual coupe candidate is installed: approach driver's side and F, W/S drive/reverse, A/D steer, Space brake, L headlights, F exit after stopped; M map and Escape pause retain ownership. No seated body visible until entry/seat motion is properly fitted. Candidate behavior not verified until dedicated regression passes.
-
-Updated user feedback: default auto-follow camera with normal vertical look, configurable inversion/sensitivity/FOV. Escape pauses, Tab unlocks cursor to click pause, map via M, full instructions in pause Settings & controls; contextual interaction prompts only by default. Audio master/fullscreen/hints settings persisted separately from game progress. Academy: approach outdoor lighting cabinet and E, edit and Run Python, then return to street. Full manual input QA pending.

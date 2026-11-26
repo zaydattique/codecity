@@ -1,29 +1,24 @@
-# Performance budgets and measurement
+# Performance
+Targets only: 720p/30, 1080p/60. One compact scene, fixed simulation steps independent of rendering, pool droplets, LOD background props, budget transparent layers and shadows. Record exact hardware, resolution, median/p95/p99 frame time, RAM/VRAM, load time, stutters. No new measurements or Windows results yet.
 
-All numbers are provisional design budgets, not measurements. Targets: 720p/30 FPS low-spec (33.33 ms frame) and 1080p/60 FPS capable GPU (16.67 ms). Identify hardware before assigning minimum requirements. Initial budget on 60 FPS capable GPU: main-thread gameplay <= 4 ms, physics/navigation <= 3 ms, scene/render submission <= 4 ms, reserve <= 5.67 ms; GPU critical path <= 14 ms measured separately, not added to CPU total. Low target budgets scale only after profiling. AI worker < 5 ms per 32-agent batch as an initial target, max 50ms soft deadline; no sync waiting. Near NPC decisions 5 Hz, mid 1 Hz, far abstract 0.2 Hz; animation 60/30/15 Hz where visually safe. Stagger batches. Limit nav replans, avoid all-pairs scans, pool agents and vehicles, spatial partition queries.
+Integration candidate caches 41 discrete mesh samples and pools eight droplets. Memory and frame pacing not measured. Package self-test only checks asset loading and logic, not actual display performance.
 
-Initial scene budgets: 40-70k hero triangles, nearby NPC 12-25k, distant 500-3000, hero vehicle 30-60k, traffic 5-15k, small exterior 5-20k. Begin with six NPCs and one car. Aim 1.5 GB total textures resident low, 3 GB capable preset only if VRAM permits; 2 GB/4 GB total game working set targets initially subject to actual hardware. Use GPU compression, atlases, mipmaps, LOD, culling, MultiMesh static instances and pooled actors. Avoid expensive low-tier reflections/shadows; evaluate Forward+ vs compatibility, not visual parity promise. Stream asynchronously, attach under 2 ms/frame target and preload by velocity. No expansion until measured evidence.
+Initial package smoke passed; no interactive performance metrics. New teacher increases mesh/texture budget; software-render capture is not representative hardware profiling.
 
-## Measurement protocol
+Actual 1280x720 software renderer capture succeeded on hosted Ubuntu run 45699394455, not a target GPU benchmark. No FPS claims.
 
-Record revision/build, OS, CPU/GPU driver, RAM/VRAM, renderer, resolution, preset, seed, time/weather, counts, capture duration, warm-up, profiler overhead. Export native build. Warm 60s then record 120s per scenario, three runs. Report frame time median, p95, p99, worst, dropped/long frames, CPU/GPU split, process RAM, peak VRAM, worker per-batch duration, startup and chunk stalls. Capture raw CSV outside repo, record summarized results here. Scenarios: idle, walk, sprint, fast drive, six NPC interactions, crowd/intersection later, night, rain, interior entry, mission, save/load, extended 30min. No average FPS-only claims. Capture screenshots of artifacts and reproduce issues.
+New studio layout and packaged GUI capture pending. No hardware FPS claims.
 
-## Actual results
+Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x720. No representative GPU frame-time measurements; props increase rendering cost.
 
-No GPU, Godot, Blender or Windows runtime available in local staging environment. No frame metrics, RAM/VRAM performance or startup measurements. Python functional tests are not performance measurements. No minimum hardware claims.
+Previous Windows GUI gate timed out (45714558040); no hardware metrics. Phase 1 captures startup milestones and Python fault traces, explicitly distinguishes software fallback from native desktop. No visual art changes.
 
-Hosted CPU smoke and pilot rendering are functional checks only. Do not report GitHub runner timings as target gaming FPS or Windows GPU benchmarks. Record actual workflow logs and exact versions before closing the engine gate.
+Phase 1 packaged GUI verified on hosted Windows 45719638724, not user hardware. Phase 2 replay bounded to 60 days, comparison instances existing meshes, trace cached per day. No hardware measurements yet.
 
-Revised targets preserve 720p30/1080p60 as goals; add isolated Academy execution resource limits, zero game-thread wait, mode-specific load and terminal latency. Later 25–40 nearby NPCs only after six pass and hardware profiling. Hosted Windows/Linux boot and tests are functional evidence, not hardware benchmarks.
+Phase 2 packaged GUI passed 45721130738. Phase 3 retains 41 mesh stages, adds bounded 175 grains, 18 pooled droplets, 1024 shadow map on supported normal graphics; additional geometry and shader cost not measured. No FPS claim. Software diagnostic separate.
 
-P08 Windows candidate export/boot and actual physics passed on GitHub windows-2025; rendered tests Ubuntu 24.04 software OpenGL (llvmpipe, Dummy audio for visual-only tests). This verifies functional execution, not gaming FPS. No real target GPU hardware measurements, frame percentiles, RAM/VRAM or load-time benchmark recorded. Keep 720p30 and 1080p60 as targets only.
+First generated rhizobox had 172,968 triangles; optimization targets fewer than 10,000 by using low-poly grains instead of UV spheres. Actual count and frame times to verify after regeneration.
 
-P09 functional QA: four suspension contacts, 1.964m along heading and 12.56km/h after 65 physics ticks on Linux and Windows hosted runners. These are driving regression observations, not FPS or final vehicle tuning metrics. Software-rendered 1280x720 screenshots reviewed; target hardware FPS, percentile frame times and memory still unmeasured.
+First Phase 3 native render/input pass was successful but visual shadow acne observed. Lighting corrected with narrower shadow lens depth and depth bias; no frame-time claims. Reference Panda3D 1.10 lighting manual https://docs.panda3d.org/1.10/python/programming/render-attributes/lighting .
 
-Six NPC source candidates total 252,446 triangles before LOD; this is geometry count only, not a GPU benchmark. Actual engine crowd performance, memory and animation update cost remain unmeasured. Keep crowd to six in this slice.
-
-Integrated run 45669907874 passed automated Linux/Windows headless physics and actual software-rendered street evidence. These are functional checks, not frame-time measurements. New seven-assignment chapter adds bounded list/while evaluation and UI only; new hardware, frame-time, memory and manual listening evidence unavailable. No performance target claim.
-
-Seven-assignment integrated game passed automated Linux/Windows run 45672930556. No new target hardware measurements. Automation chapter adds one bounded reserve mesh assembly and gauge, no expansion or new third-party asset library; actual render and frame-time impact remain unmeasured.
-
-Ten-assignment integrated 45674994813 passed automated Linux/Windows verification. Relayout adds four paved planes and bounded fence instances, no extra active NPCs. Six additional rig candidates are not active and no NPC density/FPS increase is claimed. Profile actual target hardware before increasing active population. New render and collision tests pending.
+Phase 3 corrected runtime and packaged Windows GUI passed 45774097576. Phase 4 benchmarks report 60 actual normal task frames per camera after 8 warmup frames, VSync disabled, paused mature plant; actual window resolution and renderer recorded. Separate process timer includes launch and peak working set sampled at 250 ms. CPU/OS/RAM/video adapter information from CIM, VRAM usage not measured. Results pending. No user GPU benchmark claim.

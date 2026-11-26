@@ -1,0 +1,57 @@
+name: Greenhouse art candidate
+on:
+  pull_request:
+    paths: ['tools/build_greenhouse_art.py', 'tools/greenhouse_soil.py', 'tools/runtime_mesh_export.py', 'tools/fetch_greenhouse_sources.py', 'tools/polyhaven.py', '.github/workflows/greenhouse-art.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: .python-version
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - name: Render botanical animation review frames
+        run: |
+          set -euo pipefail
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_greenhouse_art.py
+          for f in greenhouse-study.blend greenhouse-final-review.glb frame-001.png frame-048.png frame-080.png frame-120.png report.json; do test -s "build/greenhouse-art/$f"; done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: botanical-macro-candidate
+          path: build/greenhouse-art/
+          retention-days: 7
+  sources:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: .python-version
+      - run: python tools/fetch_greenhouse_sources.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: licensed-greenhouse-prop-sources
+          path: build/greenhouse-sources/
+          retention-days: 7
