@@ -57,7 +57,9 @@ def run():
     from panda3d.core import loadPrcFileData,AmbientLight,DirectionalLight,Vec4,Vec3,TextNode,Filename,NodePath,ClockObject,AntialiasAttrib,WindowProperties,CardMaker
     safe="--safe-graphics" in sys.argv
     diagnostic="--headless-gui-test" in sys.argv
-    config="window-title BloomLogic\nwin-size 1280 720\nshow-frame-rate-meter false\nsync-video false\n"
+    benchmark="--benchmark" in sys.argv
+    resolution=(1920,1080) if "--1080p" in sys.argv else (1280,720)
+    config=f"window-title BloomLogic\nwin-size {resolution[0]} {resolution[1]}\nshow-frame-rate-meter false\nsync-video false\n"
     config+=("load-display p3tinydisplay\nframebuffer-multisample 0\nmultisamples 0\n" if safe or diagnostic else "load-display pandagl\naux-display p3tinydisplay\nframebuffer-multisample 1\nmultisamples 4\n")
     if diagnostic:config+="window-type offscreen\naudio-library-name null\n"
     else:config+="audio-library-name p3openal_audio\n"
@@ -68,6 +70,7 @@ def run():
     from direct.actor.Actor import Actor
     from direct.task import Task
     import gltf
+    boot_start=time.perf_counter()
     app=ShowBase();milestone("ShowBase created");app.disableMouse()
     app.setBackgroundColor(.66,.73,.66,1)
     dr=app.camNode.getDisplayRegion(0)
@@ -160,8 +163,11 @@ def run():
         nonlocal saved_code
         if screen=="lesson" and stage==2 and editor is not None:
             saved_code=editor.get()[:2048];experiment.playing=False;persist()
+    def save_on_exit():
+        preserve_experiment();persist()
+    app.exitFunc=save_on_exit
     def quit_app():
-        preserve_experiment();persist();app.userExit()
+        app.userExit()
     def clear(mode):
         nonlocal page,screen,playing,water,editor,status,metrics,output,guide_text,timeline,trace_label,trace_key,fan_status,target_day_label
         preserve_experiment()
@@ -682,6 +688,39 @@ def run():
     clear("loading");label(page,"BloomLogic",480,315,44,GREEN);label(page,"Preparing the lesson library",480,355,20,MUTED)
     app.graphicsEngine.renderFrame();app.graphicsEngine.renderFrame()
     home();milestone("home ready")
+    home_seconds=time.perf_counter()-boot_start
+    if benchmark:
+        from statistics import median
+        import math, platform
+        out=Path(os.environ.get("BLOOMLOGIC_CAPTURE_DIR","build/runtime-review"));out.mkdir(parents=True,exist_ok=True)
+        load_start=time.perf_counter();open_lesson();show_lesson(2)
+        scene_seconds=time.perf_counter()-load_start
+        settings["Initial moisture"]["value"]=42;settings["Light hours"]["value"]=15;settings["Temperature C"]["value"]=28
+        start();seek_day(60);visual=1.
+        # Warm up the real scene, then time taskMgr.step (includes its normal graphics task).
+        def measure(mode):
+            camera(mode)
+            for _ in range(8):app.taskMgr.step()
+            durations=[]
+            for _ in range(60):
+                t=time.perf_counter();app.taskMgr.step();durations.append((time.perf_counter()-t)*1000)
+            ordered=sorted(durations)
+            return {"frames":len(durations),"median_ms":round(median(durations),3),"p95_ms":round(ordered[math.ceil(.95*len(ordered))-1],3),"p99_ms":round(ordered[math.ceil(.99*len(ordered))-1],3),"frames_over_50ms":sum(v>50 for v in durations),"max_ms":round(max(durations),3)}
+        macro=measure("macro");wide=measure("wide")
+        gsg=app.win.getGsg()
+        result={"requested_resolution":resolution,"actual_resolution":[app.win.getXSize(),app.win.getYSize()],"platform":platform.platform(),"machine":platform.machine(),"logical_cpus":os.cpu_count(),"renderer":gsg.getDriverRenderer(),"vendor":gsg.getDriverVendor(),"driver":gsg.getDriverVersion(),"advanced_lighting":advanced,"home_seconds_after_python_entry":round(home_seconds,3),"first_scene_load_seconds":round(scene_seconds,3),"macro":macro,"overview":wide,"condition":"hosted runner; mature plant paused; 8 warmup frames per view; 60 sampled frames; VSync disabled"}
+        assert state.day==60 and state.growth==1
+        name="benchmark-"+str(resolution[1])+".json"
+        (out/name).write_text(json.dumps(result,indent=2),encoding="utf-8")
+        assert app.win.saveScreenshot(Filename.fromOsSpecific(str(out/("benchmark-"+str(resolution[1])+".png"))))
+        milestone("benchmark complete "+name);app.destroy();return
+    if "--resume-check" in sys.argv:
+        # Independent new process, same explicit audit profile, never student data.
+        assert complete and experiment.state.day==60 and not experiment.playing
+        before=experiment.snapshot();open_lesson(True);assert stage==2 and state==experiment.state
+        for _ in range(5):app.taskMgr.step()
+        assert experiment.snapshot()==before and not playing
+        milestone("fresh-process resume passed");app.destroy();return
     if any(x in sys.argv for x in ("--capture","--gui-test","--headless-gui-test")):
         out=Path(os.environ.get("BLOOMLOGIC_CAPTURE_DIR","build/runtime-review"));out.mkdir(parents=True,exist_ok=True)
         def capture(name):
@@ -689,7 +728,8 @@ def run():
             assert app.win.saveScreenshot(Filename.fromOsSpecific(str(out/name)))
             milestone("captured "+name)
         capture("home.png");open_lesson();teacher.pose("explain",int(teacher.getNumFrames("explain")*.5));capture("guide.png")
-        guide_step=1;show_lesson(0);capture("prediction.png")
+        guide_step=1;show_lesson(0);assert state.moisture==20;capture("prediction.png")
+        guide_step=2;show_lesson(0);assert state.moisture==60;capture("prediction-moist.png")
         guide_step=3;show_lesson(0)
         for _ in range(24):tick()
         assert state.growth==1
@@ -723,7 +763,8 @@ def run():
         for _ in range(60):tick()
         assert state.health==0 and state.growth>0
         visual=state.growth;capture("overwatered.png")
-        before=state;editor.enterText("import os");start();assert state==before
+        before=state;editor.enterText("import os");start();assert state==before and not playing
+        capture("invalid-code.png")
         show_lesson(3);editor.enterText(DEFAULT_CODE.replace("40","50"))
         passed,total,failures=challenge(editor.get());assert passed==total and not failures
         submit();assert complete
@@ -733,6 +774,8 @@ def run():
         fan_slider["value"]=30;fan_temp=30;fan_run();assert not fan_on
         rotor_before=fan_rotor.getR();capture("fan-off.png");assert not fan_on and fan_rotor.getR()==rotor_before;show_lesson(1);show_lesson(2)
         home();capture("return-home.png")
+        assert load_profile(profile_path())["greenhouse_complete"]
+        assert load_profile(profile_path())["experiment"]==experiment.snapshot()
         milestone("GUI assertions passed");app.destroy();milestone("GUI shutdown complete");return
     if "--input-test" in sys.argv:
         def watch_input(task):
@@ -746,7 +789,7 @@ def run():
 
 if __name__=="__main__":
     # Separate automated profiles from actual student progress.
-    if any(x in sys.argv for x in ("--capture","--gui-test","--headless-gui-test","--input-test","--self-test")) and "BLOOMLOGIC_PROFILE_DIR" not in os.environ:
+    if any(x in sys.argv for x in ("--capture","--gui-test","--headless-gui-test","--input-test","--self-test","--benchmark","--resume-check")) and "BLOOMLOGIC_PROFILE_DIR" not in os.environ:
         os.environ["BLOOMLOGIC_PROFILE_DIR"]=tempfile.mkdtemp(prefix="bloomlogic-test-")
     # Windowed PyInstaller has no console; redirect diagnostics to a local file.
     if sys.stdout is None or sys.stderr is None:
@@ -759,7 +802,7 @@ if __name__=="__main__":
     diagnostics.parent.mkdir(parents=True,exist_ok=True)
     with diagnostics.open("a",encoding="utf-8") as trace:
         faulthandler.enable(file=trace)
-        if any(x in sys.argv for x in ("--gui-test","--headless-gui-test","--capture","--input-test")):
+        if any(x in sys.argv for x in ("--gui-test","--headless-gui-test","--capture","--input-test","--benchmark","--resume-check")):
             faulthandler.dump_traceback_later(45,repeat=True,file=trace)
         try:
             milestone("entrypoint")

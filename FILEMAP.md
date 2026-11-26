@@ -14,3 +14,5 @@ AGENTS.md sole directive; CLAUDE.md entrypoint; README status; ROADMAP gates; AR
 `codecity/lesson.py`: independent comparison, fan validation and executed-day trace. `tests/test_lesson.py`: trace, seek, independent actuator and comparison regressions. `curriculum.py`: extended guide and concept examples. `greenhouse.py`: new timeline, comparison and ventilation scene.
 
 `tools/build_fan_art.py`: editable original Blender fan and separable GLBs. `tools/build_visual_media.py`: derived gloss map and original water sound. Existing botanical exporter extended with separate container/architecture and leaf pivot groups. Windows workflow adds pinned geometry build gate.
+
+`tools/release_manifest.py`: prepare and verify complete portable file inventory, bundled license text. `tools/test_release.ps1`: extracted executable audit, per-exe firewall rule, hardware metadata, process timing and memory, final ZIP checksum. `greenhouse.py` has explicit benchmark and resume-check flags.

@@ -20,3 +20,5 @@ Phase 2 packaged GUI passed 45721130738. Phase 3 retains 41 mesh stages, adds bo
 First generated rhizobox had 172,968 triangles; optimization targets fewer than 10,000 by using low-poly grains instead of UV spheres. Actual count and frame times to verify after regeneration.
 
 First Phase 3 native render/input pass was successful but visual shadow acne observed. Lighting corrected with narrower shadow lens depth and depth bias; no frame-time claims. Reference Panda3D 1.10 lighting manual https://docs.panda3d.org/1.10/python/programming/render-attributes/lighting .
+
+Phase 3 corrected runtime and packaged Windows GUI passed 45774097576. Phase 4 benchmarks report 60 actual normal task frames per camera after 8 warmup frames, VSync disabled, paused mature plant; actual window resolution and renderer recorded. Separate process timer includes launch and peak working set sampled at 250 ms. CPU/OS/RAM/video adapter information from CIM, VRAM usage not measured. Results pending. No user GPU benchmark claim.
