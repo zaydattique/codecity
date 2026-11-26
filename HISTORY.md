@@ -1,4 +1,4 @@
-# History
+# BloomLogic | Development history
 2026-11-26: Started owner-directed education reset from 5f121ef4b297e8ae666a5e438eaf8ff14e9ff58a. Removed obsolete runtime and workflows from new branch tree, replaced active project instructions and added bounded conditional model and tests. Historical work remains in parent history. No 3D assets/render or Windows package verified. Prior history available at parent revision.
 
 Core verification confirmed run 45693350645 passed both Ubuntu and Windows. Added an independent CC0 prop acquisition job (shared historical downloader), and original Blender botanical macro animation candidate, with source, four renders and static review GLB. Actual art results pending; no final approval.
@@ -40,3 +40,7 @@ User reported a real lesson-open crash in released 1.0: OSError loading soil-nor
 Prior 1.0 release evidence confirms advanced lighting False on hosted Windows, explaining why the optional-map code was not exercised. Explicit regression forces actual decoder calls even on fixed-function Windows, asserts both rejected maps return no texture, and completes the full lesson. This does not simulate a GPU driver, but verifies the reported exception path on the packaged executable.
 
 Strict run 45791152083 exposed an additional native fatal JPEG decoder exit after the invalid PNG was rejected. Remove JPEG fallback altogether; verified PNG derivatives only, SHA-256 preflight before native decoding. Corrupt normal is rejected preflight; test-only missing native filename for valid gloss triggers actual Loader IOError even on fixed-function runner. Both must be logged and full walkthrough must pass. No corruption is shipped.
+
+Release 1.0 passed hosted release checks (45782555245), but failed on a physical Windows device in the optional texture path. Hotfix 1.0.1 at 901ef49a passed core and native checks, clean extracted offline Windows walkthrough, fresh-process resume, PNG corruption preflight and real Loader missing-path failure handling (45792172340 and 45792172356). Portable archive 15102988213, evidence 15103411879, SHA-256 550778e2546dfbf9aded1816cfaf3d253527eece9b4a7877f2a46eaa671c5e41; 1,668 files independently verified. PR 8 merged as 708642db. Physical user retest remains open.
+
+Consolidated active documentation under BloomLogic branding, separated completed hosted gates from open physical-hardware verification, synchronized fourteen exhibit concepts, current asset provenance, actual latest benchmark data and engineering rules. Historical entries above describe their status at the time, not current pending gates. No runtime source, import paths or released executable changed.

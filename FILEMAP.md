@@ -1,20 +1,33 @@
-# File map
-AGENTS.md sole directive; CLAUDE.md entrypoint; README status; ROADMAP gates; ARCHITECTURE state/runtime; ASSET_REGISTRY asset evidence; PERFORMANCE metrics; THIRD_PARTY_NOTICES licensing; HISTORY change log. codecity/model.py plant state and daily evolution; codecity/rules.py finite conditional compiler; tests/test_greenhouse.py regression; tools retained for character source production only; art/characters.json legacy source presets (authoring inputs, not game roles). .github/workflows/greenhouse.yml tests only. No legacy game code in active tree.
+# BloomLogic | File map
 
-`tools/polyhaven.py` bounded historical source helper; `tools/fetch_greenhouse_sources.py` downloads two CC0 prop candidates; `tools/build_greenhouse_art.py` Blender editable source, four actual review render targets and static GLB; `.github/workflows/greenhouse-art.yml` separate source/render jobs.
+## Documentation
+README.md current release and installation; AGENTS.md sole active engineering rules; CLAUDE.md entrypoint; ROADMAP.md phase gates and curriculum; ARCHITECTURE.md system design; HISTORY.md chronological changes; ASSET_REGISTRY.md asset evidence; PERFORMANCE.md measured results; THIRD_PARTY_NOTICES.md licenses; OPEN_GREENHOUSE.md packaged student instructions.
 
-`greenhouse.py` native desktop candidate; `tools/runtime_mesh_export.py` evaluated Blender mesh export; `.github/workflows/greenhouse-windows.yml` native packaging and smoke tests.
+## Active Python application
+- greenhouse.py: native app entrypoint, navigation, 3D scenes, UI, input, audio, diagnostics, walkthrough and benchmark flags.
+- codecity/curriculum.py: fourteen exhibit concepts, greenhouse guide and code examples.
+- codecity/model.py: immutable plant state and daily evolution.
+- codecity/rules.py: finite AST compiler, execution and trace.
+- codecity/session.py: experiment state, deterministic seek, exhaustive challenge, atomic profile.
+- codecity/lesson.py: comparison, mature stress intervention, fan validation and trace.
+- codecity/graphics.py: native filenames and optional PNG integrity/decoder handling.
+- requirements.txt: pinned runtime dependencies.
 
-`tools/greenhouse_soil.py` verifies and records CC0 material downloads; `tools/build_teacher.py` authors teacher gesture on frozen licensed rig. Windows workflow includes actual native runtime capture before package.
+The directory codecity/ is an existing import path, not product branding. No rename in this documentation-only change.
 
-`codecity/curriculum.py` defines fourteen exhibit concepts and the greenhouse guidance. `greenhouse.py` contains the native BloomLogic shell and scene orchestration. `tools/build_narration.py` generates local voice WAVs. Windows workflow packages the renamed application from source, not a renamed binary.
+## Art and release tools
+- tools/polyhaven.py, tools/fetch_greenhouse_sources.py, tools/greenhouse_soil.py: verified licensed asset acquisition.
+- tools/build_greenhouse_art.py, tools/runtime_mesh_export.py: editable botanical/greenhouse Blender source and evaluated meshes.
+- tools/build_teacher.py, tools/build_fan_art.py: teacher gesture and modeled ventilation equipment.
+- tools/build_narration.py, tools/build_visual_media.py: local narration and derived material/audio.
+- tools/release_manifest.py, tools/test_release.ps1: file inventory and clean offline Windows release audit.
+- tools/test_input.sh: real X11 mouse and keyboard input.
+- art/characters.json: retained authoring presets, not active gameplay roles.
 
-`codecity/session.py`: compiled experiment, deterministic save validation, exhaustive challenge and atomic profile. `tests/test_session.py`: state, boundary, input grammar and persistence regressions. `tools/test_input.sh`: actual X11 mouse/keyboard test harness.
+## Verification
+tests/test_greenhouse.py, tests/test_session.py, tests/test_lesson.py, tests/test_graphics.py: model, rules, persistence, traces, comparison, actuator and asset compatibility regressions.
+.github/workflows/greenhouse.yml: core tests.
+.github/workflows/greenhouse-art.yml: source and render jobs.
+.github/workflows/greenhouse-windows.yml: BloomLogic Windows packaging, native GUI, input, offline and fault-injection gates.
 
-`codecity/lesson.py`: independent comparison, fan validation and executed-day trace. `tests/test_lesson.py`: trace, seek, independent actuator and comparison regressions. `curriculum.py`: extended guide and concept examples. `greenhouse.py`: new timeline, comparison and ventilation scene.
-
-`tools/build_fan_art.py`: editable original Blender fan and separable GLBs. `tools/build_visual_media.py`: derived gloss map and original water sound. Existing botanical exporter extended with separate container/architecture and leaf pivot groups. Windows workflow adds pinned geometry build gate.
-
-`tools/release_manifest.py`: prepare and verify complete portable file inventory, bundled license text. `tools/test_release.ps1`: extracted executable audit, per-exe firewall rule, hardware metadata, process timing and memory, final ZIP checksum. `greenhouse.py` has explicit benchmark and resume-check flags.
-
-`codecity/graphics.py`: optional native texture path and decoder fallback; `tests/test_graphics.py`: path/decoder/missing-map regressions. Release audit injects corrupt optional textures into extracted copy only.
+Generated runtime/ assets, build outputs and exports are not tracked source. Earlier game documentation was removed during the product reset and remains in historical Git revisions only.

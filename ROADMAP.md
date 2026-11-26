@@ -1,26 +1,43 @@
-# BloomLogic production plan
-Phase 1: repair deterministic growth, both branches, user-reported 42% moisture / 15 hours light / 28 C regression, dry and wet failure cases, actual CPython execution, error handling. Files model.py, rules.py, tests. Gate: full 60 day simulations.
-Phase 2: native studio shell, splash, lesson library, fourteen distinct exhibits, settings, local completion, clear unavailable lessons. Files curriculum.py and greenhouse.py. Gate: rendered home, navigation and resizing.
-Phase 3: greenhouse guided observation, prediction, code walkthrough, environmental experiment, test-case challenge, teacher and close-up cameras, narration. Reuse pinned prior meshes; do not call these photorealistic. Risks: teacher/table clearance, visibility, interface clipping, synthetic voice, coarse growth samples. Gate: actual software captures and code-driven growth.
-Phase 4: build real BloomLogic.exe, package dependencies, smoke test packaged GUI, inspect screenshots, test offline on user hardware. No unverified merge. Later curriculum: each card in curriculum.py gets an independent physically meaningful scene, explanation and validation. No gameplay or fake completion.
+# BloomLogic | Product roadmap
 
-First native shell capture passed but right panel clipping found. Corrective visual pass integrates licensed plants and background framing, narrows code editor and wrap widths, adds real guided growth. Review next captures before merging. Realistic leaf droop and fully authored greenhouse architecture are not completed; no photorealism or broad OS compatibility claim.
+## Current milestone
+Version 1.0.1, one interactive If / Else lesson. The four implementation phases passed hosted verification; the subsequent texture compatibility hotfix also passed and merged. This does not mean all fourteen lessons or physical PC compatibility are complete.
 
-## Reliability audit Phase 1 (active)
-Goal: deterministic control logic and real launch/input verification before instructional/visual expansion. Implement validated atomic local save/resume, compiled rule reuse, exhaustive challenge, indentation and real input checks; isolate test profiles. Files: session.py, rules.py, model.py, greenhouse.py, tests, Windows workflow and input harness. Risk: hosted Windows graphics may lack a usable desktop; software diagnostic is not a normal-window pass. No release upload or merge unless normal Windows GUI gate succeeds. Next Phase 2 is teaching depth, execution trace and independent exercise, not more exhibits.
+| Phase | Delivered | Evidence |
+|---|---|---|
+| 1: Reliability | Deterministic growth, finite Python rules, 78,982 sensor combinations, save/resume, real input | 45719638724 |
+| 2: Learning experience | Both predictions, actual code trace, concepts, timeline, comparison, ventilation practice | 45721130738 |
+| 3: Visual upgrade | Physical rhizobox, authored fan, greenhouse framing, teacher gestures, wetness, leaf stress, camera and sound | 45774097576 |
+| 4: Release | Clean portable ZIP, offline walkthrough, process resume, integrity and benchmarks | 45782555245 |
+| 1.0.1 hotfix | Native texture filenames, verified PNG maps, integrity preflight, optional map fallback | 45792172356 |
 
-## Audit Phase 2 (active)
-Phase 1 gate passed at 657f7e0 via 45719638724. Goal: strengthen conditional understanding. Implement instrumented CPython trace, True/False predictions without compulsory gate, equality and boolean concept examples, timeline seek/step, same-input A/B comparison, independent temperature-controlled fan exercise with exhaustive tests. Files: rules.py, session.py, lesson.py, curriculum.py, greenhouse.py, narration, tests, workflow. Risks: trace instrumentation semantics, UI callback recursion, extra scene state, synthetic narration. Verify exact branch lines, nested conditions, replay, both outcomes, fan boundary, real input regression and packaged Windows capture. Phase 3 retains full environment and character visual overhaul; no expansion to other lessons.
+## Active gate: physical Windows confirmation
+Goal: verify the released hotfix on the actual student machine. Extract fresh, open the lesson, navigate all four stages, exercise both valve outcomes and fan boundary, edit code, pause, seek, compare, close/reopen and test offline. Inspect application.log, traceback.log and startup-error.txt if needed. Measure real hardware frame times and memory. No further expansion until reported critical regressions are resolved. Files potentially affected by a future fix: greenhouse.py, graphics.py, tests, release workflow. Risks: native graphics drivers, image decoding and unsigned executable reputation.
 
-## Audit Phase 3 (active)
-Goal: cohesive, physically grounded greenhouse visual upgrade while preserving Phase 2 behavior. Generate exact editable Blender scene, leaf pivots, physical comparison containers, modeled fan, revised teacher gesture, licensed soil maps and lighting, water contact and audio, camera transition and UI refinement. Files: art/export scripts, greenhouse.py, visual media builder, Windows workflow. Risk: shader/driver compatibility, EGG tangent/pivot handling, teacher gesture occlusion, additional mesh costs. Gate: actual Blender geometry generation, native renders including mature stress and both fan actions, real input, packaged Windows GUI. No new lessons, no unverified merge. Facial lip sync, continuous botanical topology, transparent glass and full hardware profiling remain separate quality gaps.
+## Curriculum plan
+The curriculum source is codecity/curriculum.py. Only the greenhouse controller is interactive.
 
-Phase 3 first capture rejected for shadow artifacts and missing button fills despite passing functional gates. Corrected UI and lighting, verify real moving/stopped fan after rendering; latest exact revision must pass before release.
+| Lesson | Unique real-world exhibit | Learning outcome |
+|---|---|---|
+| Print & Comments | Airport information board | Output and comments |
+| Variables | Smart warehouse | Update stored values |
+| Data Types | Grocery checkout | Strings, numbers, quantities and Booleans |
+| Operators | Solar energy station | Arithmetic and comparisons |
+| If / Else | Greenhouse controller | Conditional branches and physical control |
+| For Loops + range | Bottling line | Fixed iteration |
+| Break & Continue | Quality inspection | Skip items and stop |
+| Lists | Restaurant order rail | Ordered collection operations |
+| Tuples | Surveyor's workshop | Fixed coordinates |
+| Sets | Recycling center | Unique values |
+| Dictionaries | Parcel dispatch | Key/value lookup |
+| While Loops | Water treatment tank | Condition-driven repetition |
+| Functions | Coffee workstation | Reusable parameterized behavior |
+| String Methods | Library catalog | Text transformation and search |
 
-## Audit Phase 4 (active)
-Goal: release one verified conditional lesson. Preserve Phase 3 art and logic. Build exact portable ZIP, inventory and hash contents, preserve dependency notices, extract to a clean spaced directory, execute from separate empty cwd with system-only PATH, outbound firewall block, normal GUI walkthrough and fresh-process resume. Benchmark requested 720p/1080p and report actual resolution, renderer, median/p95/p99, sampled peak RAM, load time and host details. VRAM unavailable unless measured; no GPU target claims on software or virtual adapters. Files: greenhouse.py, tools/release_manifest.py, tools/test_release.ps1, workflow and docs. Risks: hosted firewall/desktop, unsigned app, graphics drivers. Only release after exact checks pass. User-machine verification and visual limitations remain disclosed; do not expand other lessons.
+## Next production stages (not implemented)
+1. Finish greenhouse quality gate: actual physical PC regression and usability walkthrough; improve natural teacher expression, continuous botanical growth, transparent glazing, water contact and code editor as justified by evidence. Preserve existing working logic.
+2. Choose the next exhibit only after the active gate. Specify its unique physical problem, supported Python grammar, deterministic model, guide/prediction, trace, exploration, independent practice and failure cases.
+3. Author and license a distinct 3D environment and equipment. Use shared navigation and persistence, not copy-pasted greenhouse logic. Review actual native renders and meaningful animation.
+4. Verify all lesson flows and the existing greenhouse regression suite before packaging. Only expose completed exhibits as interactive. Keep one tested release available.
 
-## 1.0.1 compatibility hotfix
-Goal: fix physical Windows lesson-open crash without changing teaching logic or art. Convert native filenames and prefer PNG normal map; optional normal/gloss decode failure must preserve diffuse and full lesson. Verify both normal package and corrupted optional maps. No unverified merge. Physical user retest required.
-
-Hotfix additional regression: corrupted JPEG must never reach native codec; preflight rejects invalid PNG, actual native loader missing-path failure is separately exercised. No release from failed run 45791152083.
+Each future phase must identify files, risks, implementation and verification in advance. No cosmetic completion, unverified merge or unsupported performance claim.
