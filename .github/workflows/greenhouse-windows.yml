@@ -21,7 +21,7 @@ jobs:
           github-token: ${{ github.token }}
           path: runtime
       - run: python -m pip install -r requirements.txt pillow==11.3.0
-      - run: python -c "from PIL import Image; Image.open('runtime/soil-nor_gl.jpg').convert('RGB').save('runtime/soil-normal.png')"
+      - run: python -c "from PIL import Image; import hashlib,json; from pathlib import Path; Image.open('runtime/soil-nor_gl.jpg').convert('RGB').save('runtime/soil-normal.png'); Path('runtime/material-integrity.json').write_text(json.dumps({n:hashlib.sha256((Path('runtime')/n).read_bytes()).hexdigest() for n in ('soil-normal.png','soil-gloss.png')}))"
       - run: sudo apt-get update -qq && sudo apt-get install -y xdotool
       - run: python -m unittest discover -s tests -v
       - run: python greenhouse.py --self-test

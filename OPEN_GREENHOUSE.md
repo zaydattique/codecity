@@ -15,3 +15,5 @@ Progress and settings are saved under %LOCALAPPDATA%\BloomLogic. On launch probl
 Time is compressed; the plant model is illustrative, not a calibrated species model. Teacher narration is synthetic. No real fluid dynamics or facial lip synchronization is claimed.
 
 1.0.1: optional soil maps can be disabled automatically if a graphics decoder rejects them; the lesson retains diffuse texture. Check application.log for the exact fallback. Use a fresh extraction, not an overwrite of the previous release.
+
+Optional material PNGs are integrity-checked before loading. Missing or invalid maps are disabled automatically; no JPEG decoder fallback is attempted.

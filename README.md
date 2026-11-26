@@ -13,3 +13,5 @@ Phase 2 verified at 06da8576 in run 45721130738: core, real input, native render
 Phase 3 corrected revision a779d2c passed normal native render/input and packaged Windows GUI (45774097576, artifact 15095118694). Phase 4 prepares a portable ZIP with release-manifest, dependency notices, clean extraction into a path containing spaces, separate empty working directory, removed Python PATH, outbound firewall block on extracted EXE, new-process save restore and timed 720p/1080p renderer sampling. Hosted runner validation does not prove user-device compatibility. Current Phase 4 checks pending.
 
 Release 1.0 passed hosted checks but failed on a physical user Windows device when Panda3D could not load soil-nor_gl.jpg. Hotfix 1.0.1 uses converted native filenames, PNG normal map and explicitly logged optional texture fallback. Normal and deliberately corrupted-map walkthrough gates; pending verification. Do not distribute 1.0 as compatible.
+
+Strict hotfix verification exposed fatal native JPEG decoding on malformed bytes. JPEG fallback removed; validated PNG-only optional maps. Full fault-injection walkthrough required.

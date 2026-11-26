@@ -266,10 +266,13 @@ def run():
             normal=TextureStage("soil-normal");normal.setMode(TextureStage.MNormal)
             gloss=TextureStage("soil-gloss");gloss.setMode(TextureStage.MGloss)
             # Native Windows paths must be converted to Panda3D filenames.
-            normal_map=optional_texture(app.loader,assets(),("soil-normal.png","soil-nor_gl.jpg"),milestone)
-            gloss_map=optional_texture(app.loader,assets(),("soil-gloss.png",),milestone)
+            normal_map=optional_texture(app.loader,assets(),("soil-normal.png",),milestone)
+            # Test-only path injection exercises the real engine loader IOError on a
+            # verified PNG without handing corrupted bytes to a native codec.
+            reject_path=(lambda path:Filename.fromOsSpecific(str(Path(path).with_name("missing-decoder-regression.png")))) if "--texture-fallback-test" in sys.argv else None
+            gloss_map=optional_texture(app.loader,assets(),("soil-gloss.png",),milestone,reject_path)
             if "--texture-fallback-test" in sys.argv:
-                assert normal_map is None and gloss_map is None,"Corrupted maps unexpectedly decoded"
+                assert normal_map is None and gloss_map is None,"Expected both optional maps disabled"
                 milestone("Real optional texture decoder failure handled")
             if advanced:
                 if normal_map is not None:soil.setTexture(normal,normal_map,1)

@@ -22,3 +22,5 @@ Goal: release one verified conditional lesson. Preserve Phase 3 art and logic. B
 
 ## 1.0.1 compatibility hotfix
 Goal: fix physical Windows lesson-open crash without changing teaching logic or art. Convert native filenames and prefer PNG normal map; optional normal/gloss decode failure must preserve diffuse and full lesson. Verify both normal package and corrupted optional maps. No unverified merge. Physical user retest required.
+
+Hotfix additional regression: corrupted JPEG must never reach native codec; preflight rejects invalid PNG, actual native loader missing-path failure is separately exercised. No release from failed run 45791152083.

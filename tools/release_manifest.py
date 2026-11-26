@@ -13,7 +13,7 @@ def verify(root):
     assert manifest["files"]==inventory(root),"Release files differ from manifest"
     exe=root/"BloomLogic.exe"
     with exe.open("rb") as f:assert f.read(2)==b"MZ"
-    for required in ("_internal/runtime/teacher.glb","_internal/runtime/rhizobox.egg","_internal/runtime/fan-rotor.glb","_internal/runtime/voice-guide0.wav","_internal/runtime/soil-normal.png","_internal/runtime/soil-gloss.png","THIRD_PARTY_NOTICES.md","README.txt"):
+    for required in ("_internal/runtime/teacher.glb","_internal/runtime/rhizobox.egg","_internal/runtime/fan-rotor.glb","_internal/runtime/voice-guide0.wav","_internal/runtime/soil-normal.png","_internal/runtime/soil-gloss.png","_internal/runtime/material-integrity.json","THIRD_PARTY_NOTICES.md","README.txt"):
         assert (root/required).is_file(),required
     assert not (root/"CodeCity.exe").exists()
     print("Verified",len(manifest["files"]),"files")
