@@ -19,3 +19,8 @@ Phase 3 first capture rejected for shadow artifacts and missing button fills des
 
 ## Audit Phase 4 (active)
 Goal: release one verified conditional lesson. Preserve Phase 3 art and logic. Build exact portable ZIP, inventory and hash contents, preserve dependency notices, extract to a clean spaced directory, execute from separate empty cwd with system-only PATH, outbound firewall block, normal GUI walkthrough and fresh-process resume. Benchmark requested 720p/1080p and report actual resolution, renderer, median/p95/p99, sampled peak RAM, load time and host details. VRAM unavailable unless measured; no GPU target claims on software or virtual adapters. Files: greenhouse.py, tools/release_manifest.py, tools/test_release.ps1, workflow and docs. Risks: hosted firewall/desktop, unsigned app, graphics drivers. Only release after exact checks pass. User-machine verification and visual limitations remain disclosed; do not expand other lessons.
+
+## 1.0.1 compatibility hotfix
+Goal: fix physical Windows lesson-open crash without changing teaching logic or art. Convert native filenames and prefer PNG normal map; optional normal/gloss decode failure must preserve diffuse and full lesson. Verify both normal package and corrupted optional maps. No unverified merge. Physical user retest required.
+
+Hotfix additional regression: corrupted JPEG must never reach native codec; preflight rejects invalid PNG, actual native loader missing-path failure is separately exercised. No release from failed run 45791152083.

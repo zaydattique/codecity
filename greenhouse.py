@@ -2,6 +2,7 @@
 import sys, json, traceback, os, hashlib, time, faulthandler, tempfile
 from pathlib import Path
 from codecity.model import Plant, advance, DEFAULT_CODE
+from codecity.graphics import optional_texture
 from codecity.rules import evaluate, compile_rule, evaluate_compiled, RuleError, trace_rule
 from codecity.session import Experiment, challenge, load_profile, write_profile
 from codecity.curriculum import LESSONS, GUIDE, CODE_STEPS, CONCEPTS, EXAMPLES
@@ -42,6 +43,10 @@ def self_test():
     for name in ("fan-housing.glb","fan-rotor.glb"):
         assert not NodePath(gltf.load_model(str(root/name))).isEmpty(),name
     assert list(root.glob("soil-diff.*"))
+    from panda3d.core import TexturePool
+    for name in ("soil-normal.png","soil-gloss.png"):
+        assert (root/name).is_file(),name
+        assert TexturePool.loadTexture(Filename.fromOsSpecific(str((root/name).resolve()))) is not None,name
     plant=Plant(moisture=42,light=15,temperature=28)
     for _ in range(60):plant=advance(plant,evaluate(DEFAULT_CODE,plant))
     assert plant.growth==1 and plant.health>.9
@@ -155,7 +160,7 @@ def run():
         stop_audio()
         p=assets()/("voice-"+key+".wav")
         if voice and p.is_file():
-            audio=app.loader.loadSfx(str(p));audio.play()
+            audio=app.loader.loadSfx(Filename.fromOsSpecific(str(p)));audio.play()
     def persist():
         try:write_profile(profile_path(),dict(greenhouse_complete=complete,voice=voice,pace=pace,experiment=experiment.snapshot(),draft=saved_code))
         except OSError:milestone("Unable to save local progress")
@@ -253,16 +258,27 @@ def run():
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
         # Thin and beveled surfaces need a small receive-side depth offset.
         bench.setDepthOffset(1);soil.setDepthOffset(1)
-        if advanced:
+        # Exercise real decoding even on a fixed-function runner during the explicit regression.
+        if advanced or "--texture-fallback-test" in sys.argv:
             from panda3d.core import TextureStage,Texture
             # Normal and gloss maps use the exact same UV as the diffuse map.
             # Roughness is not a gloss map; convert it during the build.
             normal=TextureStage("soil-normal");normal.setMode(TextureStage.MNormal)
             gloss=TextureStage("soil-gloss");gloss.setMode(TextureStage.MGloss)
-            soil.setTexture(normal,app.loader.loadTexture(str(next(assets().glob("soil-nor_gl.*")))),1)
-            soil.setTexture(gloss,app.loader.loadTexture(str(assets()/"soil-gloss.png")),1)
-            from panda3d.core import Material
-            mat=Material("Substrate");mat.setShininess(12);mat.setSpecular((.15,.14,.12,1));soil.setMaterial(mat)
+            # Native Windows paths must be converted to Panda3D filenames.
+            normal_map=optional_texture(app.loader,assets(),("soil-normal.png",),milestone)
+            # Test-only path injection exercises the real engine loader IOError on a
+            # verified PNG without handing corrupted bytes to a native codec.
+            reject_path=(lambda path:Filename.fromOsSpecific(str(Path(path).with_name("missing-decoder-regression.png")))) if "--texture-fallback-test" in sys.argv else None
+            gloss_map=optional_texture(app.loader,assets(),("soil-gloss.png",),milestone,reject_path)
+            if "--texture-fallback-test" in sys.argv:
+                assert normal_map is None and gloss_map is None,"Expected both optional maps disabled"
+                milestone("Real optional texture decoder failure handled")
+            if advanced:
+                if normal_map is not None:soil.setTexture(normal,normal_map,1)
+                if gloss_map is not None:soil.setTexture(gloss,gloss_map,1)
+                from panda3d.core import Material
+                mat=Material("Substrate");mat.setShininess(12);mat.setSpecular((.15,.14,.12,1));soil.setMaterial(mat)
         teacher=Actor(NodePath(gltf.load_model(str(assets()/"teacher.glb"))))
         teacher.reparentTo(greenhouse_root);milestone("teacher loaded")
         # Table rear edge is y=.45. Teacher stands behind it, not through it.
@@ -292,7 +308,7 @@ def run():
                 else:ring.drawTo(*p)
             impact.attachNewNode(ring.create())
         impact.hide()
-        water_sound=app.loader.loadSfx(str(assets()/"water-contact.wav"));water_sound.setLoop(True);water_sound.setVolume(.15)
+        water_sound=app.loader.loadSfx(Filename.fromOsSpecific(str(assets()/"water-contact.wav")));water_sound.setLoop(True);water_sound.setVolume(.15)
         scene_loaded=True;milestone("scene ready")
     def open_lesson(resume=False):
         nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code,concept_index,demo_moisture

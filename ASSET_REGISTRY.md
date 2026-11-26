@@ -18,3 +18,7 @@ Phase 2 reuses approved-for-testing runtime bundle 15071453030 from 45719638724.
 Phase 3 candidate reuses prior pinned licensed teacher/props and CC0 dirt_floor source with per-file hashes; original newly authored architecture, plumbing, rhizobox grains, leaf relief and fan geometry. Generated Blender source files and runtime meshes must pass new build and visual review. Derived gloss from roughness; original synthesized water sound. No new external art downloaded except existing verified soil maps.
 
 Phase 3 optimized art artifacts: 15094869197 geometry and 15095540806 editable Blender sources, run 45773845506; corrected native review 15095271581 and final runtime bundle 15095426144, run 45774097576. Plant box triangles 8,468 vs 172,968 earlier. Phase 4 pins that exact runtime bundle. Known limitations: opaque daylight backing, discrete growth meshes, synthetic narration, no facial lip sync. No new source art in Phase 4.
+
+1.0.1 derives soil-normal.png losslessly from the existing verified CC0 soil-nor_gl.jpg, retains original source and provenance. No new art acquisition.
+
+Material-integrity.json contains SHA-256 of derived normal and gloss PNGs; original normal JPEG retained as source evidence only.

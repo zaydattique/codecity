@@ -16,3 +16,7 @@ The optional water-stop reference runs the default rule for 20 days then applies
 UI-only corrective build consumes exact optimized geometry from 45773845506; Blender authoring sources remain in repository. Shadow camera state is composed rather than replaced. Fan callback ignores unchanged values; post-render tests assert actual rotor movement.
 
 Phase 4 release checks use the same normal application executable and scene. Benchmark samples actual task manager frames, records requested/actual resolution and GSG driver. Test-only explicit profile paths isolate student data. Normal close persists through ShowBase exit callback. Windows release script verifies inventory after clean extraction, removes external Python paths and blocks executable outbound network; fresh-process resume validates persisted state.
+
+Optional soil normal/gloss texture acquisition uses native Filename conversion and logs failures, retaining the diffuse layer without terminating the lesson. Required geometry remains strict. PNG normal derivative is generated during build. No fallback represented as a successful map load.
+
+Optional map integrity is checked against build-generated SHA-256 manifest before decoder invocation. JPEG remains licensed source evidence, not an optional runtime fallback. Malformed optional bytes are rejected before native code. Test-only missing-path injection proves actual Loader failure handling.

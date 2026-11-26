@@ -13,3 +13,7 @@ Run starts a new experiment. Pause / Resume preserves its state. Select a timeli
 Progress and settings are saved under %LOCALAPPDATA%\BloomLogic. On launch problems check application.log, traceback.log and startup-error.txt there. Optional low-quality renderer: run BloomLogic.exe --safe-graphics from a command prompt. This is not a guaranteed compatibility fix.
 
 Time is compressed; the plant model is illustrative, not a calibrated species model. Teacher narration is synthetic. No real fluid dynamics or facial lip synchronization is claimed.
+
+1.0.1: optional soil maps can be disabled automatically if a graphics decoder rejects them; the lesson retains diffuse texture. Check application.log for the exact fallback. Use a fresh extraction, not an overwrite of the previous release.
+
+Optional material PNGs are integrity-checked before loading. Missing or invalid maps are disabled automatically; no JPEG decoder fallback is attempted.
