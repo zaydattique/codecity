@@ -258,7 +258,8 @@ def run():
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
         # Thin and beveled surfaces need a small receive-side depth offset.
         bench.setDepthOffset(1);soil.setDepthOffset(1)
-        if advanced:
+        # Exercise real decoding even on a fixed-function runner during the explicit regression.
+        if advanced or "--texture-fallback-test" in sys.argv:
             from panda3d.core import TextureStage,Texture
             # Normal and gloss maps use the exact same UV as the diffuse map.
             # Roughness is not a gloss map; convert it during the build.
@@ -267,10 +268,14 @@ def run():
             # Native Windows paths must be converted to Panda3D filenames.
             normal_map=optional_texture(app.loader,assets(),("soil-normal.png","soil-nor_gl.jpg"),milestone)
             gloss_map=optional_texture(app.loader,assets(),("soil-gloss.png",),milestone)
-            if normal_map is not None:soil.setTexture(normal,normal_map,1)
-            if gloss_map is not None:soil.setTexture(gloss,gloss_map,1)
-            from panda3d.core import Material
-            mat=Material("Substrate");mat.setShininess(12);mat.setSpecular((.15,.14,.12,1));soil.setMaterial(mat)
+            if "--texture-fallback-test" in sys.argv:
+                assert normal_map is None and gloss_map is None,"Corrupted maps unexpectedly decoded"
+                milestone("Real optional texture decoder failure handled")
+            if advanced:
+                if normal_map is not None:soil.setTexture(normal,normal_map,1)
+                if gloss_map is not None:soil.setTexture(gloss,gloss_map,1)
+                from panda3d.core import Material
+                mat=Material("Substrate");mat.setShininess(12);mat.setSpecular((.15,.14,.12,1));soil.setMaterial(mat)
         teacher=Actor(NodePath(gltf.load_model(str(assets()/"teacher.glb"))))
         teacher.reparentTo(greenhouse_root);milestone("teacher loaded")
         # Table rear edge is y=.45. Teacher stands behind it, not through it.

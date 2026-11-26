@@ -60,9 +60,9 @@ try {
   $env:BLOOMLOGIC_CAPTURE_DIR=Join-Path $evidence "texture-fallback-review"
   try {
     foreach ($name in $optional) { $p=Join-Path $runtime $name; Move-Item -LiteralPath $p -Destination "$p.backup"; [IO.File]::WriteAllText($p,"invalid texture for regression test") }
-    Run-Check "optional-texture-decoder-failure-walkthrough" @("--gui-test") 300
+    Run-Check "optional-texture-decoder-failure-walkthrough" @("--gui-test","--texture-fallback-test") 300
     $log=Get-Content (Join-Path $env:BLOOMLOGIC_PROFILE_DIR "application.log") -Raw
-    if ($log -match "advanced lighting True" -and $log -notmatch "Optional material map disabled") { throw "Expected decoder fallback not recorded" }
+    if ($log -notmatch "Real optional texture decoder failure handled") { throw "Expected real decoder regression did not run" }
   } finally {
     foreach ($name in $optional) { $p=Join-Path $runtime $name; if (Test-Path "$p.backup") { Remove-Item -LiteralPath $p -Force; Move-Item -LiteralPath "$p.backup" -Destination $p } }
   }
