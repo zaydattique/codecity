@@ -1,20 +1,20 @@
-# Third-party notices
-Historical source audit and license notices retained in parent commit 5f121ef4b297e8ae666a5e438eaf8ff14e9ff58a (THIRD_PARTY_NOTICES.md); no old game code copied into new runtime. Retained MPFB pipeline uses GPLv3 authoring tool and CC0 core graphical assets, individual add-ons require review; Quaternius UAL1 CC0 motion source if reused. Panda3D 1.10.16 candidate BSD engine (https://www.panda3d.org/download/sdk-1-10-16/). Research candidates only: CPlantBox GPL-3.0 (https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox), root architecture reference, not copied or integrated; Poly Haven CC0 textures, inspect exact asset license/hash. No new external art or library bundled yet.
+# BloomLogic | Third-party notices
 
-Asset-level CC0 pages inspected: https://polyhaven.com/a/potted_plant_01 , https://polyhaven.com/a/planter_pot_clay , https://polyhaven.com/a/dirt_floor , https://polyhaven.com/a/mud_forest . Powered by Poly Haven. Source files still pending verified acquisition; retain exact hashes, author metadata and license evidence. No external code copied for botanical geometry.
+## Runtime and distribution
+- CPython 3.13: Python Software Foundation license. License retained in portable package.
+- Panda3D 1.10.16: BSD engine, https://www.panda3d.org/download/sdk-1-10-16/
+- panda3d-gltf 1.3.0: BSD, https://github.com/Moguri/panda3d-gltf
+- PyInstaller 6.16.0: GPL with bootloader exception, https://pyinstaller.org/en/stable/license.html
 
-Windows integration candidate uses Panda3D BSD and PyInstaller GPL with bootloader exception (https://pyinstaller.org/en/stable/license.html). Packaging must preserve dependency notices; final distribution audit pending. No new third-party art included.
+Release 1.0.1 includes installed dependency notices and CPython license; exact build package versions and per-file SHA-256 in release-manifest.json. This inventory is not legal certification.
 
-Poly Haven dirt_floor CC0 https://polyhaven.com/a/dirt_floor (Powered by Poly Haven); build records per-file digest. MPFB CC0 historical Sana rig reused under asset license, original new gesture. panda3d-gltf 1.3.0 BSD candidate (https://github.com/Moguri/panda3d-gltf). Package copies this notice and provenance files; final license audit pending.
+## Art and sound
+Poly Haven CC0 assets: https://polyhaven.com/a/dirt_floor , https://polyhaven.com/a/potted_plant_01 , https://polyhaven.com/a/planter_pot_clay . Powered by Poly Haven. Source provenance and hashes bundled. Normal and gloss PNG derivatives preserve CC0 attribution; original normal JPEG is retained as source evidence only.
+Teacher character derives from the prior MPFB graphical asset set (CC0 core graphical assets); MPFB authoring tool GPLv3. Original gesture is authored for BloomLogic. No claim of likeness. Individual add-ons require separate review.
+Original greenhouse, botanical, fan geometry and synthesized irrigation sound are project-authored.
 
-Build-time narration generator: eSpeak NG (GPL-3.0-or-later), https://github.com/espeak-ng/espeak-ng . Only synthesized WAV output is packaged; no eSpeak executable is bundled. Existing CC0 geometry and Panda3D notices retained.
+## Build-only tools
+Blender 4.5 LTS authoring; eSpeak NG GPL-3.0-or-later (https://github.com/espeak-ng/espeak-ng), only synthesized WAV output bundled, no eSpeak executable; Pillow 11.3.0 HPND license (https://github.com/python-pillow/Pillow/blob/11.3.0/LICENSE), material derivative generation only.
 
-Integrated CC0 Poly Haven potted_plant_01 and planter_pot_clay, source and exact SHA256 in packaged provenance files. Powered by Poly Haven. No external code or third-party human likeness claimed.
-
-Phase 2 no additional external art or code; uses existing licenses and synthetic narration pipeline. Original fan geometry authored in Python.
-
-Phase 3 original modeled equipment and synthesized irrigation sound, no new third-party content. Existing CC0 soil maps reused with verified source provenance. Pillow 11.3.0 build-only derivative generator (HPND license, https://github.com/python-pillow/Pillow/blob/11.3.0/LICENSE). No new runtime dependency.
-
-Phase 4 portable distribution retains installed distribution license texts for Panda3D, panda3d-gltf, PyInstaller and its bootloader exception as available, plus CPython license. Original engine notices remain in bundled dist-info. Exact package versions and per-file SHA-256 in release-manifest.json; no downloaded authoring tools are required for end users. The provenance files for CC0 assets remain bundled. Release license inventory is not a legal certification.
-
-1.0.1 PNG normal derivative uses the existing CC0 material and build-only Pillow; source attribution unchanged.
+## Historical and research-only references
+Earlier asset audit retained at 5f121ef4b297e8ae666a5e438eaf8ff14e9ff58a. Quaternius UAL1 CC0 motion source if reused; no claim of inclusion in current teacher clip. CPlantBox GPL-3.0 (https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox) is a research reference, not copied or integrated. Poly Haven mud_forest was a candidate only. No old game source is part of the current learning runtime.

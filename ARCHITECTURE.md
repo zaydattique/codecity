@@ -1,22 +1,30 @@
-# Architecture
-Native Python 3.13 owns navigation, curriculum, local progress, finite AST-validated CPython rule execution, fixed-day plant state, and rendering orchestration. Panda3D draws real 3D meshes; Blender creates their source. State drives visible geometry samples, irrigation, wetness and health color. The greenhouse lesson has Observe, Understand, Experiment and Challenge stages; the challenge evaluates all 78,982 integer sensor combinations. Starting-condition sliders apply only on Run; Pause resumes the same state, Reset starts at seed. No generic Python sandbox or botanical prediction claim. A local narration WAV per guide step is generated at build time. Offline Windows package contains its dependencies.
+# BloomLogic | Architecture
 
-Native runtime also displays the exact licensed glTF potted plants and clay pot with verified per-file digests. Guide demonstration runs the same plant model as Experiment; Challenge executes all supported sensor combinations then animates a selected case. UI rendering uses a virtual 1280x720 viewport, with actual resized hit regions.
+## Native system
+Python 3.13 is the authoritative application and simulation layer. Panda3D renders the native desktop interface and real 3D geometry, panda3d-gltf imports skinned/prop GLBs, Blender authors the assets, PyInstaller bundles the offline Windows distribution. No network service is required. The internal directory codecity/ is retained for compatibility.
 
-Experiment owns compiled rule, initial conditions, plant, last sensor reading and action. Saves contain replay-validated state and editable draft separately; loading always pauses. Guide and challenge cannot overwrite the experiment. Profile atomically persists preferences, completion and state. Normal graphics and explicit software diagnostic are distinct. Tests use isolated profiles and real GUI input on X11.
+```text
+Lesson library / native UI (greenhouse.py)
+    -> curriculum and guide (curriculum.py)
+    -> validated CPython rules (rules.py)
+    -> Experiment / deterministic state (session.py, model.py)
+    -> trace, replay, comparison and fan practice (lesson.py)
+    -> Panda3D scene, geometry, audio, camera and feedback
+    -> atomic local profile and release diagnostics
+```
 
-Phase 2: AST instrumentation wraps validated condition expressions and actuator calls, then executes CPython; executed lines and results are recorded without altering short-circuit semantics. Replay regenerates exact state from initial conditions and validated code. Comparison creates two independent experiments at the same day, not mutations of saved state. Fan exercise uses the same restricted compiler with a distinct actuator and exhaustive finite sensor domain. Rendered rotor responds to actual action. Guide prediction uses chosen constant rule then correct controller; instructional geometry is not final art.
+## Learning flow
+Observe includes dry and moist predictions and correct-rule demonstrations. Understand explains conditions, indentation, equality, elif and Boolean operators with actual trace results. Experiment accepts edited code and starting moisture/light/temperature. Challenge checks all 78,982 finite sensor combinations, and independent fan practice applies a distinct temperature actuator. Other cards describe intended exhibits only.
 
-Timeline slider selects a target only; explicit Seek commits replay. This prevents delayed GUI slider notifications from changing authoritative state during playback. Current day remains in scene metrics.
+## Rules and state
+Finite AST validation permits supported sensor expressions and one permitted actuator action per execution path. Actual CPython executes the validated program. Trace instrumentation records evaluated conditions and executed action line while preserving short-circuit behavior. This is a restricted domain interpreter, not a general-purpose Python sandbox.
+Experiment owns compiled rule, initial and current plant state, previous sensor reading and action. A fixed simulated day advances the illustrative plant model independently of rendering. Run starts fresh; Pause / Resume preserves state. Step advances one day; Seek replays deterministic history to the explicitly selected day, preventing delayed slider callbacks from resetting state. Guide, challenge and comparison do not mutate the saved experiment. A/B comparison uses identical starting conditions. Stop watering after day 20 is a scheduled intervention, not a sensor-only rule. Draft code and validated replay state persist separately under %LOCALAPPDATA%/BloomLogic. Load restores paused state; preferences and completion are atomic.
 
-Phase 3 keeps Python state authoritative. Blender authors separate bench, architecture, rhizobox, growth meshes and leaf attachment transforms, fan housing/rotor. Renderer bends leaf pivots according to health and copies physical rhizobox into independent comparison scenes. OpenGL shader generator receives normal/gloss maps and directional shadows; explicit safe mode stays fixed-function. Water contact rings/audio follow actuator; not fluid physics. Camera interpolation independent of simulation state.
+## Graphics and audio
+The native interface uses a 1280x720 logical coordinate system. The scene uses separate bench, architecture, rhizobox, 41 evaluated plant samples, leaf attachment transforms, fan housing and rotor, teacher rig and licensed props. Health drives posture and tint. Water particles/contact rings and synthetic irrigation sound follow actuator state. Camera interpolation is independent of the simulated day. On supported graphics, normal/gloss maps and directional shadows are enabled; safe graphics uses a lower-quality fixed-function renderer. Narration WAVs are generated at build time and bundled. No fluid physics, species calibration, facial lip sync or photorealism claim.
 
-The optional water-stop reference runs the default rule for 20 days then applies no irrigation through the same biological model. It is labeled a scheduled intervention, not a sensor-only Python rule. No saved experiment mutation. Rounded button textures generated by Panda3D, preserving hit boxes.
+## Asset compatibility
+graphics.py validates optional PNG sizes, signatures and SHA-256 against material-integrity.json before decoding. Native paths use Filename.fromOsSpecific. Optional map failure is logged and diffuse remains available; required geometry stays strict. The normal JPEG is source evidence only, not a runtime fallback. Never pass corrupted bytes into native codecs. Fault injection separately exercises a real missing-path Loader error.
 
-UI-only corrective build consumes exact optimized geometry from 45773845506; Blender authoring sources remain in repository. Shadow camera state is composed rather than replaced. Fan callback ignores unchanged values; post-render tests assert actual rotor movement.
-
-Phase 4 release checks use the same normal application executable and scene. Benchmark samples actual task manager frames, records requested/actual resolution and GSG driver. Test-only explicit profile paths isolate student data. Normal close persists through ShowBase exit callback. Windows release script verifies inventory after clean extraction, removes external Python paths and blocks executable outbound network; fresh-process resume validates persisted state.
-
-Optional soil normal/gloss texture acquisition uses native Filename conversion and logs failures, retaining the diffuse layer without terminating the lesson. Required geometry remains strict. PNG normal derivative is generated during build. No fallback represented as a successful map load.
-
-Optional map integrity is checked against build-generated SHA-256 manifest before decoder invocation. JPEG remains licensed source evidence, not an optional runtime fallback. Malformed optional bytes are rejected before native code. Test-only missing-path injection proves actual Loader failure handling.
+## Packaging and verification
+The Windows workflow pins the verified runtime bundle, generates PNG normal derivative, runs core tests, actual native render/input, and builds BloomLogic.exe. The release manifest inventories packaged files and notices. The clean extraction audit runs from a separate working directory without external Python on PATH, blocks outbound executable traffic, tests full walkthrough and independent resume, injects optional texture failure and records benchmarks. Test profiles are isolated from student data. Hosted fixed-function results are not dedicated GPU verification. Current exact release evidence: 45792172356.

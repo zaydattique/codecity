@@ -1,10 +1,10 @@
-BloomLogic | Windows
+BloomLogic 1.0.1 | Windows
 
 1. Right-click the ZIP and select Extract All.
 2. Open the extracted BloomLogic folder and double-click BloomLogic.exe.
 3. Keep _internal, licenses and the other files beside the executable.
 
-Python, Blender, internet access and administrator privileges are not required for normal use. The application is unsigned; Windows may show a reputation warning. Do not disable antivirus. Verify the archive checksum against the provided release evidence.
+Python, Blender, internet access and administrator privileges are not required for normal use. The application is unsigned; Windows may show a reputation warning. Do not disable antivirus. Verify the archive checksum against the provided release evidence. Use version 1.0.1, not the superseded 1.0 package.
 
 Choose If / Else from the lesson library. Observe both predictions, read the actual code branches, experiment with sensor values, and compare outcomes. The independent ventilation exercise uses temperature. The other lesson cards describe distinct exhibits; only the greenhouse lesson is interactive.
 

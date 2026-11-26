@@ -1,26 +1,32 @@
-# Performance
-Targets only: 720p/30, 1080p/60. One compact scene, fixed simulation steps independent of rendering, pool droplets, LOD background props, budget transparent layers and shadows. Record exact hardware, resolution, median/p95/p99 frame time, RAM/VRAM, load time, stutters. No new measurements or Windows results yet.
+# BloomLogic | Performance and QA
 
-Integration candidate caches 41 discrete mesh samples and pools eight droplets. Memory and frame pacing not measured. Package self-test only checks asset loading and logic, not actual display performance.
+## Targets
+720p/30 FPS on low-spec hardware and 1080p/60 FPS on capable GPUs are targets, not guarantees. Profile actual physical hardware before expanding the curriculum. Keep simulation deterministic, cache bounded geometry, pool effects and avoid unnecessary draw calls.
 
-Initial package smoke passed; no interactive performance metrics. New teacher increases mesh/texture budget; software-render capture is not representative hardware profiling.
+## Latest measured release: 1.0.1
+Run 45792172356, evidence artifact 15103411879, exact revision 901ef49a1e4b90aae0a30d2d7afea405936a1aca.
 
-Actual 1280x720 software renderer capture succeeded on hosted Ubuntu run 45699394455, not a target GPU benchmark. No FPS claims.
+Host: Windows Server 2025 Datacenter 64-bit (build 26100), AMD EPYC 9V74, 2 allocated cores / 4 logical CPUs, 17,174,360,064 bytes host RAM, Microsoft Hyper-V Video driver 10.0.26100.1150. Panda3D reported advanced lighting False; renderer/vendor strings empty. No dedicated GPU or actual VRAM measurement. Requested and actual benchmark window resolutions matched. Paused mature plant, VSync disabled, 8 warmup frames and 60 timed task frames per view.
 
-New studio layout and packaged GUI capture pending. No hardware FPS claims.
+| Resolution / view | Median ms | p95 ms | p99 ms | Approx. median FPS | Frames >50 ms |
+|---|---:|---:|---:|---:|---:|
+| 1280x720 macro | 29.074 | 29.916 | 30.403 | 34.4 | 0/60 |
+| 1280x720 overview | 40.615 | 41.160 | 41.909 | 24.6 | 0/60 |
+| 1920x1080 macro | 39.224 | 39.907 | 40.319 | 25.5 | 0/60 |
+| 1920x1080 overview | 52.107 | 53.601 | 53.801 | 19.2 | 56/60 |
 
-Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x720. No representative GPU frame-time measurements; props increase rendering cost.
+These rates are derived from median frame times, not sustained GPU measurements. Neither resolution meets every target on this virtual adapter.
 
-Previous Windows GUI gate timed out (45714558040); no hardware metrics. Phase 1 captures startup milestones and Python fault traces, explicitly distinguishes software fallback from native desktop. No visual art changes.
+| Process check | Elapsed seconds | Sampled peak working set bytes | Exit |
+|---|---:|---:|---:|
+| Offline self-test | 28.787 | 535453696 | 0 |
+| Offline walkthrough | 10.288 | 361533440 | 0 |
+| Fresh-process resume | 3.955 | 329465856 | 0 |
+| Optional texture failure walkthrough | 10.256 | 361783296 | 0 |
+| 720p benchmark | 8.763 | 356286464 | 0 |
+| 1080p benchmark | 10.359 | 384520192 | 0 |
 
-Phase 1 packaged GUI verified on hosted Windows 45719638724, not user hardware. Phase 2 replay bounded to 60 days, comparison instances existing meshes, trace cached per day. No hardware measurements yet.
+Home initialization after Python entry: 0.151s at 720p, 0.172s at 1080p. First scene load: 3.200s and 3.222s respectively. Process memory sampled at 250ms; not exact total system consumption.
 
-Phase 2 packaged GUI passed 45721130738. Phase 3 retains 41 mesh stages, adds bounded 175 grains, 18 pooled droplets, 1024 shadow map on supported normal graphics; additional geometry and shader cost not measured. No FPS claim. Software diagnostic separate.
-
-First generated rhizobox had 172,968 triangles; optimization targets fewer than 10,000 by using low-poly grains instead of UV spheres. Actual count and frame times to verify after regeneration.
-
-First Phase 3 native render/input pass was successful but visual shadow acne observed. Lighting corrected with narrower shadow lens depth and depth bias; no frame-time claims. Reference Panda3D 1.10 lighting manual https://docs.panda3d.org/1.10/python/programming/render-attributes/lighting .
-
-Phase 3 corrected runtime and packaged Windows GUI passed 45774097576. Phase 4 benchmarks report 60 actual normal task frames per camera after 8 warmup frames, VSync disabled, paused mature plant; actual window resolution and renderer recorded. Separate process timer includes launch and peak working set sampled at 250 ms. CPU/OS/RAM/video adapter information from CIM, VRAM usage not measured. Results pending. No user GPU benchmark claim.
-
-1.0 user-device texture load failed despite hosted Windows pass. 1.0.1 compatibility fallback may reduce material detail, not a measured speed improvement.
+## Optimization and limits
+41 cached plant mesh stages; 18 pooled droplets; 1024 shadow map on supported graphics. Rhizobox optimized from 172,968 to 8,468 triangles in Phase 3 (actual exported counts). Optional map fallback can reduce visual detail, not a measured speed improvement. Release 1.0 passed hosted tests but failed on a physical device in a shader-enabled path. Hotfix verified fault handling independently of shader support. Physical Windows 10/11 and dedicated GPU profiling remain required. Do not advertise target FPS as achieved.
