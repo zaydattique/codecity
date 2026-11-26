@@ -16,3 +16,5 @@ Phase 2 no additional external art or code; uses existing licenses and synthetic
 Phase 3 original modeled equipment and synthesized irrigation sound, no new third-party content. Existing CC0 soil maps reused with verified source provenance. Pillow 11.3.0 build-only derivative generator (HPND license, https://github.com/python-pillow/Pillow/blob/11.3.0/LICENSE). No new runtime dependency.
 
 Phase 4 portable distribution retains installed distribution license texts for Panda3D, panda3d-gltf, PyInstaller and its bootloader exception as available, plus CPython license. Original engine notices remain in bundled dist-info. Exact package versions and per-file SHA-256 in release-manifest.json; no downloaded authoring tools are required for end users. The provenance files for CC0 assets remain bundled. Release license inventory is not a legal certification.
+
+1.0.1 PNG normal derivative uses the existing CC0 material and build-only Pillow; source attribution unchanged.

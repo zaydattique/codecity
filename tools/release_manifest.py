@@ -13,7 +13,7 @@ def verify(root):
     assert manifest["files"]==inventory(root),"Release files differ from manifest"
     exe=root/"BloomLogic.exe"
     with exe.open("rb") as f:assert f.read(2)==b"MZ"
-    for required in ("_internal/runtime/teacher.glb","_internal/runtime/rhizobox.egg","_internal/runtime/fan-rotor.glb","_internal/runtime/voice-guide0.wav","THIRD_PARTY_NOTICES.md","README.txt"):
+    for required in ("_internal/runtime/teacher.glb","_internal/runtime/rhizobox.egg","_internal/runtime/fan-rotor.glb","_internal/runtime/voice-guide0.wav","_internal/runtime/soil-normal.png","_internal/runtime/soil-gloss.png","THIRD_PARTY_NOTICES.md","README.txt"):
         assert (root/required).is_file(),required
     assert not (root/"CodeCity.exe").exists()
     print("Verified",len(manifest["files"]),"files")
@@ -42,7 +42,7 @@ def prepare(root,revision):
     for candidate in (Path(sys.base_prefix)/"LICENSE.txt",Path(sys.base_prefix)/"LICENSE"):
         if candidate.is_file():shutil.copyfile(candidate,licenses/"CPython-LICENSE.txt");break
     assert (licenses/"CPython-LICENSE.txt").is_file(),"Missing CPython license"
-    (root/"release-manifest.json").write_text(json.dumps({"product":"BloomLogic","version":"1.0","revision":revision,"bundled_build_packages":packages,"files":inventory(root)},indent=2),encoding="utf-8")
+    (root/"release-manifest.json").write_text(json.dumps({"product":"BloomLogic","version":"1.0.1","revision":revision,"bundled_build_packages":packages,"files":inventory(root)},indent=2),encoding="utf-8")
     verify(root)
 if __name__=="__main__":
     parser=argparse.ArgumentParser();parser.add_argument("mode",choices=("prepare","verify"));parser.add_argument("root",type=Path);parser.add_argument("--revision")

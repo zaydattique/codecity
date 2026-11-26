@@ -53,6 +53,20 @@ try {
   Run-Check "clean-offline-self-test" @("--self-test") 120
   Run-Check "clean-offline-walkthrough" @("--gui-test") 300
   Run-Check "fresh-process-resume" @("--resume-check") 120
+  # Reproduce the reported decoder error with both optional normal maps invalid.
+  $runtime=Join-Path $package "_internal\runtime"
+  $optional=@("soil-normal.png","soil-nor_gl.jpg","soil-gloss.png")
+  $env:BLOOMLOGIC_PROFILE_DIR=Join-Path $evidence "texture-fallback-profile"
+  $env:BLOOMLOGIC_CAPTURE_DIR=Join-Path $evidence "texture-fallback-review"
+  try {
+    foreach ($name in $optional) { $p=Join-Path $runtime $name; Move-Item -LiteralPath $p -Destination "$p.backup"; [IO.File]::WriteAllText($p,"invalid texture for regression test") }
+    Run-Check "optional-texture-decoder-failure-walkthrough" @("--gui-test") 300
+    $log=Get-Content (Join-Path $env:BLOOMLOGIC_PROFILE_DIR "application.log") -Raw
+    if ($log -match "advanced lighting True" -and $log -notmatch "Optional material map disabled") { throw "Expected decoder fallback not recorded" }
+  } finally {
+    foreach ($name in $optional) { $p=Join-Path $runtime $name; if (Test-Path "$p.backup") { Remove-Item -LiteralPath $p -Force; Move-Item -LiteralPath "$p.backup" -Destination $p } }
+  }
+  $env:BLOOMLOGIC_CAPTURE_DIR=$evidence
   # Independent benchmark profile avoids overwriting the saved walkthrough.
   $env:BLOOMLOGIC_PROFILE_DIR=Join-Path $evidence "benchmark-profile"
   Run-Check "benchmark-720p" @("--benchmark") 180
