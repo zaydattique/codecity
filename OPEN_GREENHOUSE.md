@@ -11,3 +11,5 @@ Observe both dry and moist predictions, test code branches and concepts, then Ex
 Select the target day using the timeline, then press Seek. The actual simulation day is displayed in the scene metrics. Step advances one day.
 
 Phase 3 visual candidate includes physical plant boxes, modeled ventilation equipment, water sound and smoother camera. Safe graphics intentionally disables enhanced shaders. Plant health changes leaf posture; time remains compressed. No real fluid or species prediction.
+
+Compare includes Stop watering after day 20, an explicit scheduled intervention to observe established plant stress. It is not the student's Python rule.

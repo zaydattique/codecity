@@ -154,7 +154,8 @@ for i in range(175):
     x=random.uniform(-.235,.235);y=random.uniform(.009,.16)
     z=.055+random.uniform(-.001,.003)
     size=random.uniform(.0012,.0046)
-    o=ellipsoid("Rhizobox grain",(x,y,z),(size,size*.75,size*.55),stone)
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=1,location=(x,y,z))
+    o=bpy.context.object;o.name="Rhizobox grain";o.scale=(size,size*.75,size*.55);assign(o,stone)
     o.rotation_euler=(random.random(),random.random(),random.random())
 for x in (-.251,.251):
     for z in (-.22,.035):ellipsoid("Rhizobox fastener",(x,-.099,z),(.004,.002,.004),aluminum)

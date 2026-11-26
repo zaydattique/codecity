@@ -38,3 +38,10 @@ class LessonTests(unittest.TestCase):
         p,t,f=fan_check(FAN_EXAMPLE);self.assertEqual(p,t);self.assertEqual(t,78982);self.assertIsNone(f)
         p,t,f=fan_check(FAN_START);self.assertLess(p,t);self.assertEqual(f[0].temperature,31)
         with self.assertRaises(RuleError):trace_rule(DEFAULT_CODE,Plant(),"ventilate")
+
+    def test_mature_stress_intervention(self):
+        from codecity.lesson import stop_after_growth
+        initial=Plant(moisture=42,light=15,temperature=28)
+        self.assertEqual(stop_after_growth(initial,20).growth,1)
+        end=stop_after_growth(initial,60)
+        self.assertEqual(end.growth,1);self.assertEqual(end.health,0)

@@ -1,5 +1,5 @@
 """Independent lesson operations, shared rule engine and deterministic timeline."""
-from .model import Plant, DEFAULT_CODE
+from .model import Plant, DEFAULT_CODE, advance
 from .session import Experiment
 from .rules import compile_rule, evaluate_actuator, trace_rule
 
@@ -29,3 +29,12 @@ def trace_day(experiment):
     if not experiment.state.day:return None
     before=Experiment();before.start(experiment.source,experiment.initial);before.seek(experiment.state.day-1)
     return trace_rule(experiment.source,before.state)
+
+# Educational intervention: both samples share the original starting environment.
+# This reference is a scheduled watering policy, not a single sensor-only rule.
+STOP_AFTER_GROWTH="stop-after-day-20"
+def stop_after_growth(initial,day):
+    run=Experiment();run.start(DEFAULT_CODE,initial);run.seek(min(day,20))
+    state=run.state
+    for _ in range(max(0,day-20)):state=advance(state,False)
+    return state

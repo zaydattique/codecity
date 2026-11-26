@@ -5,7 +5,7 @@ from codecity.model import Plant, advance, DEFAULT_CODE
 from codecity.rules import evaluate, compile_rule, evaluate_compiled, RuleError, trace_rule
 from codecity.session import Experiment, challenge, load_profile, write_profile
 from codecity.curriculum import LESSONS, GUIDE, CODE_STEPS, CONCEPTS, EXAMPLES
-from codecity.lesson import comparison, trace_day, DRY_RULE, WET_RULE, FAN_START, FAN_EXAMPLE, fan_check
+from codecity.lesson import comparison, trace_day, DRY_RULE, WET_RULE, FAN_START, FAN_EXAMPLE, fan_check, STOP_AFTER_GROWTH, stop_after_growth
 
 def assets():
     return Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))/"runtime"
@@ -121,9 +121,25 @@ def run():
         kw=dict(parent=parent,text=text,pos=(x,0,-y),text_scale=size,text_fg=color,text_align=TextNode.ALeft,frameColor=(0,0,0,0))
         if wrap:kw["text_wordwrap"]=wrap
         return DirectLabel(**kw)
+    button_textures={}
+    def rounded_mask(w,h):
+        key=(w,h)
+        if key in button_textures:return button_textures[key]
+        from panda3d.core import PNMImage,Texture
+        import math
+        iw,ih=max(8,int(w)),max(8,int(h));radius=min(7,ih/3)
+        image=PNMImage(iw,ih,4);image.fill(1);image.alphaFill(0)
+        for y in range(ih):
+            for x in range(iw):
+                dx=max(radius-x-.5,0,x+.5-(iw-radius));dy=max(radius-y-.5,0,y+.5-(ih-radius))
+                alpha=max(0,min(1,radius+.5-math.hypot(dx,dy)))
+                image.setAlpha(x,y,alpha)
+        texture=Texture("rounded-button");texture.load(image);button_textures[key]=texture;return texture
     def button(parent,text,x,y,w,h,fn,primary=False,enabled=True):
-        b=DirectButton(parent=parent,text=text,pos=(x,0,-y),frameSize=(0,w,-h,0),text_scale=16,text_pos=(w/2,-h/2-5),text_fg=WHITE if primary else INK,frameColor=GREEN if primary else LINE,relief=0,command=fn)
-        if not enabled:b["state"]="disabled"
+        b=DirectButton(parent=parent,text=text,pos=(x,0,-y),frameSize=(0,w,-h,0),text_scale=16,text_pos=(w/2,-h/2-5),text_fg=WHITE if primary else INK,frameColor=GREEN if primary else LINE,relief=1,command=fn)
+        from panda3d.core import TransparencyAttrib
+        b["frameTexture"]=rounded_mask(w,h);b.setTransparency(TransparencyAttrib.MAlpha)
+        if not enabled:b["state"]="disabled";b["text_fg"]=MUTED
         return b
     def stop_audio():
         nonlocal audio
@@ -577,11 +593,11 @@ def run():
         button(page,"Back to experiment",1030,73,210,39,lambda:show_lesson(2),True)
         label(page,"Same seed, same starting environment, different rules.",810,170,19,INK,22)
         label(page,"Reference rule",810,228,18)
-        for i,(name,rule) in enumerate((("No water",DRY_RULE),("Always water",WET_RULE),("Default",DEFAULT_CODE))):
+        for i,(name,rule) in enumerate((("No water",DRY_RULE),("Always water",WET_RULE),("Default controller",DEFAULT_CODE),("Stop watering after day 20",STOP_AFTER_GROWTH))):
             def choose(rule=rule):
                 nonlocal reference
                 reference=rule;refresh_comparison()
-            button(page,name,810,245+i*43,420,36,choose)
+            button(page,name,810,242+i*36,420,30,choose)
         compare_labels=[label(page,"",48,624,17,INK,38),label(page,"",410,624,17,INK,38)]
         label(page,"Compare day",810,404,18)
         slider=DirectSlider(parent=page,range=(0,60),value=comparison_day,pageSize=1,scale=1,pos=(1018,0,-435),frameSize=(-190,190,-7,7),thumb_frameSize=(-8,8,-10,10))
@@ -593,13 +609,15 @@ def run():
         app.camera.setPos(0,-2.45,.42);app.camera.lookAt(0,0,.06)
         refresh_comparison()
     def refresh_comparison():
-        left,right=comparison(experiment.source,experiment.initial,comparison_day,reference)
-        for i,(run,(root,models,substrate)) in enumerate(zip((left,right),compare_meshes)):
-            wet=run.state.moisture/100;substrate.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
-            idx=round(run.state.growth*(len(models)-1))
+        left,right=comparison(experiment.source,experiment.initial,comparison_day,DEFAULT_CODE if reference==STOP_AFTER_GROWTH else reference)
+        samples=(left.state,stop_after_growth(experiment.initial,comparison_day) if reference==STOP_AFTER_GROWTH else right.state)
+        for i,(sample,(root,models,substrate)) in enumerate(zip(samples,compare_meshes)):
+            wet=sample.moisture/100;substrate.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
+            idx=round(sample.growth*(len(models)-1))
             for j,p in enumerate(models):p.show() if j==idx else p.hide()
-            pose_plant(models[idx],run.state.health)
-            compare_labels[i]["text"]=f"{'A: Your rule' if i==0 else 'B: Reference'} | Day {comparison_day}\nGrowth {round(run.state.growth*100)}% | Health {round(run.state.health*100)}%\nSoil {run.state.moisture}%"
+            pose_plant(models[idx],sample.health)
+            name="A: Your rule" if i==0 else "B: Water stopped" if reference==STOP_AFTER_GROWTH else "B: Reference"
+            compare_labels[i]["text"]=f"{name} | Day {comparison_day}\nGrowth {round(sample.growth*100)}% | Health {round(sample.health*100)}%\nSoil {sample.moisture}%"
     def build_fan():
         nonlocal fan_rotor
         if fan_rotor is not None:return
@@ -683,7 +701,11 @@ def run():
         pose_plant(plants[-1],1)
         seek_day(10);assert state.day==10 and not playing;capture("rewind.png");assert state.day==10
         seek_day(60);assert state.growth==1
-        show_comparison();capture("compare.png");show_lesson(2);assert state.day==60
+        show_comparison();capture("compare.png")
+        reference=STOP_AFTER_GROWTH;refresh_comparison();capture("mature-wilt.png")
+        wilt=stop_after_growth(experiment.initial,60);assert wilt.growth==1 and wilt.health==0
+        assert any(abs(leaf.getR())>45 for leaf in leaf_nodes[id(compare_meshes[1][1][-1])])
+        reference=DRY_RULE;show_lesson(2);assert state.day==60
         editor.enterText("if moisture < 0:\n    irrigate(True)\nelse:\n    irrigate(False)")
         settings["Initial moisture"]["value"]=20;start()
         for _ in range(60):tick()
