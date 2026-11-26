@@ -12,3 +12,5 @@ Build-time narration generator: eSpeak NG (GPL-3.0-or-later), https://github.com
 Integrated CC0 Poly Haven potted_plant_01 and planter_pot_clay, source and exact SHA256 in packaged provenance files. Powered by Poly Haven. No external code or third-party human likeness claimed.
 
 Phase 2 no additional external art or code; uses existing licenses and synthetic narration pipeline. Original fan geometry authored in Python.
+
+Phase 3 original modeled equipment and synthesized irrigation sound, no new third-party content. Existing CC0 soil maps reused with verified source provenance. Pillow 11.3.0 build-only derivative generator (HPND license, https://github.com/python-pillow/Pillow/blob/11.3.0/LICENSE). No new runtime dependency.

@@ -26,3 +26,5 @@ Phase 1 verified at 657f7e0: Linux native capture and real OS keyboard/mouse pas
 Phase 2 preflight: preserve valid concept selection on returning, test both fan temperature outcomes in native capture, use wetness on comparison surfaces, distinguish a changed temperature from an evaluated fan result. No new art approval.
 
 Phase 2 first native review (45720820139) found queued DirectSlider callbacks rewinding a finished plant to day zero during render, despite prior assertions. Replaced implicit slider seek with explicit target plus Seek button; add post-render assertions. Comparison and trace screens rendered, but no release until corrected runtime gate.
+
+Phase 2 corrected timeline revision 06da8576 verified in 45721130738 (Windows artifact 15072835791). Phase 3: split physical container and architecture from bench, add greenhouse framing and floor, detailed substrate grains, plumbing/sensor, authored leaf pivots and vein relief, revised teacher pose, modeled fan, original synthesized irrigation audio, native lighting/shadows and normal/gloss maps, smooth camera, refined controls. Existing logic preserved. New Blender/export/render/GUI tests pending.

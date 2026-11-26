@@ -29,8 +29,12 @@ def export_runtime(scene, out, soil_maps):
                     c=tuple(p.inputs["Base Color"].default_value) if p else (.5,.5,.5,1)
                     color=tuple(max(0,min(1,v))**(1/2.2) for v in c[:3])
                     is_soil=obj.name.startswith("Rhizobox | substrate")
-                    pool="soil_surface" if is_soil else "v"+str(index)
-                    f.write("<Group> "+pool+" {\n<VertexPool> "+pool+" {\n")
+                    is_leaf=obj.name.startswith(("Cotyledon","True leaf"))
+                    pool="soil_surface" if is_soil else ("leaf_"+("left_" if obj.get("wilt_sign",1)<0 else "right_")+str(index) if is_leaf else "v"+str(index))
+                    f.write("<Group> "+pool+" {\n")
+                    pivot=ev.matrix_world.translation if is_leaf else ev.matrix_world.translation*0
+                    if is_leaf:f.write(f"<Transform> {{ <Translate> {{ {pivot.x:.7f} {pivot.y:.7f} {pivot.z:.7f} }} }}\n")
+                    f.write("<VertexPool> "+pool+" {\n")
                     inv=ev.matrix_world.to_3x3().inverted_safe().transposed()
                     if is_soil:
                         for j,loop in enumerate(mesh.loops):
@@ -38,10 +42,14 @@ def export_runtime(scene, out, soil_maps):
                             n=(inv@mesh.polygons[next(p.index for p in mesh.polygons if j in p.loop_indices)].normal).normalized()
                             u=(co.y if abs(n.x)>.5 else co.x)*3.2
                             v=(co.y if abs(n.z)>.5 else co.z)*3.2
-                            f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} <UV> {{ {u:.6f} {v:.6f} }} }}\n")
+                            from mathutils import Vector
+                            tangent=Vector((0,1,0)) if abs(n.x)>.5 else Vector((1,0,0))
+                            tangent=(tangent-n*tangent.dot(n)).normalized()
+                            binormal=n.cross(tangent).normalized()
+                            f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} <UV> {{ {u:.6f} {v:.6f} <Tangent> {{ {tangent.x:.5f} {tangent.y:.5f} {tangent.z:.5f} }} <Binormal> {{ {binormal.x:.5f} {binormal.y:.5f} {binormal.z:.5f} }} }} }}\n")
                     else:
                         for j,v in enumerate(mesh.vertices):
-                            co=ev.matrix_world@v.co;n=(inv@v.normal).normalized()
+                            co=(ev.matrix_world@v.co)-pivot;n=(inv@v.normal).normalized()
                             f.write(f"<Vertex> {j} {{ {co.x:.7f} {co.y:.7f} {co.z:.7f} <Normal> {{ {n.x:.5f} {n.y:.5f} {n.z:.5f} }} }}\n")
                     f.write("}\n")
                     for t in mesh.loop_triangles:
@@ -53,7 +61,10 @@ def export_runtime(scene, out, soil_maps):
                 finally: ev.to_mesh_clear()
     scene.frame_set(1)
     static=[o for o in scene.objects if not o.name.startswith(moving+("Water droplet",))]
-    write(out/"bench.egg",static)
+    box=[o for o in static if o.name.startswith("Rhizobox")]
+    write(out/"rhizobox.egg",box)
+    write(out/"bench.egg",[o for o in static if o not in box and not o.name.startswith("Architecture")])
+    write(out/"architecture.egg",[o for o in static if o.name.startswith("Architecture")])
     for frame in range(1,121,3):
         scene.frame_set(frame)
         write(out/f"plant-{frame:03}.egg",[o for o in scene.objects if o.name.startswith(moving)])

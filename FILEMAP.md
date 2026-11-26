@@ -12,3 +12,5 @@ AGENTS.md sole directive; CLAUDE.md entrypoint; README status; ROADMAP gates; AR
 `codecity/session.py`: compiled experiment, deterministic save validation, exhaustive challenge and atomic profile. `tests/test_session.py`: state, boundary, input grammar and persistence regressions. `tools/test_input.sh`: actual X11 mouse/keyboard test harness.
 
 `codecity/lesson.py`: independent comparison, fan validation and executed-day trace. `tests/test_lesson.py`: trace, seek, independent actuator and comparison regressions. `curriculum.py`: extended guide and concept examples. `greenhouse.py`: new timeline, comparison and ventilation scene.
+
+`tools/build_fan_art.py`: editable original Blender fan and separable GLBs. `tools/build_visual_media.py`: derived gloss map and original water sound. Existing botanical exporter extended with separate container/architecture and leaf pivot groups. Windows workflow adds pinned geometry build gate.

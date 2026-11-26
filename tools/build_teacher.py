@@ -2,6 +2,7 @@
 import bpy, hashlib, json
 from pathlib import Path
 from mathutils import Vector, Quaternion
+import math
 source=Path("build/teacher/sana/runtime.glb")
 assert hashlib.sha256(source.read_bytes()).hexdigest()=="f88a7cd9ea11340f362b5e0ee71e31054b425b72db5ba0e884fdf9fc77d9e687"
 report=json.loads(source.with_name("report.json").read_text())
@@ -28,11 +29,18 @@ def pose(frame,gesture):
         b.rotation_quaternion=Quaternion();b.location=(0,0,0)
     bpy.context.view_layer.update()
     aim("upperarm_r",(-.12,0,-1));aim("lowerarm_r",(-.04,-.12,-1))
-    aim("upperarm_l",(.14+.45*gesture,-.12,-1))
-    aim("lowerarm_l",(.10+.85*gesture,-.12-.45*gesture,-1+.85*gesture))
+    aim("upperarm_l",(.14+.30*gesture,-.12,-1))
+    aim("lowerarm_l",(.10+.80*gesture,-.12-.55*gesture,-1+.62*gesture))
+    # Modest head movement, not a claim of lip sync.
+    head=rig.pose.bones.get("head")
+    if head:head.rotation_quaternion=Quaternion((0,1,0),.075*gesture)
+    for name in ("spine03","spine02","spine01"):
+        bone=rig.pose.bones.get(name)
+        if bone:
+            bone.rotation_quaternion=Quaternion((1,0,0),.006*math.sin(frame*.10));break
     for b in rig.pose.bones:
         b.keyframe_insert("rotation_quaternion",frame=frame,group=b.name)
-for frame,g in [(1,0),(18,0),(42,1),(78,1),(105,0),(120,0)]:pose(frame,g)
+for frame,g in [(1,0),(15,.05),(30,.55),(42,1),(60,.82),(78,1),(96,.35),(110,.05),(120,0)]:pose(frame,g)
 rig.animation_data.action.name="explain"
 bpy.context.scene.render.fps=30
 bpy.context.scene.frame_start=1;bpy.context.scene.frame_end=120
@@ -40,4 +48,4 @@ bpy.context.scene.frame_set(1)
 out=Path("build/greenhouse-art/runtime")
 bpy.ops.export_scene.gltf(filepath=str((out/"teacher.glb").resolve()),export_format="GLB",export_animations=True,export_animation_mode="ACTIONS")
 bpy.ops.wm.save_as_mainfile(filepath=str((out.parent/"teacher.blend").resolve()))
-(out/"teacher-provenance.json").write_text(json.dumps({"source_sha256":hashlib.sha256(source.read_bytes()).hexdigest(),"output_sha256":hashlib.sha256((out/"teacher.glb").read_bytes()).hexdigest(),"source":"MPFB CC0 Sana rig from run 45666586177","motion":"original authored explain gesture; pending visual approval","source_report":report},indent=2))
+(out/"teacher-provenance.json").write_text(json.dumps({"source_sha256":hashlib.sha256(source.read_bytes()).hexdigest(),"output_sha256":hashlib.sha256((out/"teacher.glb").read_bytes()).hexdigest(),"source":"MPFB CC0 Sana rig from run 45666586177","motion":"original authored explain gesture with subtle torso/head movement; no facial or speech synchronization; pending visual approval","source_report":report},indent=2))

@@ -14,3 +14,5 @@ Pinned generated geometry artifact 15062736459, run 45699850632, includes origin
 Integrated exact CC0 props from artifact 15061584027, run 45699394380. Per-file SHA256 verified from existing provenance on both platforms. Plant glTF digest 23b30294407684b02f14800d6685bd8938da5d2111e17753ac8dd3c37d8c88a0; clay pot f2989068dcff9737c9f3d49d435b70e36d553822ac87134daac055ae9706af1e. Actual soil and original authored teacher assets unchanged. Visual re-review pending.
 
 Phase 2 reuses approved-for-testing runtime bundle 15071453030 from 45719638724. Original geometric fan is an instructional apparatus candidate, not a final photoreal asset. Synthetic narration regenerated; final art gate remains Phase 3.
+
+Phase 3 candidate reuses prior pinned licensed teacher/props and CC0 dirt_floor source with per-file hashes; original newly authored architecture, plumbing, rhizobox grains, leaf relief and fan geometry. Generated Blender source files and runtime meshes must pass new build and visual review. Derived gloss from roughness; original synthesized water sound. No new external art downloaded except existing verified soil maps.

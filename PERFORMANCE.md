@@ -14,3 +14,5 @@ Run 45713936738 rendered all eight native GUI screenshots successfully at 1280x7
 Previous Windows GUI gate timed out (45714558040); no hardware metrics. Phase 1 captures startup milestones and Python fault traces, explicitly distinguishes software fallback from native desktop. No visual art changes.
 
 Phase 1 packaged GUI verified on hosted Windows 45719638724, not user hardware. Phase 2 replay bounded to 60 days, comparison instances existing meshes, trace cached per day. No hardware measurements yet.
+
+Phase 2 packaged GUI passed 45721130738. Phase 3 retains 41 mesh stages, adds bounded 175 grains, 18 pooled droplets, 1024 shadow map on supported normal graphics; additional geometry and shader cost not measured. No FPS claim. Software diagnostic separate.

@@ -33,12 +33,14 @@ def self_test():
     from direct.actor.Actor import Actor
     import gltf
     root=assets();loader=Loader.getGlobalPtr()
-    for name in ["bench.egg","drop.egg"]+[f"plant-{f:03}.egg" for f in list(range(1,121,3))+[120]]:
+    for name in ["bench.egg","rhizobox.egg","architecture.egg","drop.egg"]+[f"plant-{f:03}.egg" for f in list(range(1,121,3))+[120]]:
         assert (root/name).is_file(),name
         assert loader.loadSync(Filename.fromOsSpecific(str(root/name)),LoaderOptions()) is not None,name
     teacher=Actor(NodePath(gltf.load_model(str(root/"teacher.glb"))))
     assert "explain" in teacher.getAnimNames()
     teacher.cleanup()
+    for name in ("fan-housing.glb","fan-rotor.glb"):
+        assert not NodePath(gltf.load_model(str(root/name))).isEmpty(),name
     assert list(root.glob("soil-diff.*"))
     plant=Plant(moisture=42,light=15,temperature=28)
     for _ in range(60):plant=advance(plant,evaluate(DEFAULT_CODE,plant))
@@ -73,10 +75,18 @@ def run():
     app.camLens.setFov(42)
     app.camLens.setAspectRatio(1280*.582/(720*.636))
     app.render.setAntialias(AntialiasAttrib.MMultisample)
-    amb=AmbientLight("soft fill");amb.setColor(Vec4(.58,.62,.56,1))
-    sun=DirectionalLight("daylight");sun.setColor(Vec4(.72,.70,.63,1))
+    amb=AmbientLight("soft fill");amb.setColor(Vec4(.36,.40,.35,1))
+    sun=DirectionalLight("daylight");sun.setColor(Vec4(.90,.86,.73,1))
     al=app.render.attachNewNode(amb);sl=app.render.attachNewNode(sun);sl.setHpr(-35,-55,0)
     app.render.setLight(al);app.render.setLight(sl)
+    # Shader generator enables contact shadows on normal OpenGL; safe mode stays fixed-function.
+    advanced=not (safe or diagnostic) and app.win.getGsg().getSupportsBasicShaders()
+    if advanced:
+        sun.setShadowCaster(True,1024,1024)
+        sun.getLens().setFilmSize(7,7);sun.getLens().setNearFar(1,15)
+        sl.setPos(-3,-4,6);sl.lookAt(0,.7,-.2)
+        app.render.setShaderAuto()
+    milestone("advanced lighting "+str(advanced))
     # Logical 1280 x 720 UI; all hit regions follow the same transform.
     ui=app.pixel2d.attachNewNode("studio")
     def resize(window):
@@ -86,14 +96,18 @@ def run():
             ui.setScale(w/1280,1,h/720)
             app.camLens.setAspectRatio(w*.582/(h*.636))
     resize(app.win);app.accept("window-event",resize)
-    BG=(.956,.949,.913,1);WHITE=(1,.995,.969,1);GREEN=(.12,.29,.22,1)
-    INK=(.10,.19,.15,1);MUTED=(.35,.43,.37,1);LINE=(.87,.89,.83,1);GOLD=(.94,.87,.65,1)
+    BG=(.934,.939,.918,1);WHITE=(.995,.995,.978,1);GREEN=(.08,.25,.19,1)
+    INK=(.075,.15,.12,1);MUTED=(.31,.39,.33,1);LINE=(.87,.90,.85,1);GOLD=(.94,.87,.65,1)
+    from panda3d.core import TextNode,TextProperties,TextPropertiesManager
+    # Existing Panda font is kept to avoid new unlicensed font assets.
     profile=load_profile(profile_path())
     experiment=Experiment.restore(profile["experiment"]) if profile["experiment"] is not None else Experiment()
     page=None;screen="loading";stage=0;guide_step=0;code_step=0;prediction=None;complete=profile["greenhouse_complete"]
     state=Plant();source=DEFAULT_CODE;playing=False;water=False;elapsed=0.;visual=0.;shown=-1;last_input=state.moisture
     pace=profile["pace"];scene_loaded=False;camera_mode="wide";saved_code=profile["draft"]
-    plants=[];drops=[];teacher=None;bench=None;soil=None
+    plants=[];drops=[];teacher=None;bench=None;soil=None;box_model=None
+    leaf_nodes={};camera_position=None;camera_focus=None;teacher_frame=0.;teacher_visible=False;teacher_gesture=False
+    impact=None;water_sound=None
     greenhouse_root=app.render.attachNewNode("greenhouse-exhibit")
     compare_root=app.render.attachNewNode("comparison-exhibit");compare_root.hide()
     fan_root=app.render.attachNewNode("fan-exhibit");fan_root.hide()
@@ -108,7 +122,7 @@ def run():
         if wrap:kw["text_wordwrap"]=wrap
         return DirectLabel(**kw)
     def button(parent,text,x,y,w,h,fn,primary=False,enabled=True):
-        b=DirectButton(parent=parent,text=text,pos=(x,0,-y),frameSize=(0,w,-h,0),text_scale=16,text_pos=(w/2,-h/2-5),text_fg=WHITE if primary else INK,frameColor=GREEN if primary else LINE,relief=1,command=fn)
+        b=DirectButton(parent=parent,text=text,pos=(x,0,-y),frameSize=(0,w,-h,0),text_scale=16,text_pos=(w/2,-h/2-5),text_fg=WHITE if primary else INK,frameColor=GREEN if primary else LINE,relief=0,command=fn)
         if not enabled:b["state"]="disabled"
         return b
     def stop_audio():
@@ -135,6 +149,7 @@ def run():
         if editor is not None:editor["focus"]=0
         editor=status=metrics=output=guide_text=timeline=trace_label=fan_status=target_day_label=None;trace_key=None
         stop_audio();playing=False;water=False
+        if water_sound is not None:water_sound.stop()
         if page is not None:page.destroy()
         page=DirectFrame(parent=ui,frameColor=(0,0,0,0),frameSize=(0,1280,-720,0))
         screen=mode
@@ -147,7 +162,9 @@ def run():
             panel(page,0,0,1280,126,BG);panel(page,0,588,1280,132,BG)
             panel(page,0,126,30,462,BG);panel(page,776,126,504,462,BG)
         panel(page,0,0,1280,62,WHITE)
-        label(page,"BloomLogic",30,39,27,GREEN)
+        panel(page,0,61,1280,1,LINE)
+        panel(page,30,19,4,25,GREEN)
+        label(page,"BloomLogic",44,39,27,GREEN)
         button(page,"Lessons",936,12,92,38,home)
         button(page,"Settings",1038,12,98,38,show_settings)
         button(page,"Exit",1146,12,102,38,quit_app)
@@ -157,6 +174,7 @@ def run():
         label(page,"Choose an exhibit, follow the explanation, and make code change the world.",34,137,17,MUTED)
         label(page,("1" if complete else "0")+" / 14 lessons completed",1010,108,16,GREEN)
         panel(page,30,155,1220,116,GREEN)
+        panel(page,30,155,6,116,(.66,.80,.49,1))
         label(page,"If / Else",50,190,27,WHITE)
         label(page,"Greenhouse controller",50,218,19,WHITE)
         label(page,"Control irrigation, observe seed growth and test both branches.",50,246,16,(.82,.89,.81,1))
@@ -165,6 +183,7 @@ def run():
         symbols=(">_","x=","123","+/-","if","for","skip","[ ]","( )","set","key","while","def","Aa")
         for i,(title,exhibit,desc) in enumerate(LESSONS):
             x=30+(i%4)*307;y=319+(i//4)*89
+            panel(page,x+2,y+3,294,79,(.84,.87,.81,1))
             panel(page,x,y,294,79,(.92,.95,.88,1) if i==4 else WHITE)
             panel(page,x+10,y+12,44,43,GREEN if i==4 else LINE)
             label(page,symbols[i],x+16,y+40,16,WHITE if i==4 else GREEN)
@@ -198,22 +217,33 @@ def run():
         label(page,"Local progress: "+("Greenhouse completed" if complete else "No lessons completed"),40,448,19)
         button(page,"Return to lessons",40,495,210,44,home,True)
     def load_scene():
-        nonlocal bench,soil,teacher,scene_loaded
+        nonlocal bench,soil,teacher,scene_loaded,box_model,impact,water_sound
         if scene_loaded:return
         milestone("loading scene")
         def model(name):
             n=app.loader.loadModel(Filename.fromOsSpecific(str(assets()/name)))
             if n.isEmpty():raise RuntimeError("Missing asset: "+name)
             n.reparentTo(greenhouse_root);return n
-        bench=model("bench.egg");soil=bench.find("**/soil_surface");milestone("bench loaded")
+        bench=model("bench.egg");box_model=model("rhizobox.egg");soil=box_model.find("**/soil_surface");model("architecture.egg");milestone("bench loaded")
         if soil.isEmpty():raise RuntimeError("Missing soil mesh")
+        if advanced:
+            from panda3d.core import TextureStage,Texture
+            # Normal and gloss maps use the exact same UV as the diffuse map.
+            # Roughness is not a gloss map; convert it during the build.
+            normal=TextureStage("soil-normal");normal.setMode(TextureStage.MNormal)
+            gloss=TextureStage("soil-gloss");gloss.setMode(TextureStage.MGloss)
+            soil.setTexture(normal,app.loader.loadTexture(str(next(assets().glob("soil-nor_gl.*")))),1)
+            soil.setTexture(gloss,app.loader.loadTexture(str(assets()/"soil-gloss.png")),1)
+            from panda3d.core import Material
+            mat=Material("Substrate");mat.setShininess(12);mat.setSpecular((.15,.14,.12,1));soil.setMaterial(mat)
         teacher=Actor(NodePath(gltf.load_model(str(assets()/"teacher.glb"))))
         teacher.reparentTo(greenhouse_root);milestone("teacher loaded")
         # Table rear edge is y=.45. Teacher stands behind it, not through it.
-        teacher.setPos(-.78,.93,-.98);teacher.setH(0);teacher.pose("explain",0)
+        teacher.setPos(-.90,1.0,-.98);teacher.setH(-7);teacher.pose("explain",0)
         for f in list(range(1,121,3))+[120]:
             p=model(f"plant-{f:03}.egg");p.hide();plants.append(p)
-        for _ in range(8):
+            leaf_nodes[id(p)]=list(p.findAllMatches("**/leaf_*"))
+        for _ in range(18):
             p=model("drop.egg");p.hide();drops.append(p)
         milestone("plant samples loaded")
         # A real textured CC0 plant and pot, verified at packaging and placed on floor.
@@ -223,17 +253,19 @@ def run():
             record=json.loads((folder/"provenance.json").read_text())
             prop=NodePath(gltf.load_model(str(folder/"source"/record["entry"])))
             prop.reparentTo(greenhouse_root);prop.setPos(*pos);prop.setScale(scale)
-        # Glazing and mullions at a distance behind the actual exhibits.
-        def wall_card(name,x,z,w,h,col,y=2.8):
-            cm=CardMaker(name);cm.setFrame(0,w,0,h)
-            node=greenhouse_root.attachNewNode(cm.generate());node.setPos(x,y,z)
-            node.setColor(*col);node.setLightOff();node.setTwoSided(True);return node
-        wall_card("daylit backdrop",-4,-.98,8,3.4,(.66,.79,.70,1))
-        wall_card("lower wall",-4,-.98,8,.44,(.57,.65,.58,1),2.78)
-        for x in (-3,-1.8,-.6,.6,1.8,3):
-            wall_card("greenhouse mullion",x,-.54,.048,2.96,(.28,.39,.33,1),2.76)
-        for z in (-.54,.52,1.62,2.4):
-            wall_card("horizontal rail",-4,z,8,.042,(.28,.39,.33,1),2.75)
+        # Original shallow splash rings sit exactly on substrate surface.
+        from panda3d.core import LineSegs
+        impact=greenhouse_root.attachNewNode("water-contact")
+        import math
+        for radius in (.012,.024):
+            ring=LineSegs("contact ripple");ring.setThickness(1.5);ring.setColor(.58,.78,.79,1)
+            for i in range(33):
+                a=i*2*math.pi/32;p=(radius*math.cos(a),.035+radius*math.sin(a),.060)
+                if i==0:ring.moveTo(*p)
+                else:ring.drawTo(*p)
+            impact.attachNewNode(ring.create())
+        impact.hide()
+        water_sound=app.loader.loadSfx(str(assets()/"water-contact.wav"));water_sound.setLoop(True);water_sound.setVolume(.15)
         scene_loaded=True;milestone("scene ready")
     def open_lesson(resume=False):
         nonlocal state,visual,shown,stage,guide_step,code_step,prediction,saved_code,concept_index,demo_moisture
@@ -243,21 +275,27 @@ def run():
         state=Plant();visual=0.;shown=-1;guide_step=0;code_step=0;prediction=None;concept_index=-1;demo_moisture=20
         show_lesson(2 if resume else 0)
     def camera(mode):
-        nonlocal camera_mode
-        camera_mode=mode
-        if mode=="wide":
-            teacher.show();teacher.play("explain")
-        else:teacher.hide();teacher.stop()
+        nonlocal camera_mode,teacher_visible,teacher_gesture,teacher_frame
+        camera_mode=mode;teacher_visible=mode=="wide"
+        teacher.show() if teacher_visible else teacher.hide()
+        teacher.stop();teacher_frame=0.;teacher_gesture=teacher_visible
     def set_cam():
+        nonlocal camera_position,camera_focus
         if camera_mode=="wide":
-            app.camera.setPos(-.28,-3.55,.50);app.camera.lookAt(-.28,.28,-.08)
+            pos=Vec3(-.35,-3.75,.62);focus=Vec3(-.30,.30,-.05)
         else:
-            app.camera.setPos(.10,-1.10,.20);app.camera.lookAt(0,.015,.07)
+            pos=Vec3(.12,-1.16,.22);focus=Vec3(0,.015,.07)
+        if camera_position is None or "--capture" in sys.argv or "--gui-test" in sys.argv:
+            camera_position=pos;camera_focus=focus
+        else:
+            blend=min(1,ClockObject.getGlobalClock().getDt()*7)
+            camera_position+=(pos-camera_position)*blend;camera_focus+=(focus-camera_focus)*blend
+        app.camera.setPos(camera_position);app.camera.lookAt(camera_focus)
     def set_message(message):
         if status is not None:status["text"]=message
     def show_lesson(n):
-        nonlocal stage,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual,timeline,trace_label,active_trace,target_day_label,concept_text,code_labels,demo_moisture,prediction_result
-        clear("lesson");stage=n;active_trace=None;prediction_result=None;code_labels=[]
+        nonlocal stage,camera_position,camera_focus,editor,status,metrics,output,settings,guide_text,state,source,playing,water,elapsed,visual,timeline,trace_label,active_trace,target_day_label,concept_text,code_labels,demo_moisture,prediction_result
+        clear("lesson");stage=n;active_trace=None;prediction_result=None;code_labels=[];camera_position=None;camera_focus=None
         if n==2:
             state=experiment.state;source=experiment.source;water=experiment.water;visual=state.growth;elapsed=0
         elif n==0:
@@ -470,8 +508,14 @@ def run():
         if state.day>=60 or (stage==0 and state.day>=(6 if guide_step in (1,2) else 24)):
             playing=False
             if stage==2:set_message("Finished. Growth "+str(round(state.growth*100))+"%. Run to compare another rule.")
+    def pose_plant(node,health):
+        stress=1-health
+        # Each leaf is exported in local space at its stem attachment; bending does not scale the whole plant.
+        for leaf in leaf_nodes.get(id(node),()):
+            leaf.setR((-1 if "left" in leaf.getName() else 1)*58*stress)
+        node.setColorScale(1,.48+.52*health,.34+.66*health,1)
     def update(task):
-        nonlocal elapsed,visual,shown,trace_key,active_trace
+        nonlocal elapsed,visual,shown,trace_key,active_trace,teacher_frame
         if screen=="fan":
             if fan_on and fan_rotor is not None:fan_rotor.setR(fan_rotor.getR()+ClockObject.getGlobalClock().getDt()*420)
             return Task.cont
@@ -486,13 +530,23 @@ def run():
         if idx!=shown:
             for p in plants:p.hide()
             plants[idx].show();shown=idx
-        plants[idx].setColorScale(1,.38+.62*state.health,.24+.76*state.health,1)
+        pose_plant(plants[idx],state.health)
+        if teacher_visible and teacher_gesture:
+            teacher_frame=min(teacher.getNumFrames("explain")-1,teacher_frame+dt*30)
+            teacher.pose("explain",int(teacher_frame))
         wet=state.moisture/100;soil.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
         for i,p in enumerate(drops):
             if (playing or stage==1) and water:
                 phase=(task.time*2.6+i/len(drops))%1
-                p.setPos((i%3-1)*.004,.035,.36-.302*phase);p.show()
+                p.setPos((i%3-1)*.003,.035,.36-.302*phase*phase);p.show()
             else:p.hide()
+        active_water=(playing or stage==1) and water
+        if impact is not None:
+            impact.show() if active_water else impact.hide()
+            impact.setAlphaScale(.45+.35*(1-(task.time*3)%1))
+        if water_sound is not None:
+            if active_water and voice and water_sound.status()!=water_sound.PLAYING:water_sound.play()
+            elif not active_water:water_sound.stop()
         if metrics is not None:
             metrics["text"]=f"Day {state.day}  |  Soil {state.moisture}%  |  Growth {round(state.growth*100)}%  |  Health {round(state.health*100)}%"
         if stage==2 and timeline is not None:
@@ -510,10 +564,11 @@ def run():
         if compare_meshes:return
         for x in (-.36,.36):
             root=compare_root.attachNewNode("sample");root.setX(x)
-            substrate=soil.copyTo(root)
+            physical_box=box_model.copyTo(root);substrate=physical_box.find("**/soil_surface")
             models=[]
             for p in plants:
                 copy=p.copyTo(root);copy.hide();models.append(copy)
+                leaf_nodes[id(copy)]=list(copy.findAllMatches("**/leaf_*"))
             compare_meshes.append((root,models,substrate))
     def show_comparison():
         nonlocal comparison_day,compare_labels,timeline
@@ -543,39 +598,13 @@ def run():
             wet=run.state.moisture/100;substrate.setColorScale(.85-.35*wet,.81-.35*wet,.76-.36*wet,1)
             idx=round(run.state.growth*(len(models)-1))
             for j,p in enumerate(models):p.show() if j==idx else p.hide()
-            models[idx].setColorScale(1,.38+.62*run.state.health,.24+.76*run.state.health,1)
+            pose_plant(models[idx],run.state.health)
             compare_labels[i]["text"]=f"{'A: Your rule' if i==0 else 'B: Reference'} | Day {comparison_day}\nGrowth {round(run.state.growth*100)}% | Health {round(run.state.health*100)}%\nSoil {run.state.moisture}%"
     def build_fan():
         nonlocal fan_rotor
         if fan_rotor is not None:return
-        # Original geometric teaching apparatus, not final photoreal art.
-        # The actual rotor is a 3D model driven by the evaluated actuator result.
-        from panda3d.core import GeomVertexData,GeomVertexFormat,GeomVertexWriter,GeomTriangles,Geom,GeomNode
-        import math
-        def mesh(parent,name,verts,faces,color):
-            v=GeomVertexData(name,GeomVertexFormat.getV3(),Geom.UHStatic);w=GeomVertexWriter(v,"vertex")
-            for point in verts:w.addData3(*point)
-            tri=GeomTriangles(Geom.UHStatic)
-            for a,b,c in faces:tri.addVertices(a,b,c)
-            g=Geom(v);g.addPrimitive(tri);n=GeomNode(name);n.addGeom(g);p=parent.attachNewNode(n);p.setColor(*color);p.setTwoSided(True);p.setLightOff();return p
-        def ring(parent,rad,width,y,color):
-            v=[];f=[]
-            for i in range(48):
-                a=2*math.pi*i/48
-                for radius in (rad,rad-width):v.append((radius*math.cos(a),y,radius*math.sin(a)))
-            for i in range(48):
-                a=2*i;b=2*((i+1)%48);f.extend(((a,b,a+1),(a+1,b,b+1)))
-            return mesh(parent,"ring",v,f,color)
-        ring(fan_root,.48,.065,.05,(.24,.34,.31,1))
-        fan_rotor=fan_root.attachNewNode("rotor")
-        for i in range(5):
-            a=2*math.pi*i/5
-            points=[]
-            for x,z in ((.09,-.04),(.40,-.10),(.43,.02),(.18,.14)):
-                points.append((x*math.cos(a)-z*math.sin(a),.02,x*math.sin(a)+z*math.cos(a)))
-            mesh(fan_rotor,"blade",points,[(0,1,2),(0,2,3)],(.44,.63,.55,1))
-        ring(fan_rotor,.105,.105,-.01,(.15,.24,.20,1))
-        ring(fan_root,.49,.018,-.035,(.67,.76,.67,1))
+        housing=NodePath(gltf.load_model(str(assets()/"fan-housing.glb")));housing.reparentTo(fan_root)
+        fan_rotor=NodePath(gltf.load_model(str(assets()/"fan-rotor.glb")));fan_rotor.reparentTo(fan_root)
     def show_fan():
         nonlocal editor,status,fan_temp,fan_status,fan_on,trace_label,fan_run,fan_slider
         clear("fan");build_fan();fan_on=False
@@ -648,6 +677,10 @@ def run():
         for _ in range(60):tick()
         assert state.growth==1 and state.health>.9
         visual=1.;capture("grown.png");assert state.day==60 and state.growth==1
+        assert leaf_nodes[id(plants[-1])],"Missing authored leaf pivots"
+        pose_plant(plants[-1],.2)
+        assert any(abs(leaf.getR())>30 for leaf in leaf_nodes[id(plants[-1])])
+        pose_plant(plants[-1],1)
         seek_day(10);assert state.day==10 and not playing;capture("rewind.png");assert state.day==10
         seek_day(60);assert state.growth==1
         show_comparison();capture("compare.png");show_lesson(2);assert state.day==60
@@ -656,6 +689,11 @@ def run():
         for _ in range(60):tick()
         assert state.growth<.1 and state.health==0
         visual=state.growth;capture("dry.png")
+        # An always-watering controller stresses a plant after initial germination.
+        editor.enterText(WET_RULE);settings["Initial moisture"]["value"]=20;start()
+        for _ in range(60):tick()
+        assert state.health==0 and state.growth>0
+        visual=state.growth;capture("overwatered.png")
         before=state;editor.enterText("import os");start();assert state==before
         show_lesson(3);editor.enterText(DEFAULT_CODE.replace("40","50"))
         passed,total,failures=challenge(editor.get());assert passed==total and not failures

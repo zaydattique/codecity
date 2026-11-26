@@ -6,7 +6,54 @@ permissions:
   contents: read
   actions: read
 jobs:
+  geometry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Blender LTS
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file=blender-4.5.17-linux-x64.tar.xz
+          downloaded=false
+          for base in https://download.blender.org/release/Blender4.5 https://mirror.blender.org/release/Blender4.5; do
+            if curl -fsSL --retry 2 --max-time 60 "$base/blender-4.5.17.sha256" -o blender-checksums && curl -fsSL --retry 2 --max-time 600 "$base/$file" -o "$file"; then
+              grep -E "^[[:xdigit:]]{64} [ *]$file$" blender-checksums | sha256sum -c -
+              downloaded=true
+              break
+            fi
+            rm -f "$file" blender-checksums
+          done
+          test "$downloaded" = true
+          tar -xJf "$file"
+          echo "$RUNNER_TEMP/blender-4.5.17-linux-x64" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: npc-sana-candidate
+          run-id: 45666586177
+          github-token: ${{ github.token }}
+          path: build/teacher
+      - name: Author botanical geometry and source
+        env:
+          CODECITY_RUNTIME_ONLY: '1'
+        run: blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_greenhouse_art.py
+      - name: Author teacher and ventilation geometry
+        run: |
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_teacher.py
+          blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/build_fan_art.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BloomLogic-Phase3-Geometry
+          path: build/greenhouse-art/runtime/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BloomLogic-Editable-Art
+          path: build/greenhouse-art/*.blend
+          if-no-files-found: error
   runtime-render:
+    needs: geometry
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -17,10 +64,15 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: BloomLogic-Runtime-Assets
-          run-id: 45719638724
+          run-id: 45721130738
           github-token: ${{ github.token }}
           path: runtime
-      - run: python -m pip install -r requirements.txt
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: BloomLogic-Phase3-Geometry
+          path: runtime
+      - run: python -m pip install -r requirements.txt pillow==11.3.0
+      - run: python -m tools.build_visual_media
       - run: sudo apt-get update -qq && sudo apt-get install -y espeak-ng xdotool
       - run: python -m tools.build_narration
       - run: python -m unittest discover -s tests -v

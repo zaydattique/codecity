@@ -9,3 +9,5 @@ Clear and Example buttons are available above the editor. An invalid Run pauses 
 Observe both dry and moist predictions, test code branches and concepts, then Experiment. Timeline scrubs exact simulated days; Step advances one day; Compare uses the last executed rule and same initial conditions. Challenge includes separate temperature-controlled ventilation practice. Fan geometry is a teaching illustration; no air-flow physics is claimed.
 
 Select the target day using the timeline, then press Seek. The actual simulation day is displayed in the scene metrics. Step advances one day.
+
+Phase 3 visual candidate includes physical plant boxes, modeled ventilation equipment, water sound and smoother camera. Safe graphics intentionally disables enhanced shaders. Plant health changes leaf posture; time remains compressed. No real fluid or species prediction.
